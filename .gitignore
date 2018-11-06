@@ -1,0 +1,7 @@
+.Rhistory
+.RData
+.Rproj.user
+*.pdf
+.DS_Store
+/data
+/out
