@@ -1,0 +1,363 @@
+\documentclass[11pt,]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1.5cm]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\newcommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{}
+    \pretitle{\vspace{\droptitle}}
+  \posttitle{}
+    \author{}
+    \preauthor{}\postauthor{}
+    \date{}
+    \predate{}\postdate{}
+  
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{0.75\baselineskip}{0.1mm}
+\usepackage[table]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,shapes}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\chead{\begin{tikzpicture}\fill[blue] (current page.north west) rectangle ([yshift = -1cm]current page.north east);\fill[gold] ([yshift = -1.15cm]current page.north west) rectangle ([yshift = -1cm]current page.north east);\end{tikzpicture}}
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+\let\oldhref\href
+\renewcommand{\href}[2]{\oldhref{#1}{\bfseries#2}}
+
+\begin{document}
+
+ \renewcommand{\familydefault}{\sfdefault}
+
+\tikzset{%
+  missing/.style = {minimum width = 0.64\textwidth, minimum height = 0.2\textheight, font = \large},%
+  present/.style = {minimum width = 0.64\textwidth},%
+  every picture/.style = {remember picture, overlay, inner sep = 0pt, line width=0pt,/utils/exec={\sffamily}}}
+
+\definecolor{blue}{HTML}{003D7E} \definecolor{gold}{HTML}{FCCA06}
+\definecolor{grey}{HTML}{505050}
+
+\def\UrlFont{\bfseries}
+
+\begin{tikzpicture}
+
+  
+  \fill[blue] (current page.north west) rectangle ([yshift = -3cm]current page.north east);
+  \fill[gold] ([yshift = -3cm]current page.north west) rectangle ([yshift = -3.15cm]current page.north east);
+  
+  
+  \node[below = 1cm of current page.north, white, font = \Huge\bf] (num) {Aquifer Factsheet - Companion Document};
+  \node[below = 0.3cm of num, white, font = \large\bf] {Updated 2018-11-15};
+
+\end{tikzpicture}
+
+\vspace{1.5cm}
+
+The purpose of this companion document is to provide more detailed
+information related to the terms, analytical methods, and data sources
+used to produce the Aquifer factsheets.
+
+\subsubsection{\texorpdfstring{\emph{Disclaimer}}{Disclaimer}}\label{disclaimer}
+
+\vspace{-4mm}
+
+The information in this Factsheet has been prepared from information
+currently available to the BC government. As available information is
+limited in nature, this Factsheet only provides a broad overview of
+information about the aquifer and is not intended to provide a
+comprehensive description of the aquifer. The Factsheet is being
+provided as a public service on an ``as is'' basis and without any
+warranty as to the fitness or suitability of the information in it for
+any particular purpose. The information in this Factsheet has not been
+tested or verified by the BC government. Consequently, this Factsheet
+should not be relied upon as providing complete or specific information
+or advice for use in responding to or assessing particular sites or
+circumstances.
+
+Persons using this Factsheet should take steps to independently verify
+the information herein provided. It is your responsibility to review
+your particular sites or circumstances and then to determine the
+accuracy, suitability, reliability, usability, completeness, timeliness
+or applicability of the information in this Factsheet to your particular
+sites or circumstances. Provision of this information does not
+substitute for identification and analysis of individual sites or
+circumstances by a suitably qualified professional.
+
+Persons using this Factsheet do so at their own risk. The BC government
+accepts no liability or responsibility for the relevancy, suitability,
+reliability, usability, completeness, timeliness, accuracy or
+applicability of any of the information in this Factsheet to individual
+sites or circumstances, nor for any results obtained from its use. Users
+of this Factsheet are wholly responsible for independently verifying the
+appropriateness of the information herein provided to their individual
+sites or circumstances based on their own professional advice.
+
+\begin{center}\rule{0.5\linewidth}{\linethickness}\end{center}
+
+\section{Aquifer Description (based on
+Subtype)}\label{aquifer-description-based-on-subtype}
+
+The aquifer description is a generic description based on the subtype
+classification of the aquifer assigned at the time of mapping. A
+complete list of Aquifer subtype code descriptions can be found on the
+\href{https://www2.gov.bc.ca/gov/content/environment/air-land-water/water/groundwater-wells/aquifers/aquifer-subtype-code-description}{BC
+Government ground water website}.
+
+\url{https://www2.gov.bc.ca/gov/content/environment/air-land-water/water/groundwater-wells/aquifers/aquifer-subtype-code-description}
+
+\section{Water District}\label{water-district}
+
+British Columbia is divided into named and described water districts. A
+complete list of the Water Districts is provided in the
+\href{http://www.bclaws.ca/civix/document/id/complete/statreg/38_2016}{Water
+Sustainability Act}.
+
+\url{http://www.bclaws.ca/civix/document/id/complete/statreg/38_2016}
+
+\section{No. of Wells Correlated to
+Aquifers}\label{no.-of-wells-correlated-to-aquifers}
+
+The number of wells correlated to an aquifer represents the number of
+wells that were identified as being completed within the aquifer at the
+time of mapping. There are several reasons why wells appearing within
+the aquifer polygon may not be correlated to the aquifer including: a)
+the well was constructed after the time of mapping, b) no lithological
+information provided on the well log, or c) the well was completed
+either below or above the identified aquifer unit.
+
+\section{Vulnerability, Productivity and Aquifer
+classification}\label{vulnerability-productivity-and-aquifer-classification}
+
+Values are determined at the time of mapping according to the BC Aquifer
+Classification system, which are described in
+\href{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf}{The
+Guide to using the BC Aquifer Classification Maps -- For the Protection
+and Management of Groundwater}. The guide presents a detailed
+description of the BC Aquifer Classification System, as well as the
+methodologies employed in classifying the aquifer, and discussions on
+some of the limitations of the data. This should help the reader to
+better understand the criteria used to identify, delineate and classify
+an aquifer. The classification component characterizes the aquifer based
+on the level of development of the groundwater resource (the water
+supply available relative to the amount of demand placed on that water
+supply) at the time of mapping, and also based on the vulnerability of
+the aquifer to contamination.
+
+\url{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf}
+
+\section{Hydraulic Connectivity}\label{hydraulic-connectivity}
+
+The likelihood of hydraulic connectivity is inferred based on aquifer
+sub-type. The determination is based on a desktop assessment and has not
+been field tested or verified. The guidance document
+\href{http://a100.gov.bc.ca/appsdata/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{Determining
+the Likelihood of Hydraulic Connection} provides detailed information
+related to the methodologies and assumptions underlying the assessment.
+
+\url{http://a100.gov.bc.ca/appsdata/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}
+
+\section{BC Aquifer Stress Index}\label{bc-aquifer-stress-index}
+
+The aquifer stress index uses the groundwater footprint and
+aquifer-scale estimates of withdrawal, recharge and the groundwater
+contribution to environmental flows. A description of the data sources
+and the methods and limitations is available on the BC Aquifer Stress
+index website.
+
+Aquifers are classified as:
+
+\begin{itemize}
+\tightlist
+\item
+  More stressed (highly certain) if ALL results suggest aquifer stress
+\item
+  More stressed (less certain) if SOME results suggest aquifer stress
+\item
+  Less stressed if NONE of the results suggest aquifer stress
+\item
+  Methods not applicable where data is not available or for confined
+  aquifers
+\end{itemize}
+
+\href{http://governmentofbc.maps.arcgis.com/home/webmap/viewer.html?webmap=6c137fb01a364ee699440a28619e45c2}{http://governmentofbc.maps.arcgis.com/home/webmap/viewer.html?\\
+webmap=6c137fb01a364ee699440a28619e45c2}
+
+\section{Reported Well Yield}\label{reported-well-yield}
+
+Reported well yields are based on the estimates recorded by the driller
+at the time of well construction. It is only an estimate and is not
+necessarily based on measured values. As defined in
+\href{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf}{The
+Guide to using the BC Aquifer Classification Maps -- For the Protection
+and Management of Groundwater}, estimated yields are categorize as
+follows:
+
+\begin{itemize}
+\tightlist
+\item
+  \textless{} 0.3 L/s are considered ``Low'' yield
+\item
+  0.3 - 3.0 L/s are considered ``Medium'' yield
+\item
+  \textgreater{} 3.0 L/s are considered ``High'' yield
+\end{itemize}
+
+\url{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf}
+
+\section{Reported Static Water Depth}\label{reported-static-water-depth}
+
+Water depth is reported in meters below ground surface and represents
+the water level measured by the driller at the time of well
+construction.
+
+\section{Reported Well Depth}\label{reported-well-depth}
+
+The well depth is reported in meters below ground surface as measured by
+the driller at the time of well construction.
+
+\vspace{5mm}
+
+\begin{minipage}[t]{0.6\textwidth}
+  \section{Summary Box Plots for Well Yield, Static Water Depth and Well Depth}
+  \vspace{3mm}
+  The boxplots provide a summary of the available information for wells correlated to the aquifer.\\
+  
+  \begin{itemize}
+    \item n = the number of wells included in the summary
+    \item upper 'hinge' = first quartile
+    \item lower 'hinge' = third quartile
+    \item crossbar = median
+    \item whisker = maximum and minimum values\\(within interquartile range)
+    \item points = outliers (defined as 1.5 x interquartile range)
+  \end{itemize}
+  
+  \vspace{0.5cm}
+  
+  \textbf{Note:} Data not plotted when n < 5
+  
+  \vspace{0.5cm}
+  
+\end{minipage}\begin{minipage}[t]{0.4\textwidth}
+  \centering
+  \textbf{Box Plot Key}\\
+  \includegraphics[width = 0.7\textwidth]{../out/boxplot_key.png}
+\end{minipage}
+
+\section{Water Level Summary and Precipitation Summary
+Plot}\label{water-level-summary-and-precipitation-summary-plot}
+
+The Water Level Summary Plots are based on data collected through the
+Provincial Groundwater Observation Well Network.
+
+\url{https://catalogue.data.gov.bc.ca/dataset/57c55f10-cf8e-40bb-aae0-2eff311f1685}
+
+The dataset comprises daily mean water levels collected from all
+provincial observation wells. Historically, the water level data was
+collected at varying frequencies and with measurement frequencies that
+have changed over the years. To summarize the data, the median values
+were calculated for any month that has more than one reading. The median
+and percentile values plotted on the graph were then calculated based on
+monthly values for all years available. Monthly water level summaries
+were produced for observation wells with a minimum of 10 years of data.
+``Preliminary'' plots are provided for data sets with between 5 and 10
+years of data. The extreme Minimum and Maximum values represent the
+highest and lowest values ever recorded for a particular month.
+
+The Precipitation Summary Plots are based on the
+\href{http://climate.weather.gc.ca/climate_normals}{Canadian Climate
+Normals (1981-2010) dataset accessible from the Environment Canada
+website}. The nearest climate station at similar elevation to the
+aquifer (and typically within a maximum distance of 10km) was selected
+as representative.
+
+\url{http://climate.weather.gc.ca/climate_normals}
+
+\section{Trend Analysis}\label{trend-analysis}
+
+The trend analysis was conducted by Environmental Reporting BC. A full
+description of the methods used for the trends analysis are available on
+the
+\href{http://www.env.gov.bc.ca/soe/indicators/water/groundwater-levels.html}{State
+of The Environment website}.
+
+\url{http://www.env.gov.bc.ca/soe/indicators/water/groundwater-levels.html}
+
+\section{Piper Plot}\label{piper-plot}
+
+The chemistry results presented in the Piper plot data were obtained
+from the Environmental Monitoring System (EMS) web reporting site
+(\url{https://a100.gov.bc.ca/pub/ems}) using the R package ``rems''
+(\url{https://github.com/bcgov/rems/blob/master/README.Rmd}) and
+converted to a format compatible with the groundwater software program
+Aquachem (Waterloo Hydrogeologic, 2014). Chemistry results were screened
+for data quality by assessing the charge balance error. Only samples
+with a charge balance error of less than 10\% were included on the piper
+plot.
+
+\textbf{Reference}\\
+Waterloo Hydrogeologic (2014). AquaChem Water Quality Analysis \&
+Geochemical Modeling v.2014.2.
+
+
+\end{document}

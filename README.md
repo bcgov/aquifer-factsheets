@@ -4,30 +4,30 @@
 
 This repository contains [R](http://www.r-project.org) code that generates aquifer factsheets for British Columbia. 
 
-
 ## Usage
 
 ### Data
 
-The data sourced for the analyses is provided under the [Open Government Licence – British Columbia](http://www2.gov.bc.ca/gov/content?id=A519A56BC2BF44E4A008B33FCF527F61).
+The data sourced for the analyses is provided under the [Open Government Licence – British Columbia](http://www2.gov.bc.ca/gov/content?id=A519A56BC2BF44E4A008B33FCF527F61). Data sets used by, but not create in, these scripts is stored in the "./data/" folder.
 
-- Groundwater level monitoring data are downloaded from the 
-  [B.C. Data Catalogue](https://catalogue.data.gov.bc.ca/dataset/57c55f10-cf8e-40bb-aae0-2eff311f1685) via the [`bcgroundwater` R package](https://github.com/bcgov/bcgroundwater)
-- Groundwater well attribute data are downloaded directly from the
-  [B.C. Data Catalogue](https://catalogue.data.gov.bc.ca/dataset/e4731a85-ffca-4112-8caf-cb0a96905778)
-- Natural Resource Regions used in the summaries are sourced from the [`bcmaps` R package](https://cran.r-project.org/web/packages/bcmaps/index.html)
+### Figures
 
+Some figures are created as part of the analysis, some are created in other software. Additional figures used by, but not created in, these scripts are stored in the "./figures/" folder:  
+
+- ./figures/maps/ - Aquifer maps (i.e., Aquifer_Map_0001.pdf)
+- ./figures/piperplots/ - Piper plots (i.e., Piperplot_0001_OW0001.jpg)
+- ./figures/na/ - Missing plot figures for Combo, Piper pltos and Trend plots
+- ./figures/boxplot_key.png - Figure explaining the boxplots for the companion document
 
 ### Code
 
 There are four core scripts that are required for the analysis, they need to be run in order:
 
-- 01_clean.R
-- 02_analysis.R
-- 03_visualize.R
-- 04_output.R
+- 01_load.R
+- 02_clean.R
+- 03_output.R
 
-Most packages used in the analysis can be installed from CRAN using `install.packages()`. You will need to install  [`bcgroundwater`](https://github.com/bcgov/envreportutils) using the `remotes` package:
+Most packages used in the analysis can be installed from CRAN using `install.packages()`. You will need to install  [`bcgroundwater`](https://github.com/bcgov/envreportutils) using the `devtools` package:
 
 ```r
 install.packages("remotes") # If you don't already have it installed
@@ -36,7 +36,14 @@ library(remotes)
 install_github("bcgov/bcgroundwater")
 ```
  
-An installation of LaTeX (e.g. MiKTex, MacTeX or [`tinytex`](https://cran.r-project.org/web/packages/tinytex/index.html)) is required to render the .Rmd file to PDF with `knitr`.
+An installation of LaTeX (e.g. MiKTex, MacTeX or [`tinytex`](https://cran.r-project.org/web/packages/tinytex/index.html)) is required to render the .Rmd files to PDF with `knitr`.
+
+### Output
+
+These scripts output Aquifer Factsheets and the Aquifer Factsheet Companion document to the "./factsheets/" folder.
+
+- AQ_00001_Aquifer_Factsheet.pdf - Example factsheet for Aquifer #1
+- Aquifer Factsheet - Companion Document.pdf - Methodological details for factsheets
 
 ### Project Status
 This project is under development.

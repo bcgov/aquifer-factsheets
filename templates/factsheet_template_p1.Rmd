@@ -1,0 +1,88 @@
+
+<!-- PAGE 1: Headers, table and boxplots -->
+
+
+
+<!-- tikzpictures are finicky but allow you to be precise about document placement -->
+
+<!-- 
+NOTE: 
+This block is a MARKDOWN comment block. But markdown isn't recognized when it's embedded inside latex code.
+So any markdown between latex code blocks which \begin{...} and \end{...} won't work, including comments
+So when commenting between \begin{...} and \end{...}, use either latex comments (%) or line r comments: `r #Comment`
+
+This code below uses inline R input to be dynamic AND for comments 
+-->
+
+```{r Aquifer Summary Table, results = 'asis', out.width = "35%"}
+
+# Here we create the table in latex code using the kable function.
+# We save the latex table as 't' and place it in the tikzpicture later (see below)
+
+# Remove the headings
+aquifer_table <- as.matrix(aquifer)
+colnames(aquifer_table) <- NULL
+
+# Create the table and edit
+t <- kable(aquifer_table, format = "latex", escape = FALSE) %>%
+  kable_styling(full_width = FALSE, position = "left", font_size = 9) %>%
+  column_spec(1, width = "5cm", color = "white",
+              background = "blue") %>%  # Can't use border_left = TRUE, as there's a bug in kableExtra right now
+  column_spec(2, width = "2.5cm", border_right = TRUE)
+
+```
+
+\begin{tikzpicture}
+
+  `r  # Top blue bar with title and gold line`
+  \fill[blue] (current page.north west) rectangle ([yshift = -3cm]current page.north east);
+  \fill[gold] ([yshift = -3cm]current page.north west) rectangle ([yshift = -3.15cm]current page.north east);
+
+  `r  # Title and Aquifer number`
+  \node[below = 1cm of current page.north, white, font = \Huge\bf] (num) {Aquifer \#`r aq_num`};
+  \node[below = 0.25cm of num, white, font = \Large\bf] {`r title`};
+
+  `r # Map figure`
+  \node[below = 3.5cm of current page.north] (map) {\includegraphics{`r figures_p1$map`}};
+  
+  `r # Boxplots`
+  \node[below = 0.3cm of map.south east, anchor = north east] (third) {\includegraphics[width = 0.18\paperwidth]{`r figures_p1$well_depth`}};
+  \node[left = 0cm of third.north west, anchor = north east] (second) {\includegraphics[width = 0.18\paperwidth]{`r figures_p1$water_depth`}};
+  \node[left = 0cm of second.north west, anchor = north east] (first) {\includegraphics[width = 0.18\paperwidth]{`r figures_p1$well_yield`}};
+
+  `r # Aquifer Description`
+  \node[below = 0.5cm of map.south west, anchor = north west, align = left, text width = 7.5cm] (desc) {`r desc`};
+
+  `r # Aquifer Table`
+  \node[below left = 0.5cm and 0.1cm of desc.south west, anchor = north west]{\renewcommand{\arraystretch}{1.25} `r t`};
+
+  `r # Add legal disclaimer to bottom`
+  \node[above right = 0.75cm and 0.8cm of current page.south west, align = left, text width = 20cm, font = \tiny] {Use of information from Aquifer factsheets (accessed by BC government website) is subject to limitation of liability provisions (further described on that website).  That information is provided by the BC government as a public service on an “as is” basis, without warranty of any kind, whether express or implied, and its use is at your own risk.  Under no circumstances will the BC government, or its staff, agents and contractors, be responsible or liable to any person or business entity, for any direct, indirect, special, incidental, consequential or any other loss or damages to any person or business entity based on this factsheet or any use of information from it. Generated on: `r as.character(Sys.Date())`};
+
+  `r # Add link to methods`
+  \node[above left = 0.1cm and 0.5cm of current page.south east, font = \scriptsize] {Detailed methods for all figures are described in the companion document (\link[grey]{../Aquifer Factsheet - Companion Document.pdf}{Aquifer Factsheet - Companion Document.pdf})};
+
+\end{tikzpicture}
+
+<!-- License information, this can be updated later to be dynamic (i.e. based on a parameter) -->
+
+<!-- \begin{tikzpicture}[remember picture, overlay, inner sep = 5pt, line width=0pt] -->
+<!--   \node[above right = 3cm and 2cm of current page.south west, fill = blue, text = white](license){Licensed Groundwater Use Summarized by Type}; -->
+<!--   \node[below = 0.1cm of license, font = \it]{*Pending data layer availability*}; -->
+<!-- \end{tikzpicture} -->
+
+
+<!-- Now all the tikzpictures are in place, just need to add table into blank spot -->
+
+<!-- Add vertical space to push table down into position -->
+\vspace{16cm}
+
+<!-- Add some padding between rows in the table (here 1.25 means 125% of original spacing) -->
+
+
+
+<!-- Add draft watermark -->
+```{r, results = "asis"}
+  if(params$draft) draft_tag()
+```
+

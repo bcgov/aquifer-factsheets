@@ -1,0 +1,88 @@
+<!-- PAGE 2: Precipitation, Groundwater, Piperplots -->
+
+<!-- 
+Set coordinates to frame the page
+letter paper is 215.9 by 279.4 mm
+27.94 - 0.5 - 0.5 = 26.94
+26.94 / 3 = 8.98 
+-->
+
+```{r}
+
+if(length(p_text) == 0) {
+  p_text <- "No summary at this point" 
+}
+
+p_text <- str_replace_all(p_text, c(#"Ca-" = "Ca\\\\textsuperscript{-}",
+                                            #"Mg-" = "Mg\\\\textsuperscript{-}",
+                                            #"SO4-" = "SO\\\\textsubscript{4}\\\\textsuperscript{-}",
+                                            #"SO4" = "SO\\\\textsubscript{4}",
+                                            #"HCO3" = "HCO\\\\textsubscript{3}",
+                                            "\\&" = "\\\\&",
+                                            "\\#" = "\\\\#"))
+
+```
+
+\begin{tikzpicture}
+
+  `r # Define coordinates`
+  \coordinate[below right = 0.5cm and 0.5cm of current page.north west] (tl);
+  \coordinate[below left = 0.5cm and 0.5cm of current page.north east] (tr);
+  \coordinate[above left = 0.5cm and 0.5cm of current page.south east] (br);
+  
+  \coordinate[below = 0.9cm of current page.north] (top);
+  
+  `r # Lines`
+  \coordinate[below right = 1.1cm and 0.5cm of current page.north west] (line0l);
+  \coordinate[below left = 1.1cm and 0.5cm of current page.north east] (line0r);
+  \coordinate[below right = `r 8.78 + 1.1`cm and 0.5cm of current page.north west] (line1l);
+  \coordinate[below left = `r 8.78 + 1.1`cm and 0.5cm of current page.north east] (line1r);
+  \coordinate[below right = `r (8.78*2) + 1.1`cm and 0.5cm of current page.north west] (line2l);
+  \coordinate[below left = `r (8.78*2) + 1.1`cm and 0.5cm of current page.north east] (line2r);
+  
+  \coordinate[below = 1.1cm of current page.north] (line0);
+  \coordinate[below = `r 8.78 + 1.1`cm of current page.north] (line1);
+  
+  `r # Draw borders`
+  \draw[blue, line width = 0.1cm] (tl) rectangle (br);
+  \draw[blue, line width = 0.1cm] (line1l) -- (line1r);
+  \draw[blue, line width = 0.1cm] (line2l) -- (line2r);
+  
+  `r  # Top blue bar with title`
+  \fill[blue] ([xshift = -0.05cm]tl) rectangle ([yshift = -0.6cm, xshift = 0.05cm]tr);
+  \node[below right = 0.6cm and 0.6cm of current page.north west, white, font = \large\bf] (map_link) {\link{`r paste0("https://governmentofbc.maps.arcgis.com/apps/webappviewer/index.html?id=b53cb0bf3f6848e79d66ffd09b74f00d&find=OBS\\%20WELL\\%20", sprintf("%03d", ow))`}{(Interactive map)}};
+  \node[below = 0.6cm of current page.north, white, font = \large\bf] (num) {Observation Well \#`r ow` (\link{`r paste0("https://apps.nrs.gov.bc.ca/gwells/well/", wells$WELL_TAG_NUMBER[wells$OW == ow])`}{Well record})};
+  \node[below left = 0.65cm and 0.55cm of current page.north east, white, font = \bf] (num) {Aquifer \#`r aq_num`};
+
+  `r # Figures (width = 0.94\paperwidth`
+  \node[below = 0.85cm of line0, anchor = north] (ground) {\includegraphics[height = 0.29\paperheight]{`r f$combo`}};
+  \node[below = 0.85cm of line1, anchor = north] (trend) {\includegraphics[height = 0.29\paperheight]{`r f$trend`}};
+  \node[below right = 0.55cm and 1cm of line2l, anchor = north west] (piper) {\includegraphics[height = 0.29\paperheight]{`r f$piper`}};
+  
+  `r # Headings`
+  \node[below right = 0.75cm and 0.2cm of line0l, anchor = south west, font = \Large\bf]{Monthly Groundwater Level\textsuperscript{1} with Precipitation from Climate Normals\textsuperscript{2}};
+  \node[below right = 0.75cm and 0.2cm of line1l, anchor = south west, font = \Large\bf]{Groundwater Levels and Long-term Trend};
+  \node[below right = 0.75cm and 0.2cm of line2l, anchor = south west, font = \Large\bf]{Piper Plot};
+  
+  `r # Piper Text`
+  \node[below left = 0.5cm and 0.5cm of line2r, anchor = north east, align = left, text width = 10cm, font = \small\bf] (pipertext){`r p_text`};
+  
+  `r # Piper Text 2`
+  \node[below = 0.75cm of pipertext.south west, anchor = north west, align = left, text width = 10cm, font = \footnotesize] (pipertext2){A piper diagram is a graphical representation of the chemistry of a water sample. The cations (calcium, magnesium and sodium plus potassium) and anions (sulfate, chloride and carbonate plus hydrogen carbonate) are shown on separate ternary plots and then projected onto the diamond. Water samples shown on the Piperplot can be grouped into hydrochemical facies which provides  insight into the flow path and chemical alteration of a sample.};
+  
+  `r # Add link to SoE`
+  \node[above left = 0.5cm and 0.5cm of line2r, font = \scriptsize, align = center]{For more information regarding\\trends in groundwater levels see\\\link[grey]{http://www.env.gov.bc.ca/soe/indicators/water/groundwater-levels.html}{Environmental Reporting BC}};
+
+  
+  `r # Add link to methods`
+  \node[above left = 0.1cm and 0.5cm of current page.south east, font = \scriptsize] {Detailed methods for all figures are described in the companion document (\link[grey]{../Aquifer Factsheet - Companion Document.pdf}{Aquifer Factsheet - Companion Document.pdf})};
+
+\end{tikzpicture}
+
+
+
+<!-- Add tagline to bottom right IF this is a draft -->
+```{r, results = "asis"}
+  if(params$draft) draft_tag()
+```
+
