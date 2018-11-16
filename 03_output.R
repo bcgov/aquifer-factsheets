@@ -40,7 +40,7 @@ load("tmp/Aquifer_Dash_clean.RData")
 
 
 # Figure defaults ---------------------------------------------------------
-bx_height <- 5.65
+bx_height <- 5.4
 bx_width <- 1.8
 
 combo_height <- 3.85
