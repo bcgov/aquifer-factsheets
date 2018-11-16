@@ -39,9 +39,9 @@ aquifers <- as.numeric(stringr::str_extract(list.files("./figures/maps/"), "[0-9
 source("03_output.R")
 
 # Create all aquifer factsheets:
-#p <- progress_estimated(length(aquifers))
-for (a in aquifers[11:20]) {
-#  p$tick()$print()
+p <- progress_estimated(length(aquifers))
+for (a in aquifers) {
+  p$tick()$print()
   factsheet(a, draft = TRUE)
 }
 
