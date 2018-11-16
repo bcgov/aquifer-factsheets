@@ -32,10 +32,10 @@ aquifers <- as.numeric(stringr::str_extract(list.files("./figures/maps/"), "[0-9
 
 # Prepare Data and Figures ------------------------------------------------
 # These may take a while, depending how many aquifers have been selected
-#source("01_load.R")
-#source("02_clean.R")
+source("01_load.R")
+source("02_clean.R")
 
-#delete_old <- TRUE   # Delete all old figures before rerunning?
+delete_old <- TRUE   # Delete all old figures before rerunning?
 source("03_output.R")
 
 # Create all aquifer factsheets:
