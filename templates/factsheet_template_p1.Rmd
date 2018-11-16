@@ -27,7 +27,7 @@ colnames(aquifer_table) <- NULL
 t <- kable(aquifer_table, format = "latex", escape = FALSE) %>%
   kable_styling(full_width = FALSE, position = "left", font_size = 9) %>%
   column_spec(1, width = "5cm", color = "white",
-              background = "blue") %>%  # Can't use border_left = TRUE, as there's a bug in kableExtra right now
+              background = "tableblue") %>%  # Can't use border_left = TRUE, as there's a bug in kableExtra right now
   column_spec(2, width = "2.5cm", border_right = TRUE)
 
 ```
