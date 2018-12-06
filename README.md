@@ -10,6 +10,31 @@ This repository contains [R](http://www.r-project.org) code that generates aquif
 
 The data sourced for the analyses is provided under the [Open Government Licence – British Columbia](http://www2.gov.bc.ca/gov/content?id=A519A56BC2BF44E4A008B33FCF527F61). Data sets used by, but not create in, these scripts is stored in the "./data/" folder.
 
+**Groundwater Trends** (Temporary data, future to be accessed from finalized dataset)  
+- analysis_data.RData
+- raw_data.RData
+
+**Well Data** (Soon to be accessed from new GWELLS system)  
+- WELLS_WELLS.csv
+- WELLS_AQUIFER_SUBTYPE_CODES_DATA_TABLE.csv
+
+**Aquifer Data**  
+- GW_AQUIFER_ATTRS_DATA_TABLE.csv
+- Aquifer Location Description and Regions.csv
+- Aquifer_Water_District.csv
+- licenced_vol_dec2017.csv
+
+**Weather/Climate**  
+- All stations BC_CCN_rainfall_snowfall_precip.csv
+- Key_Aquifer_Obs well_EMS ID_climate ID.xlsx
+
+**Miscellaneous/Connections**  
+- Hydraulic Connectivity Table.csv
+- GW_AQUIFER_WELLS_DATA_TABLE.csv
+- piper_text.xlsx
+- UVic stress index results.xlsx
+
+
 ### Figures
 
 Some figures are created as part of the analysis, some are created in other software. Additional figures used by, but not created in, these scripts are stored in the "./figures/" folder:  
@@ -18,6 +43,20 @@ Some figures are created as part of the analysis, some are created in other soft
 - ./figures/piperplots/ - Piper plots (i.e., Piperplot_0001_OW0001.jpg)
 - ./figures/na/ - Missing plot figures for Combo, Piper pltos and Trend plots
 - ./figures/boxplot_key.png - Figure explaining the boxplots for the companion document
+- ./figures/BCID_H_cmyk_rev.pdf - BC Gov Logo
+
+Download BC Government logo and unzip into figures folder (Then convert to pdf by hand!)
+```
+if(!file.exists("./figures/BCID_H_cmyk_rev.eps")) {
+  download.file(url = "http://www.corporate.gov.bc.ca/print-ads/Govt_of_BC_Logos/Resources/2018_BCID_Files.zip",
+                dest = "./figures/2018_BCID_Files.zip")
+  unzip(zipfile = "./figures/2018_BCID_Files.zip",
+        files = "2018_BCID_Files/_Horizontal/Reverse/CMYK/BCID_H_cmyk_rev.eps",
+        exdir = "./figures", junkpaths = TRUE)
+  file.remove("./figures/2018_BCID_Files.zip")
+}
+```
+
 
 ### Code
 
