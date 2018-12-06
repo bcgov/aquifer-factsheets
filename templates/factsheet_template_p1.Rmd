@@ -24,11 +24,13 @@ aquifer_table <- as.matrix(aquifer)
 colnames(aquifer_table) <- NULL
 
 # Create the table and edit
-t <- kable(aquifer_table, format = "latex", escape = FALSE) %>%
-  kable_styling(full_width = FALSE, position = "left", font_size = 9) %>%
-  column_spec(1, width = "5cm", color = "white",
-              background = "tableblue") %>%  # Can't use border_left = TRUE, as there's a bug in kableExtra right now
-  column_spec(2, width = "2.5cm", border_right = TRUE)
+t <- kable(aquifer_table, format = "latex", escape = FALSE, booktabs = TRUE, linesep = "") %>%
+  kable_styling(full_width = FALSE, latex_options = "striped", 
+                position = "left", font_size = 9, stripe_color = "tablegrey") %>%
+  add_header_above(c("Aquifer Details" = 2), bold = TRUE) %>%
+  column_spec(1, width = "5cm") %>%
+  column_spec(2, width = "2.5cm") %>%
+  add_footnote(c("Based on broad regional assessment"), notation = "number", threeparttable = TRUE)
 
 ```
 

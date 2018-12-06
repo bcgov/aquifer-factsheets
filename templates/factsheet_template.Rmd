@@ -75,9 +75,9 @@ aquifer <- aquifer %>%
          `Vulnerability to Contamination` = VULNERABILITY,
          `Productivity` = PRODUCTIVITY,
          `Aquifer Classification` = AQUIFER_CLASSIFICATION,
-         `Hydraulic~Connectivity (based~on~broad~regional~assessment)` = HYDRAULIC_CONNECTIVITY,
+         `Hydraulic~Connectivity\\textsuperscript{1}` = HYDRAULIC_CONNECTIVITY,
          `Aquifer Stress Index` = AQUIFER_PUMPING_STRESS_INDEX,
-         `Number of Water Licences Issued~to~Wells` = NUMBER_OF_LICENCES,
+         `No. Water Licences Issued~to~Wells` = NUMBER_OF_LICENCES,
          `Observation Wells (\\footnotesize{\\textbf{Active},~Abandoned})` = OW) %>%
   mutate_if(is.na, ~ "Unknown") %>%
   mutate(`Aquifer Area` = replace(`Aquifer Area`, 
@@ -90,7 +90,7 @@ aquifer <- aquifer %>%
          `\\link{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf\\#page=16}{Vulnerability to Contamination}` = `Vulnerability to Contamination`,
          `\\link{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf\\#page=19}{Productivity}` = `Productivity`,
          `\\link{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf\\#page=15}{Aquifer Classification}` = `Aquifer Classification`,
-         `\\link{http://a100.gov.bc.ca/appsdata/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{Hydraulic~Connectivity (based~on~broad~regional~assessment)}` = `Hydraulic~Connectivity (based~on~broad~regional~assessment)`,
+         `\\link{http://a100.gov.bc.ca/appsdata/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{Hydraulic~Connectivity\\textsuperscript{1}}` = `Hydraulic~Connectivity\\textsuperscript{1}`,
          `\\link{http://governmentofbc.maps.arcgis.com/home/webmap/viewer.html?webmap=6c137fb01a364ee699440a28619e45c2}{Aquifer Stress Index}` = `Aquifer Stress Index`)
 
 # Transform for factsheet
@@ -143,7 +143,7 @@ if(nrow(ow) > 0) {
   # Get Piper text for each obs well and add link
   piper_text <- read_excel("../data/piper_text.xlsx", sheet = 1) %>%
     mutate(Hydrogeochemistry = paste0(Hydrogeochemistry,
-                                     " \\link[grey]{https://a100.gov.bc.ca/pub/ems/mainmenu.do?",
+                                     " \\link{https://a100.gov.bc.ca/pub/ems/mainmenu.do?",
                                      "userAction=monitoringLocationsCriteria&bean.p_mon_locn_id=", EMS_ID, 
                                      "}{For EMS water chemistry data, EMSID ", EMS_ID, "}."))
   
