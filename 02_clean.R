@@ -71,11 +71,12 @@ wells_db <- select(wells_database_RAW,
 obs_wells_index_climate <- obswell_to_aquifer %>%
   select(AQUIFER_ID = `Aquifer No`,
          OW = `Obs well`,
-         #WELL_TAG_NUMBER = Well.Tag.No,
          LOCATION = Location,
          CLIMATE_ID = `Climate ID`,
          CLIMATE_NAME = `Nearest climate station`) %>%
-  mutate(CLIMATE_ID = as.character(CLIMATE_ID))
+  filter(!str_detect(AQUIFER_ID, "round")) %>%         # Remove "round 1", etc. from end of file (also NAs)
+  mutate(CLIMATE_ID = as.character(CLIMATE_ID),
+         AQUIFER_ID = as.numeric(AQUIFER_ID))
 
 obs_wells_index <- wells_db %>%
   filter(!is.na(OW)) %>%
