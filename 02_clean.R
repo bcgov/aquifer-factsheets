@@ -239,7 +239,7 @@ aquifer_factsheet <- left_join(aquifer_factsheet, aquifer_subtype_descriptions,
 # Master - Licences -------------------------------------------------------
 
 # Prepare license data
-licences <- read.csv("./data/licenced_vol_dec2017.csv") %>%
+licences <- licenced_vol %>%
   rename(AQUIFER_ID = AQUIFER_NM) %>%
   # Test if AQUIFER_NM can be converted to a number (we'll keep only those)
   mutate(keep = map(AQUIFER_ID, ~is.numeric(type.convert(as.character(.x))))) %>%
