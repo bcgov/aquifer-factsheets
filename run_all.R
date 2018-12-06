@@ -27,7 +27,7 @@ aquifers <- as.numeric(stringr::str_extract(list.files("./figures/maps/"), "[0-9
 # aquifers <- aquifers[aquifers >= 300 & aquifers <= 400]
 
 # Specific specific aquifers
-# aquifers <- c(6, 8, 353, 662, 738, 750)
+# aquifers <- c(6, 8, 353, 662, 738, 750, 15, 157)
 
 
 # Prepare Data and Figures ------------------------------------------------
