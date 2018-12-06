@@ -50,8 +50,8 @@ p_text <- str_replace_all(p_text, c(#"Ca-" = "Ca\\\\textsuperscript{-}",
   
   `r  # Top blue bar with title`
   \fill[blue] ([xshift = -0.05cm]tl) rectangle ([yshift = -0.6cm, xshift = 0.05cm]tr);
-  \node[below right = 0.6cm and 0.6cm of current page.north west, white, font = \large\bf] (map_link) {\link{`r paste0("https://governmentofbc.maps.arcgis.com/apps/webappviewer/index.html?id=b53cb0bf3f6848e79d66ffd09b74f00d&find=OBS\\%20WELL\\%20", sprintf("%03d", ow))`}{(Interactive map)}};
-  \node[below = 0.6cm of current page.north, white, font = \large\bf] (num) {Observation Well \#`r ow` (\link{`r paste0("https://apps.nrs.gov.bc.ca/gwells/well/", wells$WELL_TAG_NUMBER[wells$OW == ow])`}{Well record})};
+  \node[below right = 0.6cm and 0.6cm of current page.north west, white, font = \large\bf] (map_link) {\link[lightgrey]{`r paste0("https://governmentofbc.maps.arcgis.com/apps/webappviewer/index.html?id=b53cb0bf3f6848e79d66ffd09b74f00d&find=OBS\\%20WELL\\%20", sprintf("%03d", ow))`}{(Interactive map)}};
+  \node[below = 0.6cm of current page.north, white, font = \large\bf] (num) {Observation Well \#`r ow` (\link[lightgrey]{`r paste0("https://apps.nrs.gov.bc.ca/gwells/well/", wells$WELL_TAG_NUMBER[wells$OW == ow])`}{Well record})};
   \node[below left = 0.65cm and 0.55cm of current page.north east, white, font = \bf] (num) {Aquifer \#`r aq_num`};
 
   `r # Figures (width = 0.94\paperwidth`
