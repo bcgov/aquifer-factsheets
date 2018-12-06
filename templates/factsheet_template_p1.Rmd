@@ -37,32 +37,36 @@ t <- kable(aquifer_table, format = "latex", escape = FALSE, booktabs = TRUE, lin
 \begin{tikzpicture}
 
   `r  # Top blue bar with title and gold line`
-  \fill[blue] (current page.north west) rectangle ([yshift = -2.5cm]current page.north east);
-  \fill[gold] ([yshift = -2.5cm]current page.north west) rectangle ([yshift = -2.65cm]current page.north east);
+  \fill[blue] (current page.north west) rectangle ([yshift = -2.1cm]current page.north east);
+  \fill[gold] ([yshift = -2.1cm]current page.north west) rectangle ([yshift = -2.25cm]current page.north east);
+  \node[below right = 0.2cm and 0.5cm of current page.north west]{\includegraphics[width = 4.25cm]{../figures/BCID_H_cmyk_rev.pdf}};
 
   `r  # Title and Aquifer number`
-  \node[below = 0.6cm of current page.north, white, font = \Huge\bf] (num) {Aquifer \#`r aq_num`};
+  \node[below = 0.5cm of current page.north, white, font = \Huge\bf] (num) {Aquifer \#`r aq_num`};
   \node[below = 0.15cm of num, white, font = \Large\bf] {`r title`};
 
   `r # Map figure`
-  \node[below = 3cm of current page.north] (map) {\includegraphics{`r figures_p1$map`}};
+  \node[below = 2.6cm of current page.north] (map) {\includegraphics{`r figures_p1$map`}};
   
   `r # Boxplots`
-  \node[below = 0.3cm of map.south east, anchor = north east] (third) {\includegraphics[width = 0.18\paperwidth]{`r figures_p1$well_depth`}};
+  \node[below = 0.25cm of map.south east, anchor = north east] (third) {\includegraphics[width = 0.18\paperwidth]{`r figures_p1$well_depth`}};
   \node[left = 0cm of third.north west, anchor = north east] (second) {\includegraphics[width = 0.18\paperwidth]{`r figures_p1$water_depth`}};
   \node[left = 0cm of second.north west, anchor = north east] (first) {\includegraphics[width = 0.18\paperwidth]{`r figures_p1$well_yield`}};
 
   `r # Aquifer Description`
-  \node[below = 0.5cm of map.south west, anchor = north west, align = left, text width = 7.5cm] (desc) {`r desc`};
+  \node[below = 0.35cm of map.south west, anchor = north west, align = left, text width = 7.5cm] (desc) {`r desc`};
 
   `r # Aquifer Table`
-  \node[below left = 0.5cm and 0.1cm of desc.south west, anchor = north west]{\renewcommand{\arraystretch}{1.25} `r t`};
+  \node[below left = 0.3cm and 0.1cm of desc.south west, anchor = north west]{\renewcommand{\arraystretch}{1.25} `r t`};
 
   `r # Add legal disclaimer to bottom`
-  \node[above right = 1.05cm and 0.8cm of current page.south west, align = left, text width = 20cm, font = \scriptsize] {\textbf{Disclaimer:} Use of information from Aquifer factsheets (accessed by BC government website) is subject to limitation of liability provisions (further described on that website).  That information is provided by the BC government as a public service on an “as is” basis, without warranty of any kind, whether express or implied, and its use is at your own risk.  Under no circumstances will the BC government, or its staff, agents and contractors, be responsible or liable to any person or business entity, for any direct, indirect, special, incidental, consequential or any other loss or damages to any person or business entity based on this factsheet or any use of information from it.};
+  \node[above right = 1.1cm and 0.8cm of current page.south west, align = left, text width = 20cm, font = \scriptsize] {\textbf{Disclaimer:}\\Use of information from Aquifer factsheets (accessed by BC government website) is subject to limitation of liability provisions (further described on that website).  That information is provided by the BC government as a public service on an “as is” basis, without warranty of any kind, whether express or implied, and its use is at your own risk.  Under no circumstances will the BC government, or its staff, agents and contractors, be responsible or liable to any person or business entity, for any direct, indirect, special, incidental, consequential or any other loss or damages to any person or business entity based on this factsheet or any use of information from it.};
 
   `r # Add link to methods`
- \node[above right = 0.5cm and 0.8cm of current page.south west, align = left, font = \scriptsize] {Detailed methods for all figures are described in the companion document (\link[grey]{../Aquifer Factsheet - Companion Document.pdf}{Aquifer Factsheet - Companion Document.pdf}). Factsheet generated: `r as.character(Sys.Date())`};
+ \node[above right = 0.65cm and 0.8cm of current page.south west, align = left, font = \scriptsize] {Detailed methods for all figures are described in the companion document (\link{Aquifer Factsheet - Companion Document.pdf}{Aquifer Factsheet - Companion Document.pdf}).};
+ 
+ `r # Add link to current factsheet`
+ \node[above right = 0.25cm and 0.8cm of current page.south west, align = left, font = \scriptsize] {Factsheet generated: `r as.character(Sys.Date())`. Available from: \link{`r paste0("https://s3.ca-central-1.amazonaws.com/aquifer-docs/00000/", sprintf("%05d", aq_num), "\\_Aquifer\\_Factsheet.pdf")`}{`r paste0("https://s3.ca-central-1.amazonaws.com/aquifer-docs/00000/", sprintf("%05d", aq_num), "\\_Aquifer\\_Factsheet.pdf")`}. };
 
 
 \end{tikzpicture}
