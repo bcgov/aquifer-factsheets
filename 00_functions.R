@@ -46,9 +46,10 @@ get_breaks <- function(min, max, length.out) {
 
   by <- (max - min) / (length.out)
 
-  to <- case_when(by < 0.5 ~ 0.25,
-                  by < 3 ~ 0.5,
-                  TRUE ~ 1)
+  to <- case_when(by > -0.25 ~ -0.10,
+                  by > -0.5 ~ -0.25,
+                  by > -3 ~ -0.5,
+                  TRUE ~ -1)
 
   by <- round(by/to) * to
   min <- round(min/by) * by

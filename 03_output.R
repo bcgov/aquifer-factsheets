@@ -54,7 +54,8 @@ dpi <- 300
 ann_size <- 2.75  # Annotation sizes for samples sizes in boxplots
 
 aq_theme <- theme_bw() +
-  theme(axis.title.y = element_text(margin = unit(c(0, 2, 0, 0), "mm")),
+  theme(axis.title.y.left = element_text(margin = unit(c(0, 2, 0, 0), "mm")),
+        axis.title.y.right = element_text(margin = unit(c(0, 0, 0, 2), "mm")),
         panel.grid.major = element_line(colour = "grey90"),
         panel.grid.minor = element_line(colour = "grey90"))
 
@@ -456,7 +457,9 @@ for (a in aquifers) {
 
   for(o in unique(aq_wl_month$OW)) {
 
-    wl_month_sub <- filter(aq_wl_month, OW == o)
+    wl_month_sub <- filter(aq_wl_month, OW == o) %>%
+      mutate_at(vars(median_median, percentile_25, percentile_75, percentile_10, percentile_90,
+                     min_monthly_wl, max_monthly_wl), funs(. * -1))
     ppt_sub <- filter(ppt_data,
                       AQUIFER_ID == a,
                       OW == o) %>%
@@ -488,8 +491,8 @@ for (a in aquifers) {
       wl_shift <- wl_month_sub %>%
         summarize(bandwidth = max(ppt_overall$total, na.rm = TRUE) * (proportion / (1 - proportion)),
                   position = max(ppt_overall$total, na.rm = TRUE) * 1.15,
-                  max_range = max(max(max_monthly_wl, na.rm = TRUE) -
-                                    min(min_monthly_wl, na.rm = TRUE)),
+                  max_range = max(min(max_monthly_wl, na.rm = TRUE) -
+                                    max(min_monthly_wl, na.rm = TRUE)),
                   mult = -(bandwidth/max_range),
                   shift = -min(max_monthly_wl * mult) + position)
 
@@ -497,8 +500,8 @@ for (a in aquifers) {
       breaks_ppt <- get_breaks(0, max(ppt_overall$total, na.rm = TRUE), length.out = 5)
 
       # Breaks for water-level axis
-      breaks_wl <- data.frame(breaks = get_breaks(min(wl_month_sub$min_monthly_wl, na.rm = TRUE),
-                                                  max(wl_month_sub$max_monthly_wl, na.rm = TRUE),
+      breaks_wl <- data.frame(breaks = get_breaks(max(wl_month_sub$min_monthly_wl, na.rm = TRUE),
+                                                  min(wl_month_sub$max_monthly_wl, na.rm = TRUE),
                                                   length.out = 10)) %>%
         mutate(gridlines = breaks * wl_shift$mult[1] + wl_shift$shift[1]) %>%
         filter(gridlines > (max(breaks_ppt) * 1.2))
@@ -545,12 +548,15 @@ for (a in aquifers) {
 
       # Add Water level if sufficient data
       if(nrow(wl_month_sub) > 0) {
+        dec_points <- str_length(str_extract(breaks_wl$breaks, "[^.]*$"))
         g <- g +
           # Add secondary axis
           scale_y_continuous(breaks = breaks_ppt, expand = c(0.02, 0),
                              sec.axis = sec_axis(~ ((. - wl_shift$shift[1]) / (wl_shift$mult[1])),
                                                  name = "Depth to Groundwater (m below ground surface)",
-                                                 breaks = breaks_wl$breaks)) +
+                                                 breaks = breaks_wl$breaks,
+                                                 labels = format(-breaks_wl$breaks,
+                                                                 nsmall = dec_points))) +
           # Artificially add in grid lines
           geom_hline(aes(yintercept = breaks_wl$gridlines),
                      colour = aq_theme$panel.grid.major$colour) +
