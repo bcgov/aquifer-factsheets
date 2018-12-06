@@ -202,6 +202,8 @@ The trend analysis was conducted by Environmental Reporting BC. A full descripti
 
 # Piper Plot
 
+A piper diagram is a graphical representation of the chemistry of a water sample. The cations (calcium, magnesium and sodium plus potassium) and anions (sulfate, chloride and carbonate plus hydrogen carbonate) are shown on separate ternary plots and then projected onto the diamond. Water samples shown on the Piperplot can be grouped into hydrochemical facies which provides insight into the flow path and chemical alteration of a sample.
+
 The chemistry results presented in the Piper plot data were obtained from the Environmental Monitoring System (EMS) web reporting site (<https://a100.gov.bc.ca/pub/ems>) using the R package "rems" (<https://github.com/bcgov/rems/blob/master/README.Rmd>) and converted to a format compatible with the groundwater software program Aquachem (Waterloo Hydrogeologic, 2014). Chemistry results were screened for data quality by assessing the charge balance error. Only samples with a charge balance error of less than 10% were included on the piper plot.
 
 **Reference**  

@@ -68,7 +68,7 @@ p_text <- str_replace_all(p_text, c(#"Ca-" = "Ca\\\\textsuperscript{-}",
   \node[below left = 0.5cm and 0.5cm of line2r, anchor = north east, align = left, text width = 10cm, font = \small\bf] (pipertext){`r p_text`};
   
   `r # Piper Text 2`
-  \node[below = 0.75cm of pipertext.south west, anchor = north west, align = left, text width = 10cm, font = \footnotesize] (pipertext2){A piper diagram is a graphical representation of the chemistry of a water sample. The cations (calcium, magnesium and sodium plus potassium) and anions (sulfate, chloride and carbonate plus hydrogen carbonate) are shown on separate ternary plots and then projected onto the diamond. Water samples shown on the Piperplot can be grouped into hydrochemical facies which provides  insight into the flow path and chemical alteration of a sample.};
+  %\node[above left = 0.2cm and 0.5cm of br, align = left, text width = 10cm, font = \footnotesize] (pipertext2){A piper diagram is a graphical representation of the chemistry of a water sample. The cations (calcium, magnesium and sodium plus potassium) and anions (sulfate, chloride and carbonate plus hydrogen carbonate) are shown on separate ternary plots and then projected onto the diamond. Water samples shown on the Piperplot can be grouped into hydrochemical facies which provides  insight into the flow path and chemical alteration of a sample.};
   
   `r # Add link to SoE`
   \node[above left = 0.5cm and 0.5cm of line2r, font = \scriptsize, align = center]{For more information regarding\\trends in groundwater levels see\\\link[grey]{http://www.env.gov.bc.ca/soe/indicators/water/groundwater-levels.html}{Environmental Reporting BC}};
