@@ -75,7 +75,7 @@ p_text <- str_replace_all(p_text, c(#"Ca-" = "Ca\\\\textsuperscript{-}",
 
   
   `r # Add link to methods`
-  \node[above right = 0.1cm and 0.5cm of current page.south west, align = left, font = \scriptsize] {Detailed methods for all figures are described in the companion document (\link[grey]{../Aquifer Factsheet - Companion Document.pdf}{Aquifer Factsheet - Companion Document.pdf})};
+  \node[above right = 0.1cm and 0.5cm of current page.south west, align = left, font = \scriptsize] {Detailed methods for all figures are described in the companion document (\link[grey]{./Aquifer Factsheet - Companion Document.pdf}{Aquifer Factsheet - Companion Document.pdf})};
 
 \end{tikzpicture}
 
