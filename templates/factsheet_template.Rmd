@@ -57,8 +57,10 @@ ow <- read_csv("../out/aquifer_ow.csv") %>%
          format = case_when(OBSERVATION_WELL_STATUS == "Active" ~ paste0("\\textbf{", OW, "}"),
                             TRUE ~ as.character(OW)))
 
-# Add hyperlink to description. NOTE: Every '\' in a link requires 4 \ in order to make sure it is properly escaped. '_' requires 2 \. Every latex command (e.g., \textbf) requires 2 \ as well.
-desc <- paste0("\\link[grey]{\\\\\\\\appfiles.bcgov\\\\aquiferdata\\_prod}{\\textbf{Aquifer Description:}}\\\\",
+# Aquifer description
+desc <- paste0("\\textbf{Aquifer Description} ",
+               "(\\link{https://apps.nrs.gov.bc.ca/gwells/aquifers/", aq_num, "}",
+               "{\\textbf{Mapping Report}}):\\\\",
                str_replace(aquifer$DESCRIPTION, ".$", ""), # Replace the trailing period with nothing
                " (subtype = ", aquifer$AQUIFER_SUBTYPE_CODE, ").")
 
