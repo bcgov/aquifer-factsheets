@@ -123,7 +123,7 @@ ow <- filter(ow, OBSERVATION_WELL_STATUS == "Active")
 if(nrow(ow) > 0) {
   figures_p2 <- tibble(a = rep(aq_num_ch, 3*nrow(ow)), ow = rep(ow$OW_CH, 3), 
                        type = sort(rep(c("combo", "trend", "piper"), length(ow)/3))) %>%
-    mutate(fig = case_when(type == "combo" ~ paste0("../out/gwl/Combo_", a, "_OW", ow, ".png"),
+    mutate(fig = case_when(type == "combo" ~ paste0("../out/gwl/combo_", a, "_OW", ow, ".png"),
                            type == "trend" ~ paste0("../out/trends/trends_", a, "_OW", ow, ".png"),
                            type == "piper" ~ paste0("../figures/piperplots/Piperplot_", a, "_OW", ow, ".jpg")),
            exists = file.exists(fig),
