@@ -30,6 +30,7 @@ if(length(package_new)) {
 }
 
 ## Load required packages
+suppressMessages({
 library(readr)
 library(readxl)
 library(dplyr)
@@ -46,6 +47,7 @@ library(rmarkdown)
 library(kableExtra)
 
 library(bcgroundwater)
+})
 
 
 ## Create project directories
