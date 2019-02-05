@@ -21,23 +21,30 @@ source("00_functions.R")
 # Read Local Data ---------------------------------------------------------------
 # These data sets must be available in the 'data' folder
 
-aquifer_table <- read_csv("data/GW_AQUIFER_ATTRS_DATA_TABLE.csv") # aquifer database
-wells_database_RAW <- read_csv("data/WELLS_WELLS.csv", guess_max = 100000) # WELLS Database raw output
-aquifer_subtype_descriptions <- read_csv("data/WELLS_AQUIFER_SUBTYPE_CODES_DATA_TABLE.csv") # Created
-obswell_to_aquifer <- read_excel("data/Key_Aquifer_Obs well_EMS ID_climate ID.xlsx", sheet = 1)
-wells_aquifer_connection <- read_csv("data/GW_AQUIFER_WELLS_DATA_TABLE.csv") # from wells - some errors
-stress_index <- read_excel("./data/UVic stress index results.xlsx", sheet = 1)
+# Aquifer data
+aquifer_db_raw <- read_csv("data/GW_AQUIFER_ATTRS_DATA_TABLE.csv") # aquifer database
 
-hydraulic_connectivity <-read_csv("data/Hydraulic Connectivity Table.csv") # likelihood based on subtype
-water_district <- read_csv("data/Aquifer_Water_District.csv")
-aquifer_loc_region <- read_csv("data/Aquifer Location Description and Regions.csv")
+# Manually Collected data
+climate_index <- read_excel("data/Key_Aquifer_Obs well_EMS ID_climate ID.xlsx", sheet = 1)
+ppt_data <- read_csv("data/All stations BC_CCN_rainfall_snowfall_precip.csv", guess_max = 2000) # Manual Download
 
-ppt_data <- read_csv("data/All stations BC_CCN_rainfall_snowfall_precip.csv", guess_max = 2000)
+# Unknown sources
+hydraulic_connectivity <- read_csv("data/Hydraulic Connectivity Table.csv") # likelihood based on subtype. Possibly determined from https://catalogue.data.gov.bc.ca/dataset/water-rights-licences-public
+water_district <- read_csv("data/Aquifer_Water_District.csv") # Possibly determined from https://catalogue.data.gov.bc.ca/dataset/water-management-districts by using GIS analysis of overlap
+aquifer_loc_region <- read_csv("data/Aquifer Location Description and Regions.csv") # Manual GIS analysis?
 
-licenced_vol <- read.csv("./data/licenced_vol_dec2017.csv")
+# Read Downloaded Data ----------------------------------------------------
+# These data sets must be available in the 'data_dl' folder
+# Run the '00_download.R' script to automatically download and extract these files
+aquifer_subtypes <- read_excel("data_dl/aquifer_subtypes.xlsx", sheet = 1)
 
-# Download Remote Data --------------------------------------------------------
-wl_data <- read_csv("http://www.env.gov.bc.ca/wsd/data_searches/obswell/map/data/ObservationWellDataAll_DailyMean.csv")
+wells_db_raw <- read_csv("data_dl/well.csv", guess_max = 100000)
+wells_lithology <- read_csv("data_dl/lithology.csv", guess_max = 100000)
+
+licenced_vol <- read_csv("data_dl/licenced_vol.csv", guess_max = 50000)
+stress_index <- read_excel("./data_dl/uvic_stress_index.xlsx", sheet = "R0. Results")
+
+obs_well <- read_csv("data_dl/obs_well_daily_mean.csv")
 
 # TEMPORARY FIX UNTIL groundwater-levels-indicator SOE data has been finalized
 # These RData files are the output from groundwater-levels-indicator
@@ -52,7 +59,7 @@ ground_water_trends <- results_out
 
 # Save all data -----------------------------------------------------------
 save(hydraulic_connectivity, aquifer_loc_region, stress_index, licenced_vol,
-     water_district, obswell_to_aquifer, aquifer_subtype_descriptions, wells_database_RAW,
-     aquifer_table, wells_aquifer_connection, wl_data, ppt_data, ground_water, ground_water_trends,
+     water_district, aquifer_subtypes, wells_db_raw, wells_lithology, obs_well,
+     aquifer_db_raw, climate_index, ppt_data, ground_water, ground_water_trends,
      file = "tmp/aquifer_factsheet_data.RData")
 

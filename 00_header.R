@@ -23,10 +23,10 @@ if(length(package_new)) install.packages(package_new)
 
 
 ## Install the packages we will need from GitHub:
-package_github <- c(bcgov = "bcgroundwater")
+package_github <- c(bcgov = "bcgroundwater", bcgov = "bcdata")
 package_new <- package_github[!(package_github %in% installed.packages()[,"Package"])]
 if(length(package_new)) {
-  devtools::install_github(paste(names(package_new), package_new, sep = "/"))
+  remotes::install_github(paste(names(package_new), package_new, sep = "/"))
 }
 
 ## Load required packages
@@ -47,11 +47,13 @@ library(rmarkdown)
 library(kableExtra)
 
 library(bcgroundwater)
+library(bcdata)
 })
 
 
 ## Create project directories
 if (!dir.exists("tmp")) dir.create("tmp")
+if (!dir.exists("data_dl")) dir.create("data_dl")
 if (!dir.exists("out")) dir.create("out")
 if (!dir.exists("out/gwl")) dir.create("out/gwl")
 if (!dir.exists("out/boxplots")) dir.create("out/boxplots")
