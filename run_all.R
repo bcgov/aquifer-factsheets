@@ -14,6 +14,13 @@
 # Create aquifer factsheets
 ##############################
 
+
+# Update Data Sources -----------------------------------------------------
+# NOTE: Sometimes the downloads don't work on the first try, if you get an error,
+#       walk through the script and re-run lines which give you an error the first time
+#
+# source("00_download.R") # You don't have to run this every time
+
 # Load Packages and Functions --------------------------------------------------
 source("00_header.R")
 source("00_functions.R")
@@ -41,16 +48,16 @@ source("03_output.R")
 # Create all aquifer factsheets:
 p <- progress_estimated(length(aquifers))
 for (a in aquifers) {
-  p$tick()$print()
   factsheet(a, draft = TRUE)
+  p$tick()$print()
 }
 
 # Create a single factsheet
 factsheet(353, draft = TRUE)
-factsheet(15, draft = TRUE) #Example with many wells
+factsheet(15, draft = FALSE) #Example with many wells
 
 # Create a single factsheet with only page 1
-factsheet(15, draft = TRUE, pages = 1)
+factsheet(15, draft = FALSE, pages = 1)
 
 # Create the Companion Document -------------------------------------------
 rmarkdown::render("./templates/factsheet_methods.Rmd",
