@@ -10,9 +10,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-##############################
+#
 # Clean and Prepare Data
-##############################
+#
 
 # Setup -------------------------------------------------------------------
 
@@ -21,6 +21,8 @@ if(!exists("aquifers")) {
   stop("Can't run 02_clean.R without first specifying which aquifers to summarize", call. = FALSE)
 } else if(length(aquifers) == 0) {
   stop("'aquifers' is empty, specify at least one aquifer to summarize", call. = FALSE)
+} else if(!is.vector(aquifers)) {
+  stop("'aquifers' should be a vector of aquifer ids")
 }
 
 # Load functions, packages and data
@@ -33,155 +35,125 @@ load("tmp/aquifer_factsheet_data.RData")
 
 # Set up a master aquifer data frame with pertinent information we can add to
 
+# For when using downloaded data from here: https://catalogue.data.gov.bc.ca/dataset/ground-water-aquifers
+# aquifer_db <- rename_all(aquifer_db_raw, tolower) %>%
+#   select(aquifer_id = aq_tag, aquifer_subtype_code, aquifer_classification, aquifer_materials,
+#          aquifer_name, vulnerability, productivity, descriptive_location, size_km2) %>%
+#   # Check for encoded characters (i.e. \x92 for ' etc.)
+#   mutate_if(is.character, funs(str_replace_all(., "\x92", "'"))) %>%
+#   mutate(aquifer_id = as.numeric(aquifer_id))
 
-aquifer_factsheet <- select(aquifer_table,
-                           AQUIFER_ID, AQUIFER_SUBTYPE_CODE,
-                           AQUIFER_CLASSIFICATION, AQUIFER_MATERIALS,
-                           AQUIFER_NAME, VULNERABILITY, PRODUCTIVITY,
-                           DESCRIPTIVE_LOCATION, SIZE_KM2) %>%
+aquifer_db <- rename_all(aquifer_db_raw, tolower) %>%
+  select(aquifer_id, aquifer_subtype_code, aquifer_classification, aquifer_materials,
+         aquifer_name, vulnerability, productivity, descriptive_location, size_km2) %>%
   # Check for encoded characters (i.e. \x92 for ' etc.)
-  mutate_if(is.character, funs(str_replace_all(., "\x92", "'")))
+  mutate_if(is.character, funs(str_replace_all(., "\x92", "'"))) %>%
+  mutate(aquifer_id = as.numeric(aquifer_id))
 
 
 # Set up Wells Database with pertinent information
-# OW = Obs well number
+wells_db <- wells_db_raw %>%
+  select(aquifer_id, well_tag_number, bcgs_id,
+         well_yield,              # equivalent to YEILD_VALUE
+         well_yield_unit_code,    # equivalent to YIELD_UNIT_CODE
+         ow = observation_well_number, ow_status = obs_well_status_code,
+         static_water_level,      # equivalent to WATER_DEPTH
+         finished_well_depth) %>% # equivalent to DEPTH_WELL_DRILLED
+  mutate(ow = as.numeric(ow))
 
-# Get link between aquifer number and well number
-wells_aq_index <- wells_aquifer_connection %>%
-  select(AQUIFER_ID, WELL_ID) %>%
-  distinct() # Omit duplicates (~150)
+obs_wells_index_climate <- climate_index %>%
+  select(aquifer_id = `Aquifer No`,
+         ow = `Obs well`,
+         location = Location,
+         climate_id = `Climate ID`,
+         climate_name = `Nearest climate station`) %>%
+  filter(!str_detect(aquifer_id, "(round)|(inactive)")) %>%  # Remove "round 1", etc. from end of file (also NAs)
+  mutate(climate_id = as.character(climate_id),
+         aquifer_id = as.numeric(aquifer_id))
 
-wells_db <- select(wells_database_RAW,
-                   WELL_ID, WELL_TAG_NUMBER,
-                   BCGS_ID,
-                   SEQUENCE_NO,
-                   LATITUDE, LONGITUDE,
-                   DEPTH_WELL_DRILLED, WATER_DEPTH,
-                   AQUIFER_LITHOLOGY_CODE,
-                   YIELD_VALUE, YIELD_UNIT_CODE,
-                   WELL_USE_CODE,
-                   OW = OBSERVATION_WELL_NUMBER,
-                   OBSERVATION_WELL_STATUS = MINISTRY_OBSERVATION_WELL_STAT,
-                   DEPTH_WELL_DRILLED_2, WATER_DEPTH_2,
-                   YIELD_VALUE_2, TOTAL_DEPTH_DRILLED) %>%
-  mutate(OW = as.numeric(OW)) %>%
-  # creates duplicates because some wells connected to >1 aquifer
-  left_join(wells_aq_index, by = "WELL_ID")
-
-obs_wells_index_climate <- obswell_to_aquifer %>%
-  select(AQUIFER_ID = `Aquifer No`,
-         OW = `Obs well`,
-         LOCATION = Location,
-         CLIMATE_ID = `Climate ID`,
-         CLIMATE_NAME = `Nearest climate station`) %>%
-  filter(!str_detect(AQUIFER_ID, "round")) %>%         # Remove "round 1", etc. from end of file (also NAs)
-  mutate(CLIMATE_ID = as.character(CLIMATE_ID),
-         AQUIFER_ID = as.numeric(AQUIFER_ID))
 
 obs_wells_index <- wells_db %>%
-  filter(!is.na(OW)) %>%
-  select(AQUIFER_ID, OW, WELL_ID, OBSERVATION_WELL_STATUS) %>%
-  full_join(obs_wells_index_climate, by = c("AQUIFER_ID", "OW")) %>%
-  filter(!is.na(OW), !is.na(AQUIFER_ID)) %>%
+  filter(!is.na(ow), !is.na(aquifer_id)) %>%
+  select(aquifer_id, ow, well_tag_number, ow_status) %>%
   distinct() %>%
-  arrange(AQUIFER_ID, OW)
+  arrange(aquifer_id, ow)
 
 
 # Check for conflicting information ---------------------------------------------
 
 # Get relevant well info
-p_wells <- filter(wells_db, AQUIFER_ID %in% aquifers, !is.na(OW)) %>%
-  select(AQUIFER_ID, WELL_ID, WELL_OW_STATUS = OBSERVATION_WELL_STATUS, OW) %>%
-  mutate(type = "WELL_OW")
+p_wells <- filter(wells_db, aquifer_id %in% aquifers, !is.na(ow)) %>%
+  select(aquifer_id, well_tag_number, ow_status, ow) %>%
+  mutate(type = "well_ow")
 
 # Get relevant climate/well info
-p_climate <- filter(obs_wells_index_climate, AQUIFER_ID %in% aquifers) %>%
-  select(AQUIFER_ID, OW, CLIMATE_LOCATION = LOCATION, CLIMATE_ID, CLIMATE_NAME) %>%
-  mutate(type = "CLIMATE_OW")
+p_climate <- filter(obs_wells_index_climate, aquifer_id %in% aquifers) %>%
+  select(aquifer_id, ow, climate_location = location, climate_id, climate_name) %>%
+  mutate(type = "climate_ow")
 
 # Get duplicate wells (for later decisions)
-p_wells_dup <- select(p_wells, WELL_ID, OW) %>%
+p_wells_dup <- select(p_wells, well_tag_number, ow) %>%
   distinct() %>%
-  group_by(OW) %>%
+  group_by(ow) %>%
   mutate(n = n()) %>%
   filter(n > 1)
 
-p_climate_dup <- select(p_climate, OW, CLIMATE_ID, CLIMATE_LOCATION) %>%
+p_climate_dup <- select(p_climate, ow, climate_id, climate_location) %>%
   distinct() %>%
-  group_by(OW) %>%
+  group_by(ow) %>%
   mutate(n = n()) %>%
   filter(n > 1)
 
 # Remove duplicate wells from main lists (just for now)
-p_wells <- filter(p_wells, !OW %in% p_wells_dup$OW)
-p_climate <- filter(p_climate, !OW %in% p_climate_dup$OW)
+p_wells <- filter(p_wells, !ow %in% p_wells_dup$ow)
+p_climate <- filter(p_climate, !ow %in% p_climate_dup$ow)
 
-problems <- bind_rows(select(p_wells, AQUIFER_ID, OW, type),
-                       select(p_climate, AQUIFER_ID, OW, type)) %>%
-  arrange(AQUIFER_ID) %>%
-  mutate(n = OW) %>%
-  spread(type, OW) %>%
-  rename(OW = n) %>%
-  left_join(select(p_wells, -type), by = c("AQUIFER_ID", "WELL_OW" = "OW")) %>%
-  left_join(select(p_climate, -type), by = c("AQUIFER_ID", "CLIMATE_OW" = "OW")) %>%
-  select(AQUIFER_ID, OW, WELL_OW, CLIMATE_OW, everything()) %>%
-  mutate(problem = case_when(is.na(WELL_OW) ~ "Linking file doesn't match AQUIFER_ID to this WELL_ID",
-                             is.na(CLIMATE_OW) ~ "OW not in Climate Index for this AQUIFER_ID",
-                             is.na(CLIMATE_ID) ~ "OW in Climate Index, but missing CLIMATE_ID"),
+problems <- bind_rows(select(p_wells, aquifer_id, ow, type),
+                       select(p_climate, aquifer_id, ow, type)) %>%
+  arrange(aquifer_id) %>%
+  mutate(n = ow) %>%
+  spread(type, ow) %>%
+  rename(ow = n) %>%
+  left_join(select(p_wells, -type), by = c("aquifer_id", "well_ow" = "ow")) %>%
+  left_join(select(p_climate, -type), by = c("aquifer_id", "climate_ow" = "ow")) %>%
+  select(aquifer_id, ow, well_ow, climate_ow, everything()) %>%
+  mutate(problem = case_when(is.na(well_ow) ~ paste0("Climate Index matches Aquifer ", aquifer_id, " to Obs well ", climate_ow, " but GWELLS does not"),
+                             is.na(climate_ow) & is.na(aquifer_id) ~ paste0("GWELLS missing aquifer id for Obs Well ", ow),
+                             is.na(climate_ow) ~ paste0("GWELLS matches Aquifer ", aquifer_id, " to Obs Well ", ow, " but Climate Index does not"),
+                             is.na(climate_id) ~ paste0("Obs Well ", ow, " is in Climate Index, but missing 'climate_id'")),
          link_note = "") %>%
   filter(!is.na(problem))
-
-for(i in 1:nrow(problems)) {
-  if(!is.na(problems$problem[i]) &
-     str_detect(problems$problem[i], "Linking file doesn't match")) {
-    l <- filter(wells_aquifer_connection, problems$WELL_ID[i] %in% WELL_ID)
-    w <- filter(wells_db, OW %in% problems$OW[i])
-    if(nrow(l) == 0){
-      if(nrow(w) == 0) {
-        problems$link_note[i] <- "OW not in wells database"
-      } else if(all(is.na(w$AQUIFER_ID))) {
-        problems$link_note[i] <- paste0("WELL_ID (", unique(w$WELL_ID), ") not in linking file")
-      } else if(nrow(w) > 0 & all(w$AQUIFER_ID != problems$AQUIFER_ID[i])) {
-        problems$link_note[i] <- paste0("WELL_ID (", unique(w$WELL_ID), ") linked to AQUIFER ID(s): ", paste0(w$AQUIFER_ID, collapse = ", "))
-      }
-    }
-  }
-}
 
 write.csv(problems, paste0("./out/LOG_PROBLEMS_WIDE_", Sys.Date(), ".csv"),
           row.names = FALSE)
 
-dups <- bind_rows(mutate(p_wells_dup, type = "wells"),
-                  mutate(p_climate_dup, type = "climate")) %>%
-  select(type, OW, WELL_ID, CLIMATE_ID, CLIMATE_LOCATION)
+dups <- bind_rows(mutate(p_wells_dup, database = "wells"),
+                  mutate(p_climate_dup, database = "climate")) %>%
+  select(database, ow, well_tag_number, climate_id, climate_location)
+
 write.csv(dups, paste0("./out/LOG_PROBLEMS_DUPLICATES_", Sys.Date(), ".csv"),
           row.names = FALSE)
 
 
 # Master - Number of Wells ---------------------------------------------------
 
-# Numbers reported total and observation
+# Calculate and add reported number of wells to Aquifer data
+aquifer_db <- wells_db %>%
+  group_by(aquifer_id) %>%
+  summarize(reported_no_wells = n()) %>%
+  left_join(aquifer_db, ., by = "aquifer_id")
 
-n_wells <- wells_aq_index %>%
-  group_by(AQUIFER_ID) %>%
-  summarize(REPORTED_NUMBER_OF_WELLS = length(AQUIFER_ID))
-
-# Add to Aquifer factsheet
-aquifer_factsheet <- left_join(aquifer_factsheet, n_wells, by = "AQUIFER_ID") %>%
-  mutate(REPORTED_NUMBER_OF_WELLS = if_else(is.na(REPORTED_NUMBER_OF_WELLS), 0L,
-                                            REPORTED_NUMBER_OF_WELLS))
-
-# No. Obs wells from data (all wells, not just active wells)
+# Calculate number of OBSERVATION wells (inactive and active wells)
 n_obswells <- wells_db %>%
-  filter(!is.na(OW), !is.na(AQUIFER_ID)) %>%
-  select(AQUIFER_ID, OW, OBSERVATION_WELL_STATUS) %>%
+  filter(!is.na(ow), !is.na(aquifer_id)) %>%
+  select(aquifer_id, ow, ow_status) %>%
   distinct()
 
-# Save index to file
+# Save index to file for factsheet_template.Rmd
 write.csv(n_obswells, "./out/aquifer_ow.csv", row.names = FALSE)
 
 # Clean up
-rm(wells_aq_index, n_wells, n_obswells)
+rm(n_obswells)
 
 # DECISION - wells table has multiple cases where an obs well number is assigned but may not be an obs well?
 # eg. obs well no. given for wells classified as UNK, DOM, NA, AND OBS - what should we use?
@@ -190,118 +162,96 @@ rm(wells_aq_index, n_wells, n_obswells)
 
 # Master - Hydraulic Connectivity --------------------------------------------------
 
-# Adding Hydraulic Connectivity to aquifer_factsheet
-hydraulic_connectivity <- rename(hydraulic_connectivity,
-                                 AQUIFER_SUBTYPE_CODE = Aquifer_Subtype,
-                                 HYDRAULIC_CONNECTIVITY = Hydraulic_Connectivity) %>%
-  mutate(AQUIFER_SUBTYPE_CODE = as.character(AQUIFER_SUBTYPE_CODE),
-         HYDRAULIC_CONNECTIVITY = as.character(HYDRAULIC_CONNECTIVITY)) %>%
-  bind_rows(tibble(AQUIFER_SUBTYPE_CODE = "UNK", HYDRAULIC_CONNECTIVITY = "Unknown"))
-
-aquifer_factsheet <- left_join(aquifer_factsheet, hydraulic_connectivity,
-                               by = "AQUIFER_SUBTYPE_CODE")
+# Format and Add Hydraulic Connectivity to Aquifer Data
+aquifer_db <- hydraulic_connectivity %>%
+  rename_all(tolower) %>%
+  rename(aquifer_subtype_code = aquifer_subtype) %>%
+  bind_rows(tibble(aquifer_subtype_code = "UNK", hydraulic_connectivity = "Unknown")) %>%
+  left_join(aquifer_db, ., by = "aquifer_subtype_code")
 
 # Master - Location/description -------------------------------------------
 
-# Mapping Dates (Not now - need updated file)
-# aquifer_factsheet <- left_join(aquifer_factsheet, aquifer_mapping_date,
-#                                by="AQUIFER_ID")
+# Mapping Dates (Not Available)
+
 
 # Location Description and Region
-# (Unknown source - manual GIS analysis?)
-
-aquifer_loc_region <- aquifer_loc_region %>%
-  rename(REGION = Region) %>%
-  mutate(REGION = as.character(REGION))
-
-aquifer_factsheet <- left_join(aquifer_factsheet, aquifer_loc_region,
-                               by = "AQUIFER_ID") %>%
-  mutate(REGION = if_else(is.na(REGION), "Unknown", REGION))
-
+aquifer_db <- aquifer_loc_region %>%
+  rename_all(tolower) %>%
+  left_join(aquifer_db, ., by = "aquifer_id") %>%
+  mutate(region = if_else(is.na(region), "Unknown", region))
 
 # Water District
-# (Unknown source)
-
-names(water_district) <- c("AQUIFER_ID", "WATER_DISTRICT" )
-water_district$WATER_DISTRICT <- as.character(water_district$WATER_DISTRICT)
-
-aquifer_factsheet <- left_join(aquifer_factsheet, water_district,
-                               by = "AQUIFER_ID") %>%
-  mutate(WATER_DISTRICT = if_else(is.na(WATER_DISTRICT), "Unknown", WATER_DISTRICT))
+aquifer_db <- water_district %>%
+  rename_all(tolower) %>%
+  left_join(aquifer_db, ., by = "aquifer_id") %>%
+  mutate(water_district = if_else(is.na(water_district), "Unknown", water_district))
 
 # Aquifer Subtype Descriptions
-aquifer_subtype_descriptions <- select(aquifer_subtype_descriptions,
-                                       AQUIFER_SUBTYPE_CODE, DESCRIPTION)
-
-aquifer_factsheet <- left_join(aquifer_factsheet, aquifer_subtype_descriptions,
-                               by = "AQUIFER_SUBTYPE_CODE")
+aquifer_db <- aquifer_subtypes %>%
+  rename_all(~str_replace_all(tolower(.), " ", "_")) %>%
+  select(aquifer_subtype_code, description) %>%
+  mutate(description = replace(description, description == "Unkonwn", "Unknown")) %>%
+  left_join(aquifer_db, ., by = "aquifer_subtype_code")
 
 
 # Master - Licences -------------------------------------------------------
 
 # Prepare license data
-licences <- licenced_vol %>%
-  rename(AQUIFER_ID = AQUIFER_NM) %>%
-  # Test if AQUIFER_NM can be converted to a number (we'll keep only those)
-  mutate(keep = map(AQUIFER_ID, ~is.numeric(type.convert(as.character(.x))))) %>%
-  # Only keep licenses which are numeric
-  filter(keep == TRUE) %>%
-  mutate(AQUIFER_ID = as.numeric(as.character(AQUIFER_ID))) %>%
-  group_by(AQUIFER_ID) %>%
-  summarize(NUMBER_OF_LICENCES = n())
-
-# Add to master
-aquifer_factsheet <- left_join(aquifer_factsheet, licences, by = "AQUIFER_ID") %>%
-  mutate(NUMBER_OF_LICENCES = if_else(is.na(NUMBER_OF_LICENCES), 0L,
-                                      NUMBER_OF_LICENCES))
-
+# Get hydraulic connectivity and licensing from licencing data
+aquifer_db <- licenced_vol %>%
+  filter(pod_subtype %in% c("PWD", "PG")) %>% # Groundwater-only licences
+  select(wls_wra_sysid, well_tag_number) %>%
+  left_join(select(wells_db, well_tag_number, aquifer_id), by = "well_tag_number") %>%
+  filter(!is.na(aquifer_id)) %>%
+  group_by(aquifer_id) %>%
+  summarize(n_licences = n()) %>%
+  left_join(aquifer_db, ., by = "aquifer_id")
 
 # Master - Stress Indices ----------------------------------------------
-aquifer_factsheet <- left_join(aquifer_factsheet,
-                               select(stress_index,
-                                      AQUIFER_ID = AQ_NUM,
-                                      AQUIFER_PUMPING_STRESS_INDEX = Result),
-                               by = "AQUIFER_ID")
+aquifer_db <- stress_index %>%
+  select(aquifer_id = AQ_NUM,
+         aquifer_pumping_stress_index = Result) %>%
+  left_join(aquifer_db, ., by = "aquifer_id")
 
 # Data for boxplots ---------------------------------------------------
 
 # Converting Yield from GPM to L/s and Feet to Metres
 
 wells_db <- wells_db %>%
-  mutate(YIELD_VALUE_L_S = YIELD_VALUE * 0.06309,
-         WATER_DEPTH_M = WATER_DEPTH * 0.3048,
-         DEPTH_WELL_DRILLED_M = DEPTH_WELL_DRILLED * 0.3048,
-         YIELD_UNIT_CODE = "L/s") %>%
-  select(-YIELD_VALUE, -WATER_DEPTH, -DEPTH_WELL_DRILLED)
+  mutate(well_yield = well_yield * 0.06309,
+         well_yield_unit_code = "L/s",
+         finished_well_depth_m = finished_well_depth * 0.3048,
+         static_water_level_m = static_water_level * 0.3048) %>%
+  select(-finished_well_depth, -static_water_level)
 
 # Water level data ----------------------------------------------------
 
 # Read the data and format the dates and date columns
-wl_all_data <- wl_data %>%
-  rename(Date = QualifiedTime, OW = myLocation, WL = Value) %>%
-  filter(OW != "myLocation") %>%
-  mutate(Date = as.Date(Date, format= "%Y-%m-%d"),
-         OW = as.numeric(substring(OW, 3)),
-         WL = as.numeric(WL),
-         Year = as.numeric(format(Date, format = "%Y")),
-         Month = as.numeric(format(Date, format = "%m")),
-         Month_Text = as.character(format(Date, format = "%b")),
-         Day = as.numeric(format(Date, format = "%d")),
-         Month_year = as.character(format(Date, format = "%b-%Y")))
+wl_all <- obs_well %>%
+  rename(date = QualifiedTime, ow = myLocation, wl = Value) %>%
+  filter(ow != "myLocation") %>%
+  mutate(date = ymd(date),
+         ow = as.numeric(str_extract(ow, "[0-9]*$")),
+         wl = as.numeric(wl),
+         year = year(date),
+         month = month(date),
+         month_text = month(date, label = TRUE),
+         day = day(date),
+         month_year = paste0(month_text, "-", year))
 
-wl_month_extremes <- wl_all_data %>%
-  group_by(OW, Month) %>%
-  summarise(min_monthly_wl = min(WL),
-            max_monthly_wl = max(WL))
+wl_month_extremes <- wl_all %>%
+  group_by(ow, month) %>%
+  summarise(min_monthly_wl = min(wl),
+            max_monthly_wl = max(wl))
 
 # Calculate median water level for each month/year then for each month
-wl_month_data <- wl_all_data %>%
-  group_by(OW, Year, Month) %>%
-  summarize(mean_monthly_wl = mean(WL),
-            min_monthly_wl = min(WL),
-            max_monthly_wl = max(WL),
-            median_monthly_wl = median(WL)) %>%
-  group_by(OW, Month) %>%
+wl_month <- wl_all %>%
+  group_by(ow, year, month) %>%
+  summarize(mean_monthly_wl = mean(wl),
+            min_monthly_wl = min(wl),
+            max_monthly_wl = max(wl),
+            median_monthly_wl = median(wl)) %>%
+  group_by(ow, month) %>%
   summarise(median_median = median(median_monthly_wl),
             mean_median = mean(median_monthly_wl),
             percentile_25 = quantile(median_monthly_wl, 0.25),
@@ -309,73 +259,60 @@ wl_month_data <- wl_all_data %>%
             percentile_10 = quantile(median_monthly_wl, 0.10),
             percentile_90 = quantile(median_monthly_wl, 0.90)) %>%
   ungroup() %>%
-  mutate(month_abb = month(Month, label = TRUE))
+  mutate(month_abb = month(month, label = TRUE))
 
 # Summarize years to see max, min and number of years of data
-obs_summary <- wl_all_data %>%
-  group_by(OW) %>%
-  summarize(min_yr = min(Year),
-            max_yr = max(Year),
-            num_yrs = max_yr-min_yr)
+wl_summary <- wl_all %>%
+  group_by(ow) %>%
+  summarize(min_yr = min(year),
+            max_yr = max(year),
+            num_yrs = max_yr - min_yr)
 
-wl_month_data <- wl_month_data %>%
-  left_join(wl_month_extremes, by = c("OW", "Month")) %>%
-  left_join(obs_summary, by = "OW") %>%
-  left_join(distinct(select(obs_wells_index, AQUIFER_ID, OW)), by = "OW")
+wl_month <- wl_month %>%
+  left_join(wl_month_extremes, by = c("ow", "month")) %>%
+  left_join(wl_summary, by = "ow") %>%
+  left_join(distinct(select(obs_wells_index_climate, aquifer_id, ow)), by = "ow")
 
 
 # Precipitation Data ------------------------------------------------------
-
-# Read the ppt data and convert rows to columns
-ppt_data <- ppt_data %>%
-  select(STATION_NAME,
-         CLIMATE_ID,
-         month = Month,
-         ppt_mm = VALUE,
-         code = MONTHLY_NORMAL_CODE,
-         precipitation = NORMAL_ELEMENT_NAME) %>%
-  #remove month 13 (probably totals) and total ppt values
-  filter(precipitation != "Total precipitation mm",
-         month != 13) %>%
-  mutate(month_abb = month(month, label = TRUE))
-
-# Merge with ID values
-ppt_data <- left_join(ppt_data, obs_wells_index, by = "CLIMATE_ID")
-
-# Filter data by quality
-ppt_data <- ppt_data %>%
-  filter(code %in% c("A", "B", "C", "D"))
-
+# Format and filter ppt data
+ppt <- ppt_data %>%
+  rename_all(tolower) %>%
+  select(station_name, climate_id, month, ppt_mm = value, code = monthly_normal_code,
+         precipitation = normal_element_name) %>%
+  filter(precipitation != "Total precipitation mm",           # remove total precip
+         month != 13) %>%                                     #remove month 13 (totals?)
+  mutate(month_abb = month(month, label = TRUE)) %>%
+  left_join(obs_wells_index_climate, by = "climate_id") %>%   # Merge with ID values
+  filter(code %in% c("A", "B", "C", "D"))                     # Filter data by quality
 
 # Groundwater data --------------------------------------------------------
 # Add Aquifer and OW ids to SOE data
-ground_water <- select(obs_wells_index, AQUIFER_ID, OW) %>%
+ground_water <- select(obs_wells_index, aquifer_id, ow) %>%
   distinct() %>%
-  right_join(ground_water, by = c("OW" = "Well_Num")) %>%
-  mutate(OW = as.character(OW)) %>%
-  filter(!is.na(AQUIFER_ID),
-         !is.na(OW))
+  right_join(ground_water, by = c("ow" = "Well_Num")) %>%
+  filter(!is.na(aquifer_id),
+         !is.na(ow))
 
-ground_water_trends <- select(obs_wells_index, AQUIFER_ID, OW) %>%
+ground_water_trends <- select(obs_wells_index, aquifer_id, ow) %>%
   distinct() %>%
-  right_join(ground_water_trends, by = c("OW" = "Well_Num")) %>%
-  mutate(OW = as.character(OW)) %>%
-  filter(!is.na(AQUIFER_ID),
-         !is.na(OW))
+  right_join(ground_water_trends, by = c("ow" = "Well_Num")) %>%
+  filter(!is.na(aquifer_id),
+         !is.na(ow))
 
 
 # Save Data ---------------------------------------------------------------
 
 # Save RDS files
-save(aquifer_factsheet,
+save(aquifer_db,
      wells_db,
-     wl_month_data,
-     wl_all_data,
-     ppt_data,
+     wl_month,
+     wl_all,
+     ppt,
      ground_water,
      ground_water_trends,
-     file = "tmp/Aquifer_Dash_clean.RData")
+     file = "tmp/aquifer_factsheet_clean_data.RData")
 
 # Save .csv files to pull in by aquifer factsheets
-write.csv(aquifer_factsheet, file = "./out/aquifer_table.csv", row.names = FALSE)
+write.csv(aquifer_db, file = "./out/aquifer_table.csv", row.names = FALSE)
 write.csv(wells_db, file = "./out/wells_table.csv", row.names = FALSE)

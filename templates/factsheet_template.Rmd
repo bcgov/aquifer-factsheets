@@ -43,42 +43,45 @@ library(kableExtra)
 aq_num_ch <- sprintf("%04d", aq_num)
 
 aquifer <- read_csv("../out/aquifer_table.csv") %>%
-  filter(AQUIFER_ID %in% aq_num) %>%
+  filter(aquifer_id %in% aq_num) %>%
   mutate_all(funs(str_replace_all(., c("\\&" = "\\\\&", "\\#" = "\\\\#")))) # Escape & symbols
 
-title <- aquifer$AQUIFER_NAME
+title <- aquifer$aquifer_name
 if(title == "" | title == aq_num_ch | title == aq_num | is.na(title)) {
   #title <- "No local name currently assigned"
   title <- ""
 }
 ow <- read_csv("../out/aquifer_ow.csv") %>%
-  filter(AQUIFER_ID %in% aq_num) %>%
-  mutate(OW_CH = sprintf("%04d", OW),
-         format = case_when(OBSERVATION_WELL_STATUS == "Active" ~ paste0("\\textbf{", OW, "}"),
-                            TRUE ~ as.character(OW)))
+  filter(aquifer_id %in% aq_num) %>%
+  mutate(ow_ch = sprintf("%04d", ow),
+         format = case_when(ow_status == "Active" ~ paste0("\\textbf{", ow, "}"),
+                            TRUE ~ as.character(ow)))
+
+wells_db <- read_csv("../out/wells_table.csv") %>%
+  filter(aquifer_id %in% aq_num)
 
 # Aquifer description
 desc <- paste0("\\textbf{Aquifer Description} ",
                "(\\link{https://apps.nrs.gov.bc.ca/gwells/aquifers/", aq_num, "}",
                "{\\textbf{Mapping Report}}):\\\\",
-               str_replace(aquifer$DESCRIPTION, ".$", ""), # Replace the trailing period with nothing
-               " (subtype = ", aquifer$AQUIFER_SUBTYPE_CODE, ").")
+               str_replace(aquifer$description, ".$", ""), # Replace the trailing period with nothing
+               " (subtype = ", aquifer$aquifer_subtype_code, ").")
 
 # Note that ~ (below) means a non-breaking space, which forces the tables to use a different spot to wrap the text
 aquifer <- aquifer %>%
-  mutate(OW = case_when(nrow(ow) > 0 ~ paste0(ow$format, collapse = ", "),
+  mutate(ow = case_when(nrow(ow) > 0 ~ paste0(ow$format, collapse = ", "),
                         TRUE ~ "None")) %>%
-  select(`Region` = REGION, 
-         `Water District` = WATER_DISTRICT, 
-         `Aquifer Area` = SIZE_KM2,
-         `No. Wells Correlated to Aquifer` = REPORTED_NUMBER_OF_WELLS,
-         `Vulnerability to Contamination` = VULNERABILITY,
-         `Productivity` = PRODUCTIVITY,
-         `Aquifer Classification` = AQUIFER_CLASSIFICATION,
-         `Hydraulic~Connectivity\\textsuperscript{1}` = HYDRAULIC_CONNECTIVITY,
-         `Aquifer Stress Index` = AQUIFER_PUMPING_STRESS_INDEX,
-         `No. Water Licences Issued~to~Wells` = NUMBER_OF_LICENCES,
-         `Observation Wells (\\footnotesize{\\textbf{Active},~Abandoned})` = OW) %>%
+  select(`Region` = region, 
+         `Water District` = water_district, 
+         `Aquifer Area` = size_km2,
+         `No. Wells Correlated to Aquifer` = reported_no_wells,
+         `Vulnerability to Contamination` = vulnerability,
+         `Productivity` = productivity,
+         `Aquifer Classification` = aquifer_classification,
+         `Hydraulic~Connectivity\\textsuperscript{1}` = hydraulic_connectivity,
+         `Aquifer Stress Index` = aquifer_pumping_stress_index,
+         `No. Water Licences Issued~to~Wells` = n_licences,
+         `Observation Wells (\\footnotesize{\\textbf{Active},~Inactive})` = .data$ow) %>%
   mutate_if(is.na, ~ "Unknown") %>%
   mutate(`Aquifer Area` = replace(`Aquifer Area`, 
                                   `Aquifer Area` != "Unknown",
@@ -118,17 +121,17 @@ if(length(figures_p1$well_depth) == 0) figures_p1$well_depth <- "../out/boxplots
 
 # Page 2
 # Only active wells
-ow <- filter(ow, OBSERVATION_WELL_STATUS == "Active") 
+ow <- filter(ow, ow_status == "Active") 
 
 if(nrow(ow) > 0) {
-  figures_p2 <- tibble(a = rep(aq_num_ch, 3*nrow(ow)), ow = rep(ow$OW_CH, 3), 
+  figures_p2 <- tibble(a = rep(aq_num_ch, 3*nrow(ow)), ow = rep(ow$ow_ch, 3), 
                        type = sort(rep(c("combo", "trend", "piper"), length(ow)/3))) %>%
-    mutate(fig = case_when(type == "combo" ~ paste0("../out/gwl/combo_", a, "_OW", ow, ".png"),
-                           type == "trend" ~ paste0("../out/trends/trends_", a, "_OW", ow, ".png"),
-                           type == "piper" ~ paste0("../figures/piperplots/Piperplot_", a, "_OW", ow, ".jpg")),
+    mutate(fig = case_when(type == "combo" ~ paste0("../out/gwl/combo_", a, "_OW", .data$ow, ".png"),
+                           type == "trend" ~ paste0("../out/trends/trends_", a, "_OW", .data$ow, ".png"),
+                           type == "piper" ~ paste0("../figures/piperplots/Piperplot_", a, "_OW", .data$ow, ".jpg")),
            exists = file.exists(fig),
            fig = replace(fig, !exists, paste0("../figures/na/figure_missing_", type[!exists], ".png"))) %>%
-    group_by(ow) %>%
+    group_by(.data$ow) %>%
     mutate(missing = sum(!exists)) %>%
     filter(missing != 3) %>%
     select(-exists, -missing)
@@ -136,16 +139,17 @@ if(nrow(ow) > 0) {
   # Omit well if missing all figures
   for(o in unique(figures_p2$ow)) {
     if(all(str_detect(figures_p2$fig[figures_p2$ow == o], "figure_missing"))) {
-      figures_p2 <- filter(figures_p2, ow != o)
+      figures_p2 <- filter(figures_p2, .data$ow != o)
     }
   }
   
   # Get Piper text for each obs well and add link
   piper_text <- read_excel("../data/piper_text.xlsx", sheet = 1) %>%
-    mutate(Hydrogeochemistry = paste0(Hydrogeochemistry,
+    rename_all(tolower) %>%
+    mutate(hydrogeochemistry = paste0(hydrogeochemistry,
                                      " \\link{https://a100.gov.bc.ca/pub/ems/mainmenu.do?",
-                                     "userAction=monitoringLocationsCriteria&bean.p_mon_locn_id=", EMS_ID, 
-                                     "}{For EMS water chemistry data, EMSID ", EMS_ID, "}."))
+                                     "userAction=monitoringLocationsCriteria&bean.p_mon_locn_id=", ems_id, 
+                                     "}{For EMS water chemistry data, EMSID ", ems_id, "}."))
   
   
 } else {
@@ -159,26 +163,26 @@ cat(knit_child(p1))
 ```
 
 
-```{r create_page2s, eval = nrow(figures_p2) > 0 & params$pages == 2, results = "asis"}
+```{r create_page2s, eval = nrow(figures_p2) > 0 & params$pages == 2, results = "asis", message = FALSE}
 # Get obs wells from figure names
 obs_wells <- sort(unique(figures_p2$ow))
 
 
 if(length(obs_wells) > 0) {
-  wells <- read.csv("../out/wells_table.csv", stringsAsFactors = FALSE) %>%
-    filter(OW %in% as.numeric(obs_wells))
+  wells <- wells_db %>%
+    filter(ow %in% as.numeric(obs_wells))
 }
 
 out <- NULL
 for (o in obs_wells) {
-  f <- filter(figures_p2, ow == o) %>%
+  f <- filter(figures_p2, .data$ow == o) %>%
     spread(type, fig)
   
   # Run through p2 template
   ow <- as.numeric(as.numeric(str_extract(o, "[0-9]{4}")))
   
   # Get piper text
-  p_text <- piper_text$Hydrogeochemistry[piper_text$obs_well == ow]
+  p_text <- piper_text$hydrogeochemistry[piper_text$obs_well == ow]
   
   cat("\\newpage")
   cat(knit_child(p2))

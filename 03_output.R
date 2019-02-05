@@ -10,9 +10,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-##############################
+#
 # Create Plots and Figures
-##############################
+#
 
 # Setup -------------------------------------------------------------------
 
@@ -23,21 +23,18 @@ indiv_gwl_and_precip <- FALSE
 
 # Check for aquifer numbers
 if(!exists("aquifers")) {
-  stop("Can't run 03_outpu.R without first specifying which aquifers to visualize", call. = FALSE)
+  stop("Can't run 03_output.R without first specifying which aquifers to visualize", call. = FALSE)
 } else if(length(aquifers) == 0) {
   stop("'aquifers' is empty, specify at least one aquifer to visualize", call. = FALSE)
+} else if(!is.vector(aquifers)) {
+  stop("'aquifers' should be a vector of aquifer ids")
 }
 
 
 # Load functions, packages and data
 source("00_functions.R")
 source("00_header.R")
-load("tmp/Aquifer_Dash_clean.RData")
-
-# # Specify which `aquifers` you want figures for in the 00_run.R script
-# wells_db <- filter(wells_db, AQUIFER_ID %in% aquifers)
-# wl_month_data <- filter(wl_month_data, AQUIFER_ID %in% aquifers)
-
+load("tmp/aquifer_factsheet_clean_data.RData")
 
 # Figure defaults ---------------------------------------------------------
 bx_height <- 5.4
@@ -83,12 +80,12 @@ for (a in aquifers) {
   p$tick()$print()
 
   # Create data frame with yields for particular aquifer
-  AOI_wells <- filter(wells_db, AQUIFER_ID == a)
+  w <- filter(wells_db, aquifer_id == a)
 
-  n <- length(na.omit(AOI_wells$YIELD_VALUE_L_S))
+  n <- length(na.omit(w$well_yield))
 
   if(n > 0) {
-    Yield_base <- ggplot(data = AOI_wells, aes(x = NA, y = YIELD_VALUE_L_S))+
+    Yield_base <- ggplot(data = w, aes(x = NA, y = well_yield))+
       aq_theme +
       bx_theme +
       theme(axis.title.x = element_text(vjust = 1)) +
@@ -105,10 +102,10 @@ for (a in aquifers) {
         scale_x_continuous(breaks = c(-1, 0, 1))
     } else {
       # Sufficient data
-      prod <- median(AOI_wells$YIELD_VALUE_L_S, na.rm = TRUE)
+      prod <- median(w$well_yield, na.rm = TRUE)
       xlab <- paste0("Median well yield:\n", round(prod, 2), " L/s")
 
-      prod_labs <- max(AOI_wells$YIELD_VALUE_L_S, na.rm = TRUE)
+      prod_labs <- max(w$well_yield, na.rm = TRUE)
       prod_labs <- c("Low Productivity",
                      case_when(prod_labs > 3 ~ "High Productivity",
                                prod_labs >= 0.3 ~ "Medium Productivity",
@@ -139,6 +136,7 @@ Yield_NA <- Yield_base +
   xlab("\n") + # To match regular plots
   scale_y_reverse(limits = c(3, 0)) +
   scale_x_continuous(breaks = c(-1, 0, 1))
+
 ggsave("yield_NA.jpg", plot = Yield_NA, path = "out/boxplots/",
        width = bx_width, height = bx_height, dpi = dpi)
 
@@ -157,15 +155,15 @@ for (a in aquifers) {
   p$tick()$print()
 
   # Create data frame with yields for particular aquifer
-  AOI_wells <- filter(wells_db, AQUIFER_ID == a)
+  w <- filter(wells_db, aquifer_id == a)
 
   # Sample size
-  n <- length(na.omit(AOI_wells$DEPTH_WELL_DRILLED_M))
+  n <- length(na.omit(w$finished_well_depth_m))
 
   if(n > 0) {
 
     #Boxplot for Depth Drilled
-    depthdrilled_base <- ggplot(data = AOI_wells, aes(x = NA, y = DEPTH_WELL_DRILLED_M)) +
+    depthdrilled_base <- ggplot(data = w, aes(x = NA, y = finished_well_depth_m)) +
       aq_theme +
       bx_theme +
       ylab("Reported Well Depths Below Ground (m)")
@@ -182,7 +180,7 @@ for (a in aquifers) {
 
     } else {
       #Sufficient data
-      prod <- round(median(AOI_wells$DEPTH_WELL_DRILLED_M, na.rm = TRUE), 2)
+      prod <- round(median(w$finished_well_depth_m, na.rm = TRUE), 2)
       xlab <- paste0("Median well depth:\n", prod, " m")
 
       depthdrilled <- depthdrilled_base +
@@ -226,15 +224,15 @@ for (a in aquifers) {
   p$tick()$print()
 
   # Create data frame with yields for particular aquifer
-  AOI_wells <- filter(wells_db, AQUIFER_ID == a)
+  w <- filter(wells_db, aquifer_id == a)
 
   # Sample size
-  n <- length(na.omit(AOI_wells$WATER_DEPTH_M))
+  n <- length(na.omit(w$static_water_level_m))
 
   # Only plot if data
   if(n > 0) {
     # Boxplot for waterdepth
-    waterdepth_base <- ggplot(data = AOI_wells, aes(x = NA, y = WATER_DEPTH_M)) +
+    waterdepth_base <- ggplot(data = w, aes(x = NA, y = static_water_level_m)) +
       aq_theme +
       bx_theme +
       ylab("Reported Static Water Depths Below Ground (m)")
@@ -251,7 +249,7 @@ for (a in aquifers) {
 
     } else {
       # Enough data
-      prod <- round(median(AOI_wells$WATER_DEPTH_M, na.rm = TRUE), 2)
+      prod <- round(median(w$static_water_level_m, na.rm = TRUE), 2)
       xlab <- paste0("Median water depth:\n", prod, " m")
 
       waterdepth <- waterdepth_base +
@@ -298,11 +296,11 @@ if(indiv_gwl_and_precip) {
   for (a in aquifers) {
     p$tick()$print()
 
-    aq_wl_month <- filter(wl_month_data, AQUIFER_ID == a)
+    aq_wl_month <- filter(wl_month, aquifer_id == a)
 
-    for(o in unique(aq_wl_month$OW)) {
+    for(o in unique(aq_wl_month$ow)) {
 
-      wl_month_sub <- filter(aq_wl_month, OW == o)
+      wl_month_sub <- filter(aq_wl_month, ow == o)
 
       # Will create figures for all wells with sufficent groundwater levels
       # Note: For combo plots (below), plots are only created if we ALSO have
@@ -385,17 +383,17 @@ if(indiv_gwl_and_precip) {
   for (a in aquifers) {
     p$tick()$print()
 
-    ppt_sub <- filter(ppt_data, AQUIFER_ID == a)
+    ppt_sub <- filter(ppt, aquifer_id == a)
 
-    for(o in unique(ppt_sub$OW)) {
+    for(o in unique(ppt_sub$ow)) {
 
-      ppt_sub <- filter(ppt_sub, OW == o) %>%
+      ppt_sub <- filter(ppt_sub, ow == o) %>%
         mutate(precipitation = case_when(precipitation == "Total snowfall cm" ~
                                            "Total snowfall\n(rainfall equivalent)",
                                          precipitation == "Total rainfall mm" ~
                                            "Total rainfall (mm)"))
 
-      climate_title <- tools::toTitleCase(as.character(ppt_sub$CLIMATE_NAME[1]))
+      climate_title <- tools::toTitleCase(as.character(ppt_sub$climate_name[1]))
 
       # Only continue if we have sufficient data for precipitation
       if(nrow(ppt_sub) > 0) {
@@ -433,8 +431,8 @@ if(indiv_gwl_and_precip) {
         # (perhaps just not downloaded yet)
 
         # Write an informative message to the console if there is no data for the ppt
-        # message("AQUIFER_ID: ", a, " OBS WELL: ", o, ", Water level data, but ",
-        # "no precipitation data\n(perhaps obs_wells_index is missing CLIMATE_ID ",
+        # message("AQUIFER ID: ", a, " OBS WELL: ", o, ", Water level data, but ",
+        # "no precipitation data\n(perhaps obs_wells_index is missing CLIMATE ID ",
         # "for this aquifer)")
       }
     }
@@ -453,22 +451,22 @@ p <- progress_estimated(length(aquifers))
 for (a in aquifers) {
   p$tick()$print()
 
-  aq_wl_month <- filter(wl_month_data, AQUIFER_ID == a)
+  aq_wl_month <- filter(wl_month, aquifer_id == a)
 
-  for(o in unique(aq_wl_month$OW)) {
+  for(o in unique(aq_wl_month$ow)) {
 
-    wl_month_sub <- filter(aq_wl_month, OW == o) %>%
+    wl_month_sub <- filter(aq_wl_month, ow == o) %>%
       mutate_at(vars(median_median, percentile_25, percentile_75, percentile_10, percentile_90,
                      min_monthly_wl, max_monthly_wl), funs(. * -1))
-    ppt_sub <- filter(ppt_data,
-                      AQUIFER_ID == a,
-                      OW == o) %>%
+    ppt_sub <- filter(ppt,
+                      aquifer_id == a,
+                      ow == o) %>%
       mutate(precipitation = case_when(precipitation == "Total snowfall cm" ~
                                          "Total snowfall\n(rainfall equivalent)",
                                        precipitation == "Total rainfall mm" ~
                                          "Total rainfall (mm)"))
 
-    climate_title <- tools::toTitleCase(as.character(ppt_sub$CLIMATE_NAME[1]))
+    climate_title <- tools::toTitleCase(as.character(ppt_sub$climate_name[1]))
 
     # Only continue if we have sufficient data for precipitation
     if(nrow(ppt_sub) > 0) {
@@ -603,9 +601,9 @@ for (a in aquifers) {
 
     } else {
       # Write an informative message to the console if there is no data for the ppt
-      # message("AQUIFER_ID: ", a, " OBS WELL: ", o, ", Water level data, ",
+      # message("AQUIFER ID: ", a, " OBS WELL: ", o, ", Water level data, ",
       #         "but no precipitation data\n(perhaps obs_wells_index is missing ",
-      #         "CLIMATE_ID for this aquifer)")
+      #         "CLIMATE ID for this aquifer)")
     }
   }
 }
@@ -621,15 +619,15 @@ p <- progress_estimated(length(aquifers))
 for (a in aquifers) {
   p$tick()$print()
 
-  d <- filter(ground_water, AQUIFER_ID == a)
+  d <- filter(ground_water, aquifer_id == a)
 
-  for(o in unique(d$OW)) {
+  for(o in unique(d$ow)) {
     #message(a, "-", o)
-    plotdata <- filter(ground_water, AQUIFER_ID == a, OW == o) %>%
-      mutate(Well_Num = OW)
+    plotdata <- filter(ground_water, aquifer_id == a, ow == o) %>%
+      mutate(Well_Num = ow)
 
-    well.attr <- filter(ground_water_trends, AQUIFER_ID == a, OW == o) %>%
-      mutate(Well_Num = OW)
+    well.attr <- filter(ground_water_trends, aquifer_id == a, ow == o) %>%
+      mutate(Well_Num = ow)
 
     # Skip plot if < 5 years of data
     if(well.attr$nYears < 5) next
