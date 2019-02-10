@@ -27,9 +27,10 @@ aquifer_db_raw <- read_csv("data/GW_AQUIFER_ATTRS_DATA_TABLE.csv") # aquifer dat
 # Manually Collected data
 climate_index <- read_excel("data/Key_Aquifer_Obs well_EMS ID_climate ID.xlsx", sheet = 1)
 ppt_data <- read_csv("data/All stations BC_CCN_rainfall_snowfall_precip.csv", guess_max = 2000) # Manual Download
+licenced_vol <- read_excel("data/WLS_WRL_P.xlsx") # https://catalogue.data.gov.bc.ca/dataset/5549cae0-c2b1-4b96-9777-529d9720803c
 
-# Unknown sources
-hydraulic_connectivity <- read_csv("data/Hydraulic Connectivity Table.csv") # likelihood based on subtype. Possibly determined from https://catalogue.data.gov.bc.ca/dataset/water-rights-licences-public
+# Unknown sources (GIS?)
+hydraulic_connectivity <- read_csv("data/Hydraulic Connectivity Table.csv") # likelihood based on subtype. Possibly determined from https://catalogue.data.gov.bc.ca/dataset/water-rights-licences-public (but more likely from GIS layers overlay)
 water_district <- read_csv("data/Aquifer_Water_District.csv") # Possibly determined from https://catalogue.data.gov.bc.ca/dataset/water-management-districts by using GIS analysis of overlap
 aquifer_loc_region <- read_csv("data/Aquifer Location Description and Regions.csv") # Manual GIS analysis?
 
@@ -41,7 +42,7 @@ aquifer_subtypes <- read_excel("data_dl/aquifer_subtypes.xlsx", sheet = 1)
 wells_db_raw <- read_csv("data_dl/well.csv", guess_max = 100000)
 wells_lithology <- read_csv("data_dl/lithology.csv", guess_max = 100000)
 
-licenced_vol <- read_csv("data_dl/licenced_vol.csv", guess_max = 50000)
+#licenced_vol <- read_csv("data_dl/licenced_vol.csv", guess_max = 50000)
 stress_index <- read_excel("./data_dl/uvic_stress_index.xlsx", sheet = "R0. Results")
 
 obs_well <- read_csv("data_dl/obs_well_daily_mean.csv")

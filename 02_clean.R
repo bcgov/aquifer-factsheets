@@ -199,10 +199,12 @@ aquifer_db <- aquifer_subtypes %>%
 # Prepare license data
 # Get hydraulic connectivity and licensing from licencing data
 aquifer_db <- licenced_vol %>%
+  rename_all(tolower) %>%
+  select(licence_number = lcnc_nmbr, pod_subtype = pd_sbtype, aquifer_id = source_nm) %>%
   filter(pod_subtype %in% c("PWD", "PG")) %>% # Groundwater-only licences
-  select(wls_wra_sysid, well_tag_number) %>%
-  left_join(select(wells_db, well_tag_number, aquifer_id), by = "well_tag_number") %>%
+  mutate(aquifer_id = suppressWarnings(as.numeric(aquifer_id))) %>%
   filter(!is.na(aquifer_id)) %>%
+  distinct() %>% # Some licences tied to more than one well within an aquifer, but still, just one licence
   group_by(aquifer_id) %>%
   summarize(n_licences = n()) %>%
   left_join(aquifer_db, ., by = "aquifer_id")

@@ -53,7 +53,7 @@ download.file(subtype, destfile = paste0("./data_dl/aquifer_subtypes",
 #   write_csv("./data_dl/aquifers.csv")
 
 # Get Licenced data
-bcdc_get_geodata("water-rights-applications-public") %>%
-  as_tibble() %>%
-  rename_all(tolower) %>%
-  write_csv("./data_dl/licenced_vol.csv")
+# bcdc_get_geodata("water-rights-applications-public") %>%
+#   as_tibble() %>%
+#   rename_all(tolower) %>%
+#   write_csv("./data_dl/licenced_vol.csv")
