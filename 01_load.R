@@ -51,7 +51,8 @@ obs_well <- read_csv("data_dl/obs_well_daily_mean.csv")
 # These RData files are the output from groundwater-levels-indicator
 # files 01_clean.R and 02_analysis.R
 # https://github.com/bcgov/groundwater-levels-indicator/tree/update-2018
-load("data/raw_data.RData")
+
+load("data/clean_well_data.RData")
 ground_water <- monthlywells_ts
 
 load("data/analysis_data.RData")

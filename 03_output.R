@@ -630,7 +630,7 @@ for (a in aquifers) {
       mutate(Well_Num = ow)
 
     # Skip plot if < 5 years of data
-    if(well.attr$nYears < 5) next
+    if(nrow(well.attr) == 0 || well.attr$nYears < 5) next
 
     g <- gwl_area_plot(data = plotdata, trend = well.attr$trend_line_slope,
                        intercept = well.attr$trend_line_int,
