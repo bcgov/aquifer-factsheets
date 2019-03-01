@@ -17,7 +17,8 @@
 
 ## Install the packages we will need from CRAN:
 package_list <- c("dplyr", "tidyr", "readr", "readxl", "ggplot2", "stringr",
-                  "lubridate", "purrr", "scales", "knitr", "rmarkdown", "kableExtra")
+                  "lubridate", "purrr", "scales", "knitr", "rmarkdown", "kableExtra",
+                  "weathercan")
 package_new <- package_list[!(package_list %in% installed.packages()[,"Package"])]
 if(length(package_new)) install.packages(package_new)
 
@@ -48,8 +49,9 @@ library(kableExtra)
 
 library(bcgroundwater)
 library(bcdata)
-})
 
+library(weathercan)
+})
 
 ## Create project directories
 if (!dir.exists("tmp")) dir.create("tmp")
@@ -64,3 +66,4 @@ if (!dir.exists("factsheets")) dir.create("factsheets")
 if(exists("checknames") && checknames){
   fix_names(type = "maps", filename = "Aquifer_Map", ext = "pdf")
   fix_names(type = "piperplots", filename = "Piperplot", ext = "jpg")
+}
