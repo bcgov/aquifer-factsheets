@@ -487,7 +487,8 @@ for (a in aquifers) {
       proportion <- 0.7
 
       wl_shift <- wl_month_sub %>%
-        summarize(bandwidth = max(ppt_overall$total, na.rm = TRUE) * (proportion / (1 - proportion)),
+        summarize(bandwidth = max(ppt_overall$total, na.rm = TRUE) *
+                    (proportion / (1 - proportion)),
                   position = max(ppt_overall$total, na.rm = TRUE) * 1.15,
                   max_range = max(min(max_monthly_wl, na.rm = TRUE) -
                                     max(min_monthly_wl, na.rm = TRUE)),
@@ -497,12 +498,8 @@ for (a in aquifers) {
       # Breaks and labels for ppt axis
       breaks_ppt <- get_breaks(0, max(ppt_overall$total, na.rm = TRUE), length.out = 5)
 
-      # Breaks for water-level axis
-      breaks_wl <- data.frame(breaks = get_breaks(max(wl_month_sub$min_monthly_wl, na.rm = TRUE),
-                                                  min(wl_month_sub$max_monthly_wl, na.rm = TRUE),
-                                                  length.out = 10)) %>%
-        mutate(gridlines = breaks * wl_shift$mult[1] + wl_shift$shift[1]) %>%
-        filter(gridlines > (max(breaks_ppt) * 1.2))
+      # Keep copy of original data for breaks later
+      wl_month_sub_orig <- wl_month_sub
 
       wl_month_sub <- wl_month_sub %>%
         cbind(wl_shift) %>%
@@ -546,6 +543,16 @@ for (a in aquifers) {
 
       # Add Water level if sufficient data
       if(nrow(wl_month_sub) > 0) {
+
+        # Breaks for water-level axis
+        b <- get_breaks(max(wl_month_sub_orig$min_monthly_wl, na.rm = TRUE),
+                        min(wl_month_sub_orig$max_monthly_wl, na.rm = TRUE),
+                        length.out = 10)
+
+        breaks_wl <- data.frame(breaks = b) %>%
+          mutate(gridlines = breaks * wl_shift$mult[1] + wl_shift$shift[1]) %>%
+          filter(gridlines > (max(breaks_ppt) * 1.2))
+
         dec_points <- str_length(str_extract(breaks_wl$breaks, "[^.]*$"))
         g <- g +
           # Add secondary axis
