@@ -56,3 +56,65 @@ get_breaks <- function(min, max, length.out) {
   max <- round(max/by) * by
   seq(min, max, by = by)
 }
+
+
+fix_names <- function(dir = "./figures", type, filename, ext, digits = 4) {
+
+  f <- list.files(file.path(dir, type))
+
+  if(type == "maps") {
+    d <- paste0("_[0-9]{", digits, "}")
+    d_nice <- paste0(rep("0", digits), collapse = "")
+  }
+  if(type == "piperplots") {
+    d <- paste0("_[0-9]{", digits, "}_OW[0-9]{", digits, "}")
+    d_nice <- paste0(paste0(rep("0", digits), collapse = ""),
+                     "_OW", paste0(rep("0", digits), collapse = ""))
+  }
+
+  mismatch <- f[!str_detect(f, paste0(filename, d, ".", ext))]
+  mismatch <- mismatch[mismatch != "Thumbs.db"]
+
+  if(length(mismatch) > 0) {
+
+    w <- paste0(type, " should have file names of ", filename, "_",
+                d_nice, ".", ext, ", but...")
+    mismatch <- tibble(orig = mismatch,
+                       new = mismatch)
+
+    # wrong extension?
+    if(any(!str_detect(mismatch$new, paste0(ext, "$")))) {
+      w <- paste0(w, "\n", " - some do not have the correct extension")
+    }
+
+    # lower/uppercase issues
+    if(any(!str_detect(mismatch$new, filename) &
+           str_detect(mismatch$new, regex(filename, ignore_case = TRUE)))) {
+      w <- paste0(w, "\n", " - some have incorrect upper/lower case letters. Fixing...")
+      mismatch <- mutate(mismatch,
+                         new = str_replace(new, regex(filename, ignore_case = TRUE), filename))
+    }
+
+    # wrong name?
+    if(any(!str_detect(mismatch$new, filename))) {
+      w <- paste0(w, "\n", " - some have an incorrect filename (even after fixing lower/upper case letters).")
+    }
+
+    # wrong number of digits
+    if(!any(str_detect(mismatch$new, d))) {
+      w <- paste0(w, "\n", " - some have the wrong number of digits. Fixing...")
+
+      mismatch <- mutate(mismatch,
+                         id = str_extract_all(new, paste0("[0-9]{1,", digits, "}")),
+                         id = map(id, ~sprintf("%04d", as.numeric(.))),
+                         id = map_chr(id, ~paste0(., collapse = "_OW")),
+                         new = paste0(filename, "_", id, ".", ext))
+    }
+    message(w)
+    if(nrow(mismatch <- filter(mismatch, orig != new)) > 0) {
+      file.rename(from = file.path(dir, type, mismatch$orig),
+                  to = file.path(dir, type, mismatch$new))
+      message(paste0("\n", paste0("Renaming ", mismatch$orig, " to ", mismatch$new), collapse = "\n"))
+    }
+  }
+}

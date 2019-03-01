@@ -22,8 +22,14 @@
 # source("00_download.R") # You don't have to run this every time
 
 # Load Packages and Functions --------------------------------------------------
-source("00_header.R")
+
+# Check map and piperplots for correct names, fix issues with upper/lower case
+# and leading zeros
+checknames <- TRUE
+
 source("00_functions.R")
+source("00_header.R")
+
 
 # Specify aquifers to run -------------------------------------------------
 

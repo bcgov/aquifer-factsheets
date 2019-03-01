@@ -60,3 +60,7 @@ if (!dir.exists("out/boxplots")) dir.create("out/boxplots")
 if (!dir.exists("out/trends")) dir.create("out/trends")
 if (!dir.exists("factsheets")) dir.create("factsheets")
 
+# Check names and fix if necessary:
+if(exists("checknames") && checknames){
+  fix_names(type = "maps", filename = "Aquifer_Map", ext = "pdf")
+  fix_names(type = "piperplots", filename = "Piperplot", ext = "jpg")
