@@ -62,7 +62,11 @@ wells_db <- read_csv("../out/wells_table.csv") %>%
 
 # Aquifer description
 desc <- paste0("\\textbf{Aquifer Description} ",
-               "(\\link{https://apps.nrs.gov.bc.ca/gwells/aquifers/", aq_num, "}",
+               "(\\link{https://s3.ca-central-1.amazonaws.com/aquifer-docs/",   # Main site
+               sprintf("%05d", round_any(aq_num, 100, f = floor)),              # Folder rounded to lower 100
+               "/AQ_",                                                          # Prefix
+               sprintf("%05d", aq_num),                                         # Aq number with 5 digits
+               "_Aquifer_Mapping_Report.pdf}",                                  # Suffix  
                "{\\textbf{Mapping Report}}):\\\\",
                str_replace(aquifer$description, ".$", ""), # Replace the trailing period with nothing
                " (subtype = ", aquifer$aquifer_subtype_code, ").")

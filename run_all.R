@@ -59,8 +59,10 @@ for (a in aquifers) {
 }
 
 # Create a single factsheet
-factsheet(353, draft = TRUE)
-factsheet(15, draft = FALSE) #Example with many wells
+factsheet(1111)
+factsheet(353)
+factsheet(21) #Example with many wells
+factsheet(9)
 
 # Create a single factsheet with only page 1
 factsheet(15, draft = FALSE, pages = 1)

@@ -118,3 +118,9 @@ fix_names <- function(dir = "./figures", type, filename, ext, digits = 4) {
     }
   }
 }
+
+# Based on plyr round_any and this stack overflow answer:
+# https://stackoverflow.com/a/46489816/3362144
+round_any <- function(x, accuracy, f = round){
+  f(x / accuracy) * accuracy
+}
