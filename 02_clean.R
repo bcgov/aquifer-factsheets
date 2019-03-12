@@ -86,7 +86,13 @@ obs_wells_index <- wells_db %>%
 aquifer_db <- wells_db %>%
   group_by(aquifer_id) %>%
   summarize(reported_no_wells = n()) %>%
-  left_join(aquifer_db, ., by = "aquifer_id")
+  left_join(aquifer_db, ., by = "aquifer_id") %>%
+  # Fill NAs with zeros
+  mutate(reported_no_wells = replace(reported_no_wells,
+                                     is.na(reported_no_wells), 0))
+
+write_csv(filter(aquifer_db, reported_no_wells == 0),
+          "./out/LOG_AQUIFERS_MISSING_IN_GWELLS.csv")
 
 # Calculate number of OBSERVATION wells (inactive and active wells)
 n_obswells <- wells_db %>%
@@ -152,7 +158,12 @@ aquifer_db <- licenced_vol %>%
   distinct() %>% # Some licences tied to more than one well within an aquifer, but still, just one licence
   group_by(aquifer_id) %>%
   summarize(n_licences = n()) %>%
-  left_join(aquifer_db, ., by = "aquifer_id")
+  left_join(aquifer_db, ., by = "aquifer_id") %>%
+  # Fill missing counts with zero
+  mutate(n_licences = replace(n_licences, is.na(n_licences), 0))
+
+write_csv(filter(aquifer_db, n_licences == 0),
+          "./out/LOG_AQUIFERS_MISSING_IN_LICENCES.csv")
 
 # Master - Stress Indices ----------------------------------------------
 aquifer_db <- stress_index %>%
