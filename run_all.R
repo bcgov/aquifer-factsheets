@@ -14,13 +14,6 @@
 # Create aquifer factsheets
 ##############################
 
-
-# Update Data Sources -----------------------------------------------------
-# NOTE: Sometimes the downloads don't work on the first try, if you get an error,
-#       walk through the script and re-run lines which give you an error the first time
-#
-# source("00_download.R") # You don't have to run this every time
-
 # Load Packages and Functions --------------------------------------------------
 
 # Check map and piperplots for correct names, fix issues with upper/lower case
@@ -29,7 +22,6 @@ checknames <- TRUE
 
 source("00_functions.R")
 source("00_header.R")
-
 
 # Specify aquifers to run -------------------------------------------------
 
@@ -42,6 +34,11 @@ aquifers <- as.numeric(stringr::str_extract(list.files("./figures/maps/"), "[0-9
 # Specific specific aquifers
 # aquifers <- c(6, 8, 353, 662, 738, 750, 15, 157)
 
+
+# Update Data Sources -----------------------------------------------------
+# NOTE: Sometimes the downloads don't work on the first try, if you get an error,
+#       walk through the script and re-run lines which give you an error the first time
+source("00_download.R") # You don't have to run this every time
 
 # Prepare Data and Figures ------------------------------------------------
 # These may take a while, depending how many aquifers have been selected
@@ -59,10 +56,14 @@ for (a in aquifers) {
 }
 
 # Create a single factsheet
-factsheet(1111)
+factsheet(1156)
 factsheet(353)
 factsheet(21) #Example with many wells
-factsheet(9)
+
+factsheet(98)
+factsheet(219)
+
+factsheet(662)
 
 # Create a single factsheet with only page 1
 factsheet(15, draft = FALSE, pages = 1)
