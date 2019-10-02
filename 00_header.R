@@ -22,6 +22,10 @@ package_list <- c("dplyr", "tidyr", "readr", "readxl", "ggplot2", "stringr",
 package_new <- package_list[!(package_list %in% installed.packages()[,"Package"])]
 if(length(package_new)) install.packages(package_new)
 
+# Check versions and update
+if(packageVersion("weathercan") < "0.3.1") install.packages("weathercan")
+if(packageVersion("tidyr") < "1.0.0") install.packages("tidyr")
+
 
 ## Install the packages we will need from GitHub:
 package_github <- c(bcgov = "bcgroundwater", bcgov = "bcdata")

@@ -461,9 +461,9 @@ for (a in aquifers) {
     ppt_sub <- filter(ppt,
                       aquifer_id == a,
                       ow == o) %>%
-      mutate(precipitation = case_when(precipitation == "Total snowfall cm" ~
+      mutate(precipitation = case_when(precipitation == "snow" ~
                                          "Total snowfall\n(rainfall equivalent)",
-                                       precipitation == "Total rainfall mm" ~
+                                       precipitation == "rain" ~
                                          "Total rainfall (mm)"))
 
     climate_title <- tools::toTitleCase(as.character(ppt_sub$climate_name[1]))

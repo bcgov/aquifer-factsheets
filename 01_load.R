@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 ##############################
-# Load/Aquire Data
+# Load/Acquire Data
 ##############################
 
 # Load Packages and Functions --------------------------------------------------------
@@ -25,8 +25,7 @@ source("00_functions.R")
 aquifer_db_raw <- read_csv("data/GW_AQUIFER_ATTRS_DATA_TABLE.csv") # aquifer database
 
 # Manually Collected data
-climate_index <- read_excel("data/Key_Aquifer_Obs well_EMS ID_climate ID.xlsx", sheet = 1)
-ppt_data <- read_csv("data/All stations BC_CCN_rainfall_snowfall_precip.csv", guess_max = 2000) # Manual Download
+climate_index_orig <- read_excel("data/Key_Aquifer_Obs well_EMS ID_climate ID.xlsx", sheet = 1)
 licenced_vol <- read_excel("data/WLS_WRL_P.xlsx") # https://catalogue.data.gov.bc.ca/dataset/5549cae0-c2b1-4b96-9777-529d9720803c
 
 # Unknown sources (GIS?)
@@ -62,6 +61,6 @@ ground_water_trends <- results_out
 # Save all data -----------------------------------------------------------
 save(hydraulic_connectivity, aquifer_loc_region, stress_index, licenced_vol,
      water_district, aquifer_subtypes, wells_db_raw, wells_lithology, obs_well,
-     aquifer_db_raw, climate_index, ppt_data, ground_water, ground_water_trends,
+     aquifer_db_raw, climate_index_orig, ground_water, ground_water_trends,
      file = "tmp/aquifer_factsheet_data.RData")
 
