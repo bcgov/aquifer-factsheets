@@ -94,9 +94,6 @@ aquifer_db <- wells_db %>%
   mutate(reported_no_wells = replace(reported_no_wells,
                                      is.na(reported_no_wells), 0))
 
-write_csv(filter(aquifer_db, reported_no_wells == 0),
-          "./out/LOG_AQUIFERS_MISSING_IN_GWELLS.csv")
-
 # Calculate number of OBSERVATION wells (inactive and active wells)
 n_obswells <- wells_db %>%
   filter(!is.na(ow), !is.na(aquifer_id)) %>%
@@ -114,7 +111,7 @@ rm(n_obswells)
 
 
 
-# Master - Hydraulic Connectivity --------------------------------------------------
+# Master - Hydraulic Connectivity ----------------------------------------------
 
 # Format and Add Hydraulic Connectivity to Aquifer Data
 aquifer_db <- hydraulic_connectivity %>%
@@ -138,18 +135,21 @@ aquifer_db <- aquifer_loc_region %>%
 aquifer_db <- water_district %>%
   rename_all(tolower) %>%
   left_join(aquifer_db, ., by = "aquifer_id") %>%
-  mutate(water_district = if_else(is.na(water_district), "Unknown", water_district))
+  mutate(water_district = if_else(is.na(water_district),
+                                  "Unknown",
+                                  water_district))
 
 # Aquifer Subtype Descriptions
 aquifer_db <- aquifer_subtypes %>%
   rename_all(~str_replace_all(tolower(.), " ", "_")) %>%
   select(aquifer_subtype_code, description) %>%
-  mutate(description = replace(description, description == "Unkonwn", "Unknown")) %>%
+  mutate(description = replace(description,
+                               description == "Unkonwn",
+                               "Unknown")) %>%
   left_join(aquifer_db, ., by = "aquifer_subtype_code")
 
 
 # Master - Licences -------------------------------------------------------
-
 # Prepare license data
 # Get hydraulic connectivity and licensing from licencing data
 aquifer_db <- licenced_vol %>%
@@ -164,9 +164,6 @@ aquifer_db <- licenced_vol %>%
   left_join(aquifer_db, ., by = "aquifer_id") %>%
   # Fill missing counts with zero
   mutate(n_licences = replace(n_licences, is.na(n_licences), 0))
-
-write_csv(filter(aquifer_db, n_licences == 0),
-          "./out/LOG_AQUIFERS_MISSING_IN_LICENCES.csv")
 
 # Master - Stress Indices ----------------------------------------------
 aquifer_db <- stress_index %>%
@@ -256,59 +253,8 @@ ppt_normals <- ppt_good %>%
   filter(keep) %>%
   slice(1)
 
-# Any duplicates?
-filter(count(locs_final), n > 1)
-
-# Compare to original data
-compare <- climate_index_orig %>%
-  select(aquifer_id, ow, location,
-         climate_id_orig = climate_id, climate_name_orig = climate_name) %>%
-  left_join(locs_final %>%
-              select(aquifer_id, ow,
-                     climate_name_weathercan = station_name, climate_id_weathercan = climate_id,
-                     distance_weathercan = distance, elev_weathercan = elev_climate),
-            by = c("aquifer_id", "ow"))
-
-# How many were unassigned in original?
-filter(compare, !is.na(location), is.na(climate_id_orig)) %>% count()
-# How many new, that there weren't before?
-filter(compare, !is.na(location), is.na(climate_id_orig), !is.na(climate_id_weathercan))
-# How many remained unassigned?
-filter(compare, !is.na(location), is.na(climate_id_orig), is.na(climate_id_weathercan))
-
-# Remember that some mismatches because the normals data was thrown out for being poor quality
-compare %>%
-  filter(climate_id_orig != climate_id_weathercan,
-         !is.na(climate_id_weathercan), !is.na(climate_id_orig)) %>%
-  write_csv(paste0("./out/LOG_PROBLEMS_CLIMATE_MISMATCH_", Sys.Date(), ".csv"))
-
-# Which had a climate_id in original file, but don't now?
-missing <- filter(compare, !is.na(climate_id_orig) & is.na(climate_id_weathercan)) %>%
-  select(aquifer_id, ow)
-
-# How is the link wrong?
-p <- wells_db %>%
-  select(aquifer_id, ow) %>%
-  filter(!is.na(ow), !is.na(aquifer_id)) %>%
-  full_join(missing, by = "ow", suffix = c("_wells", "_climate")) %>%
-  filter(!(!is.na(aquifer_id_wells) & is.na(aquifer_id_climate))) %>%
-  mutate(problem = case_when(aquifer_id_wells == aquifer_id_climate ~
-                               "No climate station with good data close enough",
-                             is.na(aquifer_id_wells) ~ "OW in original climate index, but missing from GWELLS",
-                             aquifer_id_wells != aquifer_id_climate ~
-                               "OW linked to different aquifer in GWELLS than in original climate index"))
-
-# Check
-write_csv(p, paste0("./out/LOG_PROBLEMS_CLIMATE_MISSING_GWELLS_",
-                    Sys.Date(), ".csv"))
-
-# Which really far?
-filter(locs_final, distance >= 20) %>%
-  mutate(distance = round(distance, 3)) %>%
-  write_csv(paste0("./out/LOG_PROBLEMS_CLIMATE_DISTANCE_", Sys.Date(), ".csv"))
-
-# Use stations climate index
-obs_wells_index_climate <- locs_final %>%
+# Use stations as climate index
+obs_wells_index_climate <- ppt_normals %>%
   select(aquifer_id, ow, climate_id, climate_name = station_name) %>%
   mutate(climate_name = tools::toTitleCase(tolower(climate_name)),
          climate_name = str_replace_all(climate_name,
@@ -372,77 +318,6 @@ wl_month <- wl_month %>%
   left_join(wl_month_extremes, by = c("ow", "month")) %>%
   left_join(wl_summary, by = "ow") %>%
   left_join(distinct(select(obs_wells_index_climate, aquifer_id, ow)), by = "ow")
-
-
-
-# Check for conflicting information ---------------------------------------------
-# This compares the ORIGINAL, hand-created climate index with GWELLS
-
-# Get relevant well info
-p_wells <- filter(wells_db, aquifer_id %in% aquifers, !is.na(ow)) %>%
-  select(aquifer_id, well_tag_number, ow_status, ow) %>%
-  mutate(type = "well_ow")
-
-# Get relevant climate/well info
-p_climate <- filter(climate_index_orig, aquifer_id %in% aquifers) %>%
-  select(aquifer_id, ow, climate_id, climate_name) %>%
-  mutate(type = "climate_ow")
-
-# Get duplicate wells (for later decisions)
-p_wells_dup <- select(p_wells, well_tag_number, ow) %>%
-  distinct() %>%
-  group_by(ow) %>%
-  mutate(n = n()) %>%
-  filter(n > 1)
-
-p_climate_dup <- select(p_climate, ow, climate_id) %>%
-  distinct() %>%
-  group_by(ow) %>%
-  mutate(n = n()) %>%
-  filter(n > 1)
-
-# Remove duplicate wells from main lists (just for now)
-p_wells <- filter(p_wells, !ow %in% c(p_wells_dup$ow, p_climate_dup$ow)) %>%
-  select(aquifer_id_wells = aquifer_id, ow)
-p_climate <- filter(p_climate, !ow %in% c(p_climate_dup$ow, p_wells_dup$ow)) %>%
-  select(aquifer_id_climate = aquifer_id, ow)
-
-p <- full_join(p_wells, p_climate, by = "ow") %>%
-  select(ow, aquifer_id_wells, aquifer_id_climate) %>%
-  filter(!is.na(aquifer_id_climate),
-         aquifer_id_wells != aquifer_id_climate | is.na(aquifer_id_wells))
-
-write_csv(p, paste0("./out/LOG_PROBLEMS_GWELLS_", Sys.Date(), ".csv"))
-
-# problems <- bind_rows(select(p_wells, aquifer_id, ow, type),
-#                       select(p_climate, aquifer_id, ow, type)) %>%
-#   arrange(aquifer_id) %>%
-#   mutate(n = aquifer_id) %>%
-#   spread(type, aquifer_id) %>%
-#   rename(aquifer_id = n) %>%
-#   arrange(ow) %>%
-#   filter(climate_ow != well_ow | is.na(climate_ow) | is.na(well_ow))
-#   left_join(select(p_wells, -type), by = c("aquifer_id", "well_ow" = "ow")) %>%
-#   left_join(select(p_climate, -type), by = c("aquifer_id", "climate_ow" = "ow")) %>%
-#   select(aquifer_id, ow, well_ow, climate_ow, everything()) %>%
-#   mutate(problem = case_when(is.na(well_ow) ~ paste0("Climate Index matches Aquifer ", aquifer_id, " to Obs well ", climate_ow, " but GWELLS does not"),
-#                              is.na(climate_ow) & is.na(aquifer_id) ~ paste0("GWELLS missing aquifer id for Obs Well ", ow),
-#                              is.na(climate_ow) ~ paste0("GWELLS matches Aquifer ", aquifer_id, " to Obs Well ", ow, " but Climate Index does not"),
-#                              is.na(climate_id) ~ paste0("Obs Well ", ow, " is in Climate Index, but missing 'climate_id'")),
-#          link_note = "") %>%
-#   filter(!is.na(problem))
-#
-# # Now the only problems are that We don't have aquifer_ids for inactive Obs Wells
-#
-# write.csv(problems, paste0("./out/LOG_PROBLEMS_WIDE_", Sys.Date(), ".csv"),
-#           row.names = FALSE)
-
-dups <- bind_rows(mutate(p_wells_dup, database = "wells"),
-                  mutate(p_climate_dup, database = "climate")) %>%
-  select(database, ow, well_tag_number, climate_id)
-
-write_csv(dups, paste0("./out/LOG_PROBLEMS_DUPLICATES_", Sys.Date(), ".csv"))
-
 
 
 # Save Data ---------------------------------------------------------------

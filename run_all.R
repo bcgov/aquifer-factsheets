@@ -48,6 +48,8 @@ source("02_clean.R")
 delete_old <- TRUE   # Delete all old figures before rerunning?
 source("03_output.R")
 
+source("04_check.R") # Update checks and log files
+
 # Create all aquifer factsheets:
 p <- progress_estimated(length(aquifers))
 for (a in aquifers) {
