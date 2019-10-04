@@ -481,7 +481,7 @@ for (a in aquifers) {
       #   the bandwidth (needs to be negative to flip the figure)
       # - shift is the value to move the data by to get it at the right place
 
-      ppt_overall <- group_by(ppt_sub, month) %>%
+      ppt_overall <- group_by(ppt_sub, month_abb) %>%
         summarize(total = sum(ppt_mm, na.rm = TRUE))
 
       proportion <- 0.7
