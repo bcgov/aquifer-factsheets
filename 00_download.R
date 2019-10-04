@@ -22,22 +22,24 @@ download.file(paste0("http://www.env.gov.bc.ca/wsd/data_searches/obswell/",
               destfile = "./data_dl/obs_well_daily_mean.csv")
 
 # GWells Data
-download.file("https://s3.ca-central-1.amazonaws.com/gwells-export/gwells.zip",
+# Link from https://apps.nrs.gov.bc.ca/gwells/
+download.file("https://s3.ca-central-1.amazonaws.com/gwells-export/export/gwells.zip",
               destfile = "./data_dl/gwells.zip")
 unzip("./data_dl/gwells.zip", exdir = "./data_dl/",
       files = c("well.csv", "lithology.csv"), overwrite = TRUE)
 file.remove("./data_dl/gwells.zip")
+
 
 # University of Victoria Stress Tests
 url <- bcdc_get_record("university-of-victoria-aquifer-stress-evaluation")$resources[[1]]$url
 download.file(url, destfile = "./data_dl/uvic_stress_index.xlsx")
 
 # Aquifer Data
-b <- bcdc_get_record("ground-water-aquifers")$resources %>%
-  transpose() %>%
-  as_tibble() %>%
-  select(name, url) %>%
-  mutate_all(unlist)
+# https://catalogue.data.gov.bc.ca/dataset/ground-water-aquifers#edc-pow
+# Custom download: Lat/Lon, CSV, No area
+# "./data/BCGW_7113060B_1570223462950_1792.zip"
+unzip("./data/BCGW_7113060B_1570223462950_1792.zip", exdir = "./data/",
+      files = c("GW_AQUIFERS_CLASSIFICATION_SVW/GW_AQUIFER.csv"), junkpaths = TRUE, overwrite = TRUE)
 
 # Aquifer Subtype Codes
 subtype <- b %>%

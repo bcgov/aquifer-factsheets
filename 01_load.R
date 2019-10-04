@@ -38,7 +38,7 @@ aquifer_loc_region <- read_csv("data/Aquifer Location Description and Regions.cs
 # Run the '00_download.R' script to automatically download and extract these files
 aquifer_subtypes <- read_excel("data_dl/aquifer_subtypes.xlsx", sheet = 1)
 
-wells_db_raw <- read_csv("data_dl/well.csv", guess_max = 100000)
+wells_db_raw <- read_csv("data_dl/well.csv", guess_max = 200000)
 wells_lithology <- read_csv("data_dl/lithology.csv", guess_max = 100000)
 
 #licenced_vol <- read_csv("data_dl/licenced_vol.csv", guess_max = 50000)
