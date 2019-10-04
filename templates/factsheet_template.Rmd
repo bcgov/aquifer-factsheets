@@ -53,9 +53,14 @@ if(title == "" | title == aq_num_ch | title == aq_num | is.na(title)) {
 }
 ow <- read_csv("../out/aquifer_ow.csv") %>%
   filter(aquifer_id %in% aq_num) %>%
+  arrange(ow_status, ow) %>%
   mutate(ow_ch = sprintf("%04d", ow),
          format = case_when(ow_status == "Active" ~ paste0("\\textbf{", ow, "}"),
                             TRUE ~ as.character(ow)))
+if(nrow(ow) > 20) {
+  ow <- ow[1:20,]
+  ow$format[20] <- "..."
+}
 
 wells_db <- read_csv("../out/wells_table.csv") %>%
   filter(aquifer_id %in% aq_num)
