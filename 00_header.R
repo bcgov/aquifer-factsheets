@@ -27,13 +27,14 @@ if(packageVersion("weathercan") < "0.3.1") install.packages("weathercan")
 if(packageVersion("tidyr") < "1.0.0") install.packages("tidyr")
 if(packageVersion("dplyr") < "0.8.0") install.packages("dplyr")
 
-
 ## Install the packages we will need from GitHub:
 package_github <- c(bcgov = "bcgroundwater", bcgov = "bcdata")
 package_new <- package_github[!(package_github %in% installed.packages()[,"Package"])]
 if(length(package_new)) {
   remotes::install_github(paste(names(package_new), package_new, sep = "/"))
 }
+
+rm(package_github, package_list, package_new)
 
 ## Load required packages
 suppressMessages({
