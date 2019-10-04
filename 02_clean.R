@@ -65,17 +65,6 @@ wells_db <- wells_db_raw %>%
          longitude) %>%
   mutate(ow = as.numeric(ow))
 
-climate_index_orig <- climate_index %>%
-  select(aquifer_id = `Aquifer No`,
-         ow = `Obs well`,
-         location = Location,
-         climate_id = `Climate ID`,
-         climate_name = `Nearest climate station`) %>%
-  filter(!str_detect(aquifer_id, "(round)|(inactive)")) %>%  # Remove "round 1", etc. from end of file (also NAs)
-  mutate(climate_id = as.character(climate_id),
-         aquifer_id = as.numeric(aquifer_id))
-
-
 obs_wells_index <- wells_db %>%
   filter(!is.na(ow), !is.na(aquifer_id)) %>%
   select(aquifer_id, ow, well_tag_number, ow_status) %>%
@@ -198,7 +187,7 @@ ground_water_trends <- select(obs_wells_index, aquifer_id, ow) %>%
          !is.na(ow))
 
 # Climate index from weathercan -------------------------------------------
-# Get three closest stations within 100km
+# Get 10 closest stations within 100km (not all will have data)
 locs <- wells_db %>%
   select(aquifer_id, ow, latitude, longitude) %>%
   filter(!is.na(ow), !is.na(aquifer_id)) %>%
@@ -208,21 +197,15 @@ locs <- wells_db %>%
          longitude = round(longitude, 4)) %>%
   distinct() %>%
   mutate(stations = map2(latitude, longitude,
-                         ~stations_search(coords = c(.x, .y), dist = 100,
+                         ~stations_search(coords = c(.x, .y), dist = 150,
                                           normals_only = TRUE) %>%
                            select(station_name, climate_id, lat_climate = lat,
                                   lon_climate = lon, elev_climate = elev,
                                   distance) %>%
                            mutate(climate_id = as.character(climate_id),
                                   n = 1:n()) %>%
-                           slice(1:3))) %>%
+                           slice(1:5))) %>%
   unnest(stations)
-
-# Any without 3 stations?
-locs %>%
-  group_by(aquifer_id, ow) %>%
-  count() %>%
-  filter(n != 3)
 
 # Climate Normals - Precipitation Data ----------------------------------------
 ppt <- locs %>%
@@ -233,25 +216,24 @@ ppt <- locs %>%
 # Public data, so all codes must be D or better
 # (therefore don't have to filter by code quality)
 ppt_good <- unnest(ppt, normals) %>%
-  select(climate_id, meets_wmo, month = period,
-         rain, snow) %>%
-  filter(month != "Year") %>%
+  select(climate_id, month_abb = period, rain, snow, code = snow_code) %>%
+  filter(month_abb != "Year") %>%
   group_by(climate_id) %>%
   filter(sum(is.na(rain)) == 0, sum(is.na(snow)) == 0) %>%
-  nest(normals = c(month, rain, snow)) %>%
+  nest(normals = c(month_abb, rain, snow)) %>%
   left_join(locs, ., by = "climate_id") %>%
   mutate(data = map_lgl(normals, is.data.frame))
 
-# Get data from closest WMO station (within 15km), or from closest station
+# Get data from station with best quality data within 15km of closest station
 ppt_normals <- ppt_good %>%
-  mutate(close_wmo = meets_wmo & distance <= 15 & data) %>%
   group_by(aquifer_id, ow) %>%
-  mutate(keep = case_when(close_wmo ~ TRUE,
-                          any(close_wmo) ~ FALSE,
-                          data ~ TRUE,
-                          TRUE ~ TRUE)) %>%
-  filter(keep) %>%
-  slice(1)
+  mutate(min_dist = min(distance[data]),
+         close = distance <= min_dist + 15) %>%
+  arrange(aquifer_id, ow, desc(data), desc(close), code) %>%
+  slice(1) %>%
+  select(-n, -data, -min_dist, -close)
+
+if(any(!ppt_normals$data)) stop("Some stations have no climate normals", .call = FALSE)
 
 # Use stations as climate index
 obs_wells_index_climate <- ppt_normals %>%
@@ -266,7 +248,7 @@ obs_wells_index_climate <- ppt_normals %>%
 
 # Finalize ppt normals
 ppt <- ppt_normals %>%
-  select(aquifer_id, ow, normals) %>%
+  select(aquifer_id, ow, climate_name = station_name, normals) %>%
   unnest(normals) %>%
   gather(key = "precipitation", value = "ppt_mm", rain, snow)
 
