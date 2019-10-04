@@ -24,62 +24,82 @@ if(!exists("aquifers")) {
 # Load functions, packages and data
 source("00_functions.R")
 source("00_header.R")
+load("tmp/aquifer_factsheet_data.RData")
 load("tmp/aquifer_factsheet_clean_data.RData")
 
+# Move all old logs to the archives
+old <- list.files("./out/", pattern = "LOG", full.names = TRUE)
+file.copy(old, "./out/archive")
+file.remove(old)
 
 
 # Master - Number of Wells ---------------------------------------------------
 
 # Which aquifers in our list are missing in GWELLS?
-write_csv(filter(aquifer_db, reported_no_wells == 0),
-          "./out/LOG_AQUIFERS_MISSING_IN_GWELLS.csv")
+a <- filter(aquifer_db, reported_no_wells == 0)
+if(nrow(a) > 0) write_csv(a, "./out/LOG_AQUIFERS_MISSING_IN_GWELLS.csv")
 
 
 # Master - Licences -------------------------------------------------------
 # Which aquifers in our list are missing Licences?
-write_csv(filter(aquifer_db, n_licences == 0),
-          "./out/LOG_AQUIFERS_MISSING_IN_LICENCES.csv")
+a <- filter(aquifer_db, n_licences == 0)
+if(nrow(a) > 0) write_csv(a, "./out/LOG_AQUIFERS_MISSING_IN_LICENCES.csv")
 
 
 # Climate Normals - Precipitation Data ----------------------------------------
 # How many / which OWs do not have any climate normals available?
-ppt_normals %>%
+m <- ppt_normals %>%
   group_by(aquifer_id, ow) %>%
-  filter(!data)
+  filter(!data) %>%
+  mutate(str = paste0("Aq ", aquifer_id, ", ow ", ow)) %>%
+  pull(str) %>%
+  paste0(., collapse = "\n")
+if(m != "") message("Not all Obs Wells have climate normals: ", m)
+
+
+# Climate index original
+climate_orig <- climate_index_orig %>%
+  select(aquifer_id = `Aquifer No`,
+         ow = `Obs well`,
+         location = Location,
+         climate_id_orig = `Climate ID`,
+         climate_name_orig = `Nearest climate station`) %>%
+  filter(!str_detect(aquifer_id, "(round)|(inactive)")) %>%  # Remove "round 1", etc. from end of file (also NAs)
+  mutate(climate_id_orig = as.character(climate_id_orig),
+         aquifer_id = as.numeric(aquifer_id))
 
 # Compare to original data
-compare <- climate_index_orig %>%
-  select(aquifer_id, ow, location,
-         climate_id_orig = climate_id, climate_name_orig = climate_name) %>%
-  left_join(ppt_normals %>%
-              select(aquifer_id, ow,
-                     climate_name_weathercan = station_name, climate_id_weathercan = climate_id,
-                     distance_weathercan = distance, elev_weathercan = elev_climate),
-            by = c("aquifer_id", "ow"))
+compare <- left_join(climate_orig,
+                     ppt_normals %>%
+                       select(aquifer_id, ow,
+                              climate_name_weathercan = station_name, climate_id_weathercan = climate_id,
+                              distance_weathercan = distance, elev_weathercan = elev_climate),
+                     by = c("aquifer_id", "ow"))
 
 # How many were unassigned in original?
 filter(compare, !is.na(location), is.na(climate_id_orig)) %>% count()
 # How many new, that there weren't before?
-filter(compare, !is.na(location), is.na(climate_id_orig), !is.na(climate_id_weathercan))
+filter(compare, !is.na(location), is.na(climate_id_orig), !is.na(climate_id_weathercan)) %>% count()
 # How many remained unassigned?
-filter(compare, !is.na(location), is.na(climate_id_orig), is.na(climate_id_weathercan))
+filter(compare, !is.na(location), is.na(climate_id_orig), is.na(climate_id_weathercan)) %>% count()
 
 # Remember that some mismatches because the normals data was thrown out for being poor quality
-compare %>%
-  filter(climate_id_orig != climate_id_weathercan,
-         !is.na(climate_id_weathercan), !is.na(climate_id_orig)) %>%
-  write_csv(paste0("./out/LOG_PROBLEMS_CLIMATE_MISMATCH_", Sys.Date(), ".csv"))
+m <- filter(compare,
+            climate_id_orig != climate_id_weathercan |
+              is.na(climate_id_weathercan),
+            !(is.na(climate_id_orig) & is.na(climate_id_weathercan)))
+
+if(nrow(m) > 0) write_csv(m, paste0("./out/LOG_PROBLEMS_CLIMATE_MISMATCH_", Sys.Date(), ".csv"))
 
 # Which had a climate_id in original file, but don't now?
 missing <- filter(compare, !is.na(climate_id_orig) & is.na(climate_id_weathercan)) %>%
-  select(aquifer_id, ow)
+  select(aquifer_id, ow, climate_id_orig, climate_name_orig)
 
-# How is the link wrong?
+# Find out why missing. How is the link wrong?
 p <- wells_db %>%
   select(aquifer_id, ow) %>%
   filter(!is.na(ow), !is.na(aquifer_id)) %>%
-  full_join(missing, by = "ow", suffix = c("_wells", "_climate")) %>%
-  filter(!(!is.na(aquifer_id_wells) & is.na(aquifer_id_climate))) %>%
+  right_join(missing, by = "ow", suffix = c("_wells", "_climate")) %>%
   mutate(problem = case_when(
     aquifer_id_wells == aquifer_id_climate ~
       "No climate station with good data close enough",
@@ -88,12 +108,12 @@ p <- wells_db %>%
       "OW linked to different aquifer in GWELLS than in original climate index"))
 
 # Check
-write_csv(p, paste0("./out/LOG_PROBLEMS_CLIMATE_MISSING_GWELLS_",
-                    Sys.Date(), ".csv"))
+if(nrow(p) > 0) write_csv(p, paste0("./out/LOG_PROBLEMS_CLIMATE_MISSING_GWELLS_",
+                                    Sys.Date(), ".csv"))
 
 # Which really far?
 filter(ppt_normals, distance >= 20) %>%
-  select(-n, -normals) %>%
+  select(-normals) %>%
   mutate(distance = round(distance, 3)) %>%
   write_csv(paste0("./out/LOG_PROBLEMS_CLIMATE_DISTANCE_", Sys.Date(), ".csv"))
 
@@ -106,8 +126,8 @@ p_wells <- filter(wells_db, aquifer_id %in% aquifers, !is.na(ow)) %>%
   mutate(type = "well_ow")
 
 # Get relevant climate/well info
-p_climate <- filter(climate_index_orig, aquifer_id %in% aquifers) %>%
-  select(aquifer_id, ow, climate_id, climate_name) %>%
+p_climate <- filter(climate_orig, aquifer_id %in% aquifers) %>%
+  select(aquifer_id, ow, climate_id_orig, climate_name_orig) %>%
   mutate(type = "climate_ow")
 
 # Get duplicate wells (for later decisions)
@@ -117,7 +137,7 @@ p_wells_dup <- select(p_wells, well_tag_number, ow) %>%
   mutate(n = n()) %>%
   filter(n > 1)
 
-p_climate_dup <- select(p_climate, ow, climate_id) %>%
+p_climate_dup <- select(p_climate, ow, climate_id_orig) %>%
   distinct() %>%
   group_by(ow) %>%
   mutate(n = n()) %>%
@@ -134,35 +154,12 @@ p <- full_join(p_wells, p_climate, by = "ow") %>%
   filter(!is.na(aquifer_id_climate),
          aquifer_id_wells != aquifer_id_climate | is.na(aquifer_id_wells))
 
-write_csv(p, paste0("./out/LOG_PROBLEMS_GWELLS_", Sys.Date(), ".csv"))
-
-# problems <- bind_rows(select(p_wells, aquifer_id, ow, type),
-#                       select(p_climate, aquifer_id, ow, type)) %>%
-#   arrange(aquifer_id) %>%
-#   mutate(n = aquifer_id) %>%
-#   spread(type, aquifer_id) %>%
-#   rename(aquifer_id = n) %>%
-#   arrange(ow) %>%
-#   filter(climate_ow != well_ow | is.na(climate_ow) | is.na(well_ow))
-#   left_join(select(p_wells, -type), by = c("aquifer_id", "well_ow" = "ow")) %>%
-#   left_join(select(p_climate, -type), by = c("aquifer_id", "climate_ow" = "ow")) %>%
-#   select(aquifer_id, ow, well_ow, climate_ow, everything()) %>%
-#   mutate(problem = case_when(is.na(well_ow) ~ paste0("Climate Index matches Aquifer ", aquifer_id, " to Obs well ", climate_ow, " but GWELLS does not"),
-#                              is.na(climate_ow) & is.na(aquifer_id) ~ paste0("GWELLS missing aquifer id for Obs Well ", ow),
-#                              is.na(climate_ow) ~ paste0("GWELLS matches Aquifer ", aquifer_id, " to Obs Well ", ow, " but Climate Index does not"),
-#                              is.na(climate_id) ~ paste0("Obs Well ", ow, " is in Climate Index, but missing 'climate_id'")),
-#          link_note = "") %>%
-#   filter(!is.na(problem))
-#
-# # Now the only problems are that We don't have aquifer_ids for inactive Obs Wells
-#
-# write.csv(problems, paste0("./out/LOG_PROBLEMS_WIDE_", Sys.Date(), ".csv"),
-#           row.names = FALSE)
+if(nrow(p) > 0) write_csv(p, paste0("./out/LOG_PROBLEMS_GWELLS_", Sys.Date(), ".csv"))
 
 dups <- bind_rows(mutate(p_wells_dup, database = "wells"),
                   mutate(p_climate_dup, database = "climate")) %>%
-  select(database, ow, well_tag_number, climate_id)
+  select(database, ow, well_tag_number, climate_id_orig)
 
-write_csv(dups, paste0("./out/LOG_PROBLEMS_DUPLICATES_", Sys.Date(), ".csv"))
+if(nrow(dups) > 0) write_csv(dups, paste0("./out/LOG_PROBLEMS_DUPLICATES_", Sys.Date(), ".csv"))
 
 

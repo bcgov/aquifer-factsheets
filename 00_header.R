@@ -64,6 +64,7 @@ if (!dir.exists("out")) dir.create("out")
 if (!dir.exists("out/gwl")) dir.create("out/gwl")
 if (!dir.exists("out/boxplots")) dir.create("out/boxplots")
 if (!dir.exists("out/trends")) dir.create("out/trends")
+if (!dir.exists("out/archive")) dir.create("out/archive")
 if (!dir.exists("factsheets")) dir.create("factsheets")
 
 # Check names and fix if necessary:
