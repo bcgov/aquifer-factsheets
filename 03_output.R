@@ -457,7 +457,7 @@ for (a in aquifers) {
 
     wl_month_sub <- filter(aq_wl_month, ow == o) %>%
       mutate_at(vars(median_median, percentile_25, percentile_75, percentile_10, percentile_90,
-                     min_monthly_wl, max_monthly_wl), funs(. * -1))
+                     min_monthly_wl, max_monthly_wl), ~. * -1)
     ppt_sub <- filter(ppt,
                       aquifer_id == a,
                       ow == o) %>%

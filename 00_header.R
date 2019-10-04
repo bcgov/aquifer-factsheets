@@ -25,6 +25,7 @@ if(length(package_new)) install.packages(package_new)
 # Check versions and update
 if(packageVersion("weathercan") < "0.3.1") install.packages("weathercan")
 if(packageVersion("tidyr") < "1.0.0") install.packages("tidyr")
+if(packageVersion("dplyr") < "0.8.0") install.packages("dplyr")
 
 
 ## Install the packages we will need from GitHub:
