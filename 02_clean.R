@@ -52,6 +52,14 @@ aquifer_db <- aquifer_db_raw %>%
          aquifer_subtype_code = str_extract(aquifer_subtype_code, "^[^- ]*"),
          retired = str_detect(tolower(aquifer_name), "retired|merged"))
 
+
+# Remove retired aquifers with message
+if(any(aquifers %in% aquifer_db$aquifer_id[aquifer_db$retired])) {
+  a <- aquifers[aquifers %in% aquifer_db$aquifer_id[aquifer_db$retired]]
+  message("Retired aquifers removed from run: ", paste0(a, collapse = ", "))
+  aquifers <- aquifers[!aquifers %in% a]
+}
+
 # Set up Wells Database with pertinent information
 # - Get max number of digits after decimal:
 #   str_remove(wells_db_raw$longitude, "^[-0-9]+.") %>% nchar() %>% unique()
