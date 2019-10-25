@@ -33,22 +33,24 @@ load("tmp/aquifer_factsheet_data.RData")
 # Master Aquifer Data -----------------------------------------------------
 
 # Set up a master aquifer data frame with pertinent information we can add to
-
-# For when using downloaded data from here: https://catalogue.data.gov.bc.ca/dataset/ground-water-aquifers
-# aquifer_db <- rename_all(aquifer_db_raw, tolower) %>%
-#   select(aquifer_id = aq_tag, aquifer_subtype_code, aquifer_classification, aquifer_materials,
-#          aquifer_name, vulnerability, productivity, descriptive_location, size_km2) %>%
-#   # Check for encoded characters (i.e. \x92 for ' etc.)
-#   mutate_if(is.character, funs(str_replace_all(., "\x92", "'"))) %>%
-#   mutate(aquifer_id = as.numeric(aquifer_id))
-
-aquifer_db <- rename_all(aquifer_db_raw, tolower) %>%
-  select(aquifer_id, aquifer_subtype_code, aquifer_classification, aquifer_materials,
-         aquifer_name, vulnerability, productivity, descriptive_location, size_km2) %>%
-  # Check for encoded characters (i.e. \x92 for ' etc.)
-  mutate_if(is.character, funs(str_replace_all(., "\x92", "'"))) %>%
-  mutate(aquifer_id = as.numeric(aquifer_id))
-
+aquifer_db <- aquifer_db_raw %>%
+  select(aquifer_id, aquifer_name, descriptive_location = location_description,
+         aquifer_materials = material, aquifer_subtype_code = subtype,
+         vulnerability, productivity, demand, size_km2 = area) %>%
+  mutate_at(c("vulnerability", "productivity", "demand"),
+            ~str_extract(., "High|Moderate|Low")) %>%
+  mutate(aquifer_classification =
+           case_when(vulnerability == "High" & demand == "High" ~ "IA",
+                     vulnerability == "High" & demand == "Moderate" ~ "IIA",
+                     vulnerability == "High" & demand == "Low" ~ "IIIA",
+                     vulnerability == "Moderate" & demand == "High" ~ "IB",
+                     vulnerability == "Moderate" & demand == "Moderate" ~ "IIB",
+                     vulnerability == "Moderate" & demand == "Low" ~ "IIIB",
+                     vulnerability == "Low" & demand == "High" ~ "IC",
+                     vulnerability == "Low" & demand == "Moderate" ~ "IIC",
+                     vulnerability == "Low" & demand == "Low" ~ "IIIC"),
+         aquifer_subtype_code = str_extract(aquifer_subtype_code, "^[^- ]*"),
+         retired = str_detect(tolower(aquifer_name), "retired|merged"))
 
 # Set up Wells Database with pertinent information
 # - Get max number of digits after decimal:
@@ -100,33 +102,74 @@ rm(n_obswells)
 
 
 
+# Master - (GIS) Aquifer Water Districts ---------------------------
+# Overlap aquifer maps on water_district map
+wd <- st_intersection(select(bcmaps::water_districts(), water_district = DISTRICT_NAME),
+                      select(aquifer_map, aquifer_id)) %>%
+  # Calculate area of overlap
+  mutate(area = as.numeric(st_area(.))) %>%
+  # Calculate dominant water district (max area)
+  group_by(aquifer_id) %>%
+  mutate(parea = area / sum(area) * 100,
+         n = n()) %>%
+  arrange(desc(parea)) %>%
+  mutate(water_district = if_else(n > 1 & all(parea < 95),
+                                  paste0(water_district, collapse = " and "),
+                                  water_district)) %>%
+  filter(parea == max(parea)) %>%
+  ungroup() %>%
+  select(-area) %>%
+  # Remove spatialness
+  st_set_geometry(NULL)
+
+# Temporary fix for #496
+wd <- mutate(wd, water_district = if_else(aquifer_id == 496, "Vernon", water_district))
+
+# Add to aquifers
+aquifer_db <- select(wd, water_district, aquifer_id) %>%
+  left_join(aquifer_db, ., by = "aquifer_id")
+
+# Master - (GIS) Region  -------------------------------------------
+aquifer_db <- select(bcmaps::nr_regions(), region = REGION_NAME) %>%
+  mutate(region = str_remove(region, " Natural Resource Region"),
+         region = str_remove(region, "-Boundary")) %>%
+  st_intersection(select(aquifer_map, aquifer_id)) %>%
+  mutate(area = as.numeric(st_area(.))) %>%
+  group_by(aquifer_id) %>%
+  mutate(parea = area / sum(area) * 100,
+         n = n()) %>%
+  arrange(desc(parea)) %>%
+  mutate(region = if_else(n > 1 & all(parea < 95),
+                          paste0(region, collapse = " and "),
+                          region)) %>%
+  filter(parea == max(parea)) %>%
+  ungroup() %>%
+  st_set_geometry(NULL) %>%
+  left_join(aquifer_db, ., by = "aquifer_id")
+
 # Master - Hydraulic Connectivity ----------------------------------------------
+# Add Hydraulic Connectivity to Aquifer Data
+aquifer_db <- left_join(aquifer_db, hc, by = "aquifer_subtype_code")
 
-# Format and Add Hydraulic Connectivity to Aquifer Data
-aquifer_db <- hydraulic_connectivity %>%
+# Master - Licences -------------------------------------------------------
+# Prepare license data
+licenced_vol <- licenced_vol %>%
   rename_all(tolower) %>%
-  rename(aquifer_subtype_code = aquifer_subtype) %>%
-  bind_rows(tibble(aquifer_subtype_code = "UNK", hydraulic_connectivity = "Unknown")) %>%
-  left_join(aquifer_db, ., by = "aquifer_subtype_code")
+  select(licence_number, pod_subtype, aquifer_id = source_name) %>%
+  filter(pod_subtype %in% c("PWD", "PG")) %>% # Groundwater-only licences
+  mutate(aquifer_id = suppressWarnings(as.numeric(aquifer_id))) %>%
+  filter(!is.na(aquifer_id)) %>%
+  distinct() # Some licences tied to more than one well within an aquifer, but still, just one licence
 
-# Master - Location/description -------------------------------------------
-
-# Mapping Dates (Not Available)
-
-
-# Location Description and Region
-aquifer_db <- aquifer_loc_region %>%
-  rename_all(tolower) %>%
+# Add to aquifer db
+aquifer_db <- licenced_vol %>%
+  group_by(aquifer_id) %>%
+  summarize(n_licences = n()) %>%
   left_join(aquifer_db, ., by = "aquifer_id") %>%
-  mutate(region = if_else(is.na(region), "Unknown", region))
+  # Fill missing counts with zero
+  mutate(n_licences = replace(n_licences, is.na(n_licences), 0))
 
-# Water District
-aquifer_db <- water_district %>%
-  rename_all(tolower) %>%
-  left_join(aquifer_db, ., by = "aquifer_id") %>%
-  mutate(water_district = if_else(is.na(water_district),
-                                  "Unknown",
-                                  water_district))
+# Mapping Dates (Available in Aquifers)
 
 # Aquifer Subtype Descriptions
 aquifer_db <- aquifer_subtypes %>%
@@ -136,23 +179,6 @@ aquifer_db <- aquifer_subtypes %>%
                                description == "Unkonwn",
                                "Unknown")) %>%
   left_join(aquifer_db, ., by = "aquifer_subtype_code")
-
-
-# Master - Licences -------------------------------------------------------
-# Prepare license data
-# Get hydraulic connectivity and licensing from licencing data
-aquifer_db <- licenced_vol %>%
-  rename_all(tolower) %>%
-  select(licence_number = lcnc_nmbr, pod_subtype = pd_sbtype, aquifer_id = source_nm) %>%
-  filter(pod_subtype %in% c("PWD", "PG")) %>% # Groundwater-only licences
-  mutate(aquifer_id = suppressWarnings(as.numeric(aquifer_id))) %>%
-  filter(!is.na(aquifer_id)) %>%
-  distinct() %>% # Some licences tied to more than one well within an aquifer, but still, just one licence
-  group_by(aquifer_id) %>%
-  summarize(n_licences = n()) %>%
-  left_join(aquifer_db, ., by = "aquifer_id") %>%
-  # Fill missing counts with zero
-  mutate(n_licences = replace(n_licences, is.na(n_licences), 0))
 
 # Master - Stress Indices ----------------------------------------------
 aquifer_db <- stress_index %>%
@@ -233,8 +259,6 @@ ppt_normals <- ppt_good %>%
   slice(1) %>%
   select(-n, -data, -min_dist, -close)
 
-if(any(!ppt_normals$data)) stop("Some stations have no climate normals", .call = FALSE)
-
 # Use stations as climate index
 obs_wells_index_climate <- ppt_normals %>%
   select(aquifer_id, ow, climate_id, climate_name = station_name) %>%
@@ -311,6 +335,7 @@ save(aquifer_db,
      wl_all,
      ppt,
      ppt_normals,
+     ppt_good,
      ground_water,
      ground_water_trends,
      file = "tmp/aquifer_factsheet_clean_data.RData")

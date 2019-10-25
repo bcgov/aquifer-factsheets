@@ -17,7 +17,7 @@
 
 ## Install the packages we will need from CRAN:
 package_list <- c("dplyr", "tidyr", "readr", "readxl", "ggplot2", "stringr",
-                  "lubridate", "purrr", "scales", "knitr", "rmarkdown", "kableExtra",
+                  "lubridate", "purrr", "scales", "sf", "knitr", "rmarkdown", "kableExtra",
                   "weathercan")
 package_new <- package_list[!(package_list %in% installed.packages()[,"Package"])]
 if(length(package_new)) install.packages(package_new)
@@ -28,7 +28,7 @@ if(packageVersion("tidyr") < "1.0.0") install.packages("tidyr")
 if(packageVersion("dplyr") < "0.8.0") install.packages("dplyr")
 
 ## Install the packages we will need from GitHub:
-package_github <- c(bcgov = "bcgroundwater", bcgov = "bcdata")
+package_github <- c(bcgov = "bcgroundwater", bcgov = "bcdata", bcgov = "bcmaps")
 package_new <- package_github[!(package_github %in% installed.packages()[,"Package"])]
 if(length(package_new)) {
   remotes::install_github(paste(names(package_new), package_new, sep = "/"))
@@ -43,6 +43,7 @@ library(readxl)
 library(dplyr)
 library(tidyr)
 library(purrr)
+library(sf)
 library(stringr)
 library(lubridate)
 

@@ -31,22 +31,45 @@ file.remove("./data_dl/gwells.zip")
 
 
 # University of Victoria Stress Tests
-url <- bcdc_get_record("university-of-victoria-aquifer-stress-evaluation")$resources[[1]]$url
+url <- bcdc_get_record("17ffdf71-28f3-4a65-bba2-134622b50e8f")$resources[[1]]$url
 download.file(url, destfile = "./data_dl/uvic_stress_index.xlsx")
 
-# Aquifer Data
-# https://catalogue.data.gov.bc.ca/dataset/ground-water-aquifers#edc-pow
-# Custom download: Lat/Lon, CSV, No area
-# "./data/BCGW_7113060B_1570223462950_1792.zip"
-unzip("./data/BCGW_7113060B_1570223462950_1792.zip", exdir = "./data/",
-      files = c("GW_AQUIFERS_CLASSIFICATION_SVW/GW_AQUIFER.csv"), junkpaths = TRUE, overwrite = TRUE)
+# Licences
+#bcdc_get_record("5549cae0-c2b1-4b96-9777-529d9720803c")
+bcdc_get_data(record = '5549cae0-c2b1-4b96-9777-529d9720803c',
+              resource = 'b0f89bdf-2793-4854-a921-b34fd84bcf03') %>%
+  sf::st_set_geometry(NULL) %>%
+  write_csv("./data_dl/aquifer_licences.csv")
 
 # Aquifer Subtype Codes
-subtype <- b %>%
-  filter(str_detect(name, "subtype code")) %>%
-  pull(url)
-download.file(subtype, destfile = paste0("./data_dl/aquifer_subtypes",
-                                         str_extract(subtype, ".[a-z]*$")))
+bcdc_get_record("099d69c5-1401-484d-9e19-c121ccb7977c")
+bcdc_get_data(record = "099d69c5-1401-484d-9e19-c121ccb7977c",
+              resource = "ad2f8db4-b357-42c2-9aa5-a0a987bf33c7") %>%
+  write_csv("./data_dl/aquifer_subtypes.csv")
+
+
+# Aquifer Map
+bcdc_get_record("099d69c5-1401-484d-9e19-c121ccb7977c")
+m <- bcdc_get_data(record = '099d69c5-1401-484d-9e19-c121ccb7977c',
+                   resource = '8f421e3a-ccd3-4fab-8198-53ad6e9e2af2') %>%
+  rename(aquifer_id = AQ_TAG) %>%
+  mutate(aquifer_id = as.numeric(aquifer_id))
+write_rds(m, "./data_dl/aquifer_map.rds")
+
+# Groundwater trends
+#bcdc_search("groundwater")
+bcdc_get_record("a74f1b97-17f7-499b-84e7-6455e169e425")
+bcdc_get_data(record = 'a74f1b97-17f7-499b-84e7-6455e169e425',
+              resource = 'a8933793-eadb-4a9c-992c-da4f6ac8ca51') %>%
+  write_csv("./data_dl/groundwater_trends.csv")
+
+# Aquifer Data
+# # https://catalogue.data.gov.bc.ca/dataset/ground-water-aquifers#edc-pow
+# # Custom download: Lat/Lon, CSV, No area
+# # "./data/BCGW_7113060B_1570223462950_1792.zip"
+# unzip("./data/BCGW_7113060B_1570223462950_1792.zip", exdir = "./data/",
+#       files = c("GW_AQUIFERS_CLASSIFICATION_SVW/GW_AQUIFER.csv"), junkpaths = TRUE, overwrite = TRUE)
+#
 
 # Aquifer data
 # bcdc_get_geodata("ground-water-aquifers") %>%
