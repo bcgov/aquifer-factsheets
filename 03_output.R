@@ -91,6 +91,8 @@ for (a in aquifers) {
       theme(axis.title.x = element_text(vjust = 1)) +
       ylab("High             Reported Well Yields (L/s)             Low")
 
+    max_lim <- if_else(all(w$well_yield == 0), 1, as.numeric(NA))
+
     if(n < 5) {
       # Insufficient data
       Yield <- Yield_base +
@@ -119,7 +121,7 @@ for (a in aquifers) {
         annotate(geom = "text", x = Inf, y = Inf, vjust = -0.5, hjust = 1.1,
                  label = paste0("n = ", n), size = ann_size) +
         xlab(xlab) +
-        scale_y_reverse(limits = c(NA, 0), expand = c(0.05, 0))
+        scale_y_reverse(limits = c(max_lim, 0), expand = c(0.05, 0))
     }
 
     ggsave(paste0("yield_", sprintf("%04d", a), ".jpg"),
