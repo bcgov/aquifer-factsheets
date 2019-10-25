@@ -23,7 +23,8 @@ factsheet <- function(aq_num, pages = 2, draft = FALSE,
   if(is.null(template_path)) template_path <- file.path(getwd(), "./templates/factsheet_template.Rmd")
 
   if(tolower(tools::file_ext(template_path)) != "rmd") stop("template_path must point to an .Rmd file")
-  out_file <- paste0("AQ_", sprintf("%05d", aq_num), "_Aquifer_Factsheet") # Get aq_num with leading zeros
+  out_file <- paste0("AQ_", sprintf("%05d", aq_num), "_Aquifer_Factsheet_",
+                     Sys.Date()) # Get aq_num with leading zeros
   if(draft) out_file <- paste0(out_file, "_DRAFT.pdf") else out_file <- paste0(out_file, ".pdf")
 
   rmarkdown::render(template_path,
