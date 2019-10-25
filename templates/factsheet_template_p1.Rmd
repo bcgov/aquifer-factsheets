@@ -54,7 +54,7 @@ t <- kable(aquifer_table, format = "latex", escape = FALSE, booktabs = TRUE, lin
   \node[left = 0cm of second.north west, anchor = north east] (first) {\includegraphics[width = 0.18\paperwidth]{`r figures_p1$well_yield`}};
 
   `r # Aquifer Description`
-  \node[below = 0.35cm of map.south west, anchor = north west, align = left, text width = 7.5cm] (desc) {`r desc`};
+  \node[below = 0.35cm of map.south west, anchor = north west, align = left, text width = 8cm] (desc) {`r desc`};
 
   `r # Aquifer Table`
   \node[below left = 0.3cm and 0.1cm of desc.south west, anchor = north west]{\renewcommand{\arraystretch}{1.25} `r t`};
