@@ -58,6 +58,25 @@ get_breaks <- function(min, max, length.out) {
   seq(min, max, by = by)
 }
 
+check_piper_plots <- function(dir = "./figures/piperplots") {
+
+  p <- tibble(file = list.files(dir)) %>%
+    mutate(ow = str_extract(file, "OW[0-9]{4}"),
+           ow = as.numeric(str_extract(ow, "[0-9]{4}")),
+           aquifer_id = str_extract(file, "_[0-9]{4}_"),
+           aquifer_id = as.numeric(str_extract(aquifer_id, "[0-9]{4}")))
+
+  g <- read_csv("data_dl/well.csv", guess_max = 200000) %>%
+    select(aquifer_id, ow = observation_well_number) %>%
+    filter(!is.na(ow)) %>%
+    mutate(ow = as.numeric(ow))
+
+  compare <- full_join(p, g, by = "ow", suffix = c("_piper", "_gwells")) %>%
+    filter(aquifer_id_piper != aquifer_id_gwells)
+
+  write_csv(compare, "piper_aquifers.csv")
+
+}
 
 fix_names <- function(dir = "./figures", type, filename, ext, digits = 4) {
 
