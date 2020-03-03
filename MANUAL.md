@@ -4,7 +4,7 @@
 - [Install R](https://mirror.its.sfu.ca/mirror/CRAN/)
 - [Install RStudio](https://rstudio.com/products/rstudio/download/#download)
 
-### 1. Get a Copy of [this Repository](https://github.com/bcgov/aquifer-factsheets)
+### 1. Get a copy of [the `aquifer-factsheets` repository](https://github.com/bcgov/aquifer-factsheets)
 - Click on the green "Clone or download" button
 - Click "Download Zip"
 - Save and Unzip Project Folder
@@ -36,7 +36,7 @@ All of the following should be placed in the `figures` folder created in Step 2.
 - Figure explaining the boxplots for the companion document (`boxplot_key.png`)
 - BC Gov Logo (`BCID_H_cmyk_rev.pdf`) - [See Appendix](#3-get-bc-government-logo)
 
-### 5. Create Factsheets
+### 5. Create factsheets
 Open `run_all.R` and follow the instructions therein to do the following:
 
 - Run `01_download.R` and `02_load.R` which will first download and then load all the data necessary
