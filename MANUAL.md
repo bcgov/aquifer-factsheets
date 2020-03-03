@@ -45,6 +45,7 @@ Open `run_all.R` and follow the instructions therein to do the following:
 - Run `04_output.R` to create figures for the factsheets
 - Use the `factsheet()` function to create factsheets for the specified aquifers. 
   - Note that if you create a factsheet for an aquifer not specified in the `aquifers` object, it may create a factsheet, but that factsheet will likely be missing data and/or figures!
+- Run the code to produce the companion document
   
 
 ### Appendix
