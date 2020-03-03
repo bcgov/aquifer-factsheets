@@ -14,7 +14,7 @@ Some data need to be supplied prior to running the aquifer factsheets.
 
 All of the following should be placed in the `data` folder created in Step 2.
 
-- Groundwater Trends Full Data (`clean_well_data.RData`)
+- Groundwater Trends Full Data (`clean_well_data.RData`) - [See Appendix for more information](#1-groundwater-trends)
 - Piper Plot descriptions (`piper_text.xlsx`)
 - Index of extra page types (`extra_page_index.xlsx`)
 - Images to include on extra pages (`extra_page_images.xlsx`)
@@ -26,10 +26,10 @@ All of the following should be placed in the `figures` folder created in Step 2.
 
 - Aquifer maps in `maps` folder (i.e., `maps/Aquifer_Map_0001.pdf`)
 - Piper plots in `piperplots` folder (i.e., `piperplots/Piperplot_0001_OW0001.jpg`)
-- Extra figures in `extra` folder (i.e., `extra/Chilliwack_CrossSection_2L.jpg`) - [See Appendix for more information](#1-extra-figures)
+- Extra figures in `extra` folder (i.e., `extra/Chilliwack_CrossSection_2L.jpg`) - [See Appendix for more information](#2-extra-figures)
 - Missing plot figures for Combo, Piper plots and Trend plots in `na` folder (i.e., `na/figure_missing_combo.png`)
 - Figure explaining the boxplots for the companion document (`boxplot_key.png`)
-- BC Gov Logo (`BCID_H_cmyk_rev.pdf`) - [See Appendix](#2-get-bc-government-logo)
+- BC Gov Logo (`BCID_H_cmyk_rev.pdf`) - [See Appendix](#3-get-bc-government-logo)
 
 ### 5. Create Factsheets
 Open `run_all.R` and follow the instructions therein to do the following:
@@ -44,7 +44,26 @@ Open `run_all.R` and follow the instructions therein to do the following:
 
 ### Appendix
 
-#### 1. Extra Figures
+#### 1. Groundwater Trends
+Although the summarized trend data is available from the online BC Gov data repository, more detailed data is required to recreate the trend figures (for Page 2s). 
+
+There are several steps needed to create the `clean_well_data.RData` data required:
+
+- Clone/Download the [`groundwater-levels-indicator`](https://github.com/bcgov/groundwater-levels-indicator) repository
+- In that project (i.e. **not** in this `aquifers-factsheet` project) run the following code
+   - Make sure to replace `/home/steffi/Projects/aquifer-factsheets/data/` with the path to YOUR aquifer-factsheets folder
+   - Alternatively, simply copy the `clean_well_data.RData` file from the `tmp` folder in the `groundwater-levels-indicator` project and paste it into the `data` folder in the `aquifer-factsheets` project.
+
+```
+library(envreportutils)
+
+source("01_load.R
+source("02_clean.R")
+
+file.copy("tmp/clean_well_data.RData", "/home/steffi/Projects/aquifer-factsheets/data/")
+```
+
+#### 2. Extra Figures
 
 Extra Figures are a method for including extra, non-standard pages in the Aquifer Factsheets. These pages occur after the normal type 2 page for specific observation wells (weather, aquifer trends, and piperplots). Each "extra page figure" can take up 1/2 of a page. 
 
@@ -55,7 +74,7 @@ To include extra page figures:
 - Each figure must be listed in the `extra_page_images.xlsx` file along with the Aquifer ID(s) that it corresponds to and the type of extra figure it is (e.g., `cross_section`)
 - Each "type" of extra figure must be listed in `extra_page_index.xlsx`, along with the header it will receive and the order (i.e. if there are more than one type of extra page figures which should come first?)
 
-#### 2. Get BC Government logo 
+#### 3. Get BC Government logo 
 
 Download BC Government logo and unzip into figures folder (Then convert to pdf by hand)
 ```
