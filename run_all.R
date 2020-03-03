@@ -37,8 +37,9 @@ source("02_load.R")
 
 # Specific specific aquifers
 aquifers <- c(6, 8, 353, 662, 738, 750, 15, 157)
-delete_old <- TRUE   # Delete all old figures before rerunning?
 
+# Clean data and Create figures
+delete_old <- TRUE   # Delete all old figures before rerunning?
 source("03_clean.R")
 source("04_output.R")
 
