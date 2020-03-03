@@ -21,9 +21,13 @@
 #       walk through the script and re-run lines which give you an error the first time
 source("01_download.R") # You don't have to run this every time
 
+
+
 # Prepare Data and Figures ------------------------------------------------
 # These may take a while, depending how many aquifers have been selected
 source("02_load.R")
+
+
 
 
 # Specify aquifers to run -------------------------------------------------
@@ -38,10 +42,14 @@ source("02_load.R")
 # Specific specific aquifers
 aquifers <- c(6, 8, 353, 662, 738, 750, 15, 157)
 
-# Clean data and Create figures
+
+
+# Clean data and Create figures -------------------------------------------
 delete_old <- TRUE   # Delete all old figures before rerunning?
 source("03_clean.R")
 source("04_output.R")
+
+
 
 # Create aquifer factsheets -----------------------------------------------
 
