@@ -1,13 +1,18 @@
 # Creating Factsheets
 
+### 0. Install software
+- [Install R](https://mirror.its.sfu.ca/mirror/CRAN/)
+- [Install RStudio](https://rstudio.com/products/rstudio/download/#download)
+
 ### 1. Get a Copy of [this Repository](https://github.com/bcgov/aquifer-factsheets)
 - Click on the green "Clone or download" button
 - Click "Download Zip"
 - Save and Unzip Project Folder
   
 ### 2. Setup the project
+- Open the project by double-clicking on the `aquifer-factsheets.Rproj` file
 - Open and run the complete `00_setup.R` script
-- This will install packages and create folders needed
+  - This will install packages and create folders needed
   
 ### 3. Add supplemental data
 Some data need to be supplied prior to running the aquifer factsheets.
