@@ -24,6 +24,7 @@ knitr::opts_chunk$set(echo = FALSE)
 # Regarding document type
 p1 <- "factsheet_template_p1.Rmd"
 p2 <- "factsheet_template_p2.Rmd"
+p3 <- "factsheet_template_p3.Rmd"
 
 aq_num <- as.numeric(params$aq_num)
 ```
@@ -175,6 +176,15 @@ if(nrow(ow) > 0) {
 } else {
   figures_p2 <- tibble()
 }
+
+# Page 3
+extra <- read_excel("../data/extra_page_images.xlsx") %>%
+  separate_rows(aquifer_ids, sep = ",", convert = TRUE) %>%
+  filter(aq_num == aquifer_ids) %>%
+  left_join(read_excel("../data/extra_page_index.xlsx"), by = "type") %>%
+  arrange(order, image) %>%
+  distinct() #in case of duplicates
+
 ```
   
   
@@ -183,7 +193,7 @@ cat(knit_child(p1))
 ```
 
 
-```{r create_page2s, eval = nrow(figures_p2) > 0 & params$pages == 2, results = "asis", message = FALSE}
+```{r create_page2s, eval = nrow(figures_p2) > 0 & params$pages >= 2, results = "asis", message = FALSE}
 # Get obs wells from figure names
 obs_wells <- sort(unique(figures_p2$ow))
 
@@ -206,5 +216,16 @@ for (o in obs_wells) {
   
   cat("\\newpage")
   cat(knit_child(p2))
+}
+```
+
+  
+```{r create_page3, eval = nrow(extra) > 0 & params$pages >=3, results = "asis", message = FALSE}
+
+for(i in seq(1, nrow(extra), 2)) {
+  e <- slice(extra, i:(i+1)) %>%
+    mutate(image = file.path("../figures/extra", image))
+  cat("\\newpage")
+  cat(knit_child(p3))
 }
 ```
