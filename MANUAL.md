@@ -14,7 +14,7 @@ Some data need to be supplied prior to running the aquifer factsheets.
 
 All of the following should be placed in the `data` folder created in Step 2.
 
-- Groundwater Trends Full Data (`clean_well_data.RData`) - [See Appendix for more information](#1-groundwater-trends)
+- Groundwater Trends Full Data (`clean_well_data.RData`) - [See Appendix](#1-groundwater-trends)
 - Piper Plot descriptions (`piper_text.xlsx`)
 - Index of extra page types (`extra_page_index.xlsx`)
 - Images to include on extra pages (`extra_page_images.xlsx`)
@@ -26,7 +26,7 @@ All of the following should be placed in the `figures` folder created in Step 2.
 
 - Aquifer maps in `maps` folder (i.e., `maps/Aquifer_Map_0001.pdf`)
 - Piper plots in `piperplots` folder (i.e., `piperplots/Piperplot_0001_OW0001.jpg`)
-- Extra figures in `extra` folder (i.e., `extra/Chilliwack_CrossSection_2L.jpg`) - [See Appendix for more information](#2-extra-figures)
+- Extra figures in `extra` folder (i.e., `extra/Chilliwack_CrossSection_2L.jpg`) - [See Appendix](#2-extra-figures)
 - Missing plot figures for Combo, Piper plots and Trend plots in `na` folder (i.e., `na/figure_missing_combo.png`)
 - Figure explaining the boxplots for the companion document (`boxplot_key.png`)
 - BC Gov Logo (`BCID_H_cmyk_rev.pdf`) - [See Appendix](#3-get-bc-government-logo)
