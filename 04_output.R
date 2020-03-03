@@ -25,7 +25,7 @@ indiv_gwl_and_precip <- FALSE
 
 # Check for aquifer numbers
 if(!exists("aquifers")) {
-  stop("Can't run 03_output.R without first specifying which aquifers to visualize", call. = FALSE)
+  stop("Can't run 04_output.R without first specifying which aquifers to visualize", call. = FALSE)
 } else if(length(aquifers) == 0) {
   stop("'aquifers' is empty, specify at least one aquifer to visualize", call. = FALSE)
 } else if(!is.vector(aquifers)) {
@@ -34,8 +34,8 @@ if(!exists("aquifers")) {
 
 
 # Load functions, packages and data
-source("00_functions.R")
-source("00_header.R")
+source("functions.R")
+source("header.R")
 load("tmp/aquifer_factsheet_clean_data.RData")
 
 # Figure defaults ---------------------------------------------------------

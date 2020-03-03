@@ -20,7 +20,7 @@
 
 # Check for aquifer numbers
 if(!exists("aquifers")) {
-  stop("Can't run 02_clean.R without first specifying which aquifers to summarize", call. = FALSE)
+  stop("Can't run 03_clean.R without first specifying which aquifers to summarize", call. = FALSE)
 } else if(length(aquifers) == 0) {
   stop("'aquifers' is empty, specify at least one aquifer to summarize", call. = FALSE)
 } else if(!is.vector(aquifers)) {
@@ -28,8 +28,8 @@ if(!exists("aquifers")) {
 }
 
 # Load functions, packages and data
-source("00_functions.R")
-source("00_header.R")
+source("functions.R")
+source("header.R")
 load("tmp/aquifer_factsheet_data.RData")
 
 # Master Aquifer Data -----------------------------------------------------

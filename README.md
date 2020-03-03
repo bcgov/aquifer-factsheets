@@ -66,14 +66,15 @@ if(!file.exists("./figures/BCID_H_cmyk_rev.eps")) {
 
 There are four core scripts that are required for the analysis, they need to be run in order:
 
-- 00_download.R
-- 01_load.R
-- 02_clean.R
-- 03_output.R
+- 01_download.R
+- 02_load.R
+- 03_clean.R
+- 04_output.R
 
 **To create all factsheets**, it is best to use the helper script: **`run_all.R`**
 
 This script will guide the user through aquifer selection and running the required analysis scripts sequentially.
+
 
 ### Packages and Software
 
