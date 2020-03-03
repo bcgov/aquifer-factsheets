@@ -76,8 +76,12 @@ check_piper_plots <- function(dir = "./figures/piperplots") {
   compare <- full_join(p, g, by = "ow", suffix = c("_piper", "_gwells")) %>%
     filter(aquifer_id_piper != aquifer_id_gwells)
 
-  write_csv(compare, "piper_aquifers.csv")
-
+  if(nrow(compare) > 0) {
+    message("Mismatch between Piperplot Aquifers and GWELLS Aquifers")
+    write_csv(compare, "./out/LOG_PIPER_MISMATCH.csv")
+  } else {
+    message("Piperplots have correct Aquifer IDS")
+  }
 }
 
 fix_names <- function(dir = "./figures", type, filename, ext, digits = 4) {
