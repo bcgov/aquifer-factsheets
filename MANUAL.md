@@ -26,10 +26,10 @@ All of the following should be placed in the `figures` folder created in Step 2.
 
 - Aquifer maps in `maps` folder (i.e., `maps/Aquifer_Map_0001.pdf`)
 - Piper plots in `piperplots` folder (i.e., `piperplots/Piperplot_0001_OW0001.jpg`)
-- Extra figures in `extra` folder (i.e., `extra/Chilliwack_CrossSection_2L.jpg`) - [See Appendix for more information](extra-figures)
+- Extra figures in `extra` folder (i.e., `extra/Chilliwack_CrossSection_2L.jpg`) - [See Appendix for more information](1-extra-figures)
 - Missing plot figures for Combo, Piper plots and Trend plots in `na` folder (i.e., `na/figure_missing_combo.png`)
 - Figure explaining the boxplots for the companion document (`boxplot_key.png`)
-- BC Gov Logo (`BCID_H_cmyk_rev.pdf`) - [See Appendix](get-bc-government-logo)
+- BC Gov Logo (`BCID_H_cmyk_rev.pdf`) - [See Appendix](2-get-bc-government-logo)
 
 ### 5. Create Factsheets
 Open `run_all.R` and follow the instructions therein to do the following:
