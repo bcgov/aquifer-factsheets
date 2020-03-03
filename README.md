@@ -10,45 +10,40 @@ The data sourced for the analyses is provided under the [Open Government Licence
 
 ### Data - To be provided
 
-Data sets used by, but not created in, these scripts are stored in the "./data/" folder and include:
+Data used by, but not created in, these scripts are stored in the "./data/" folder and include:
 
-**Groundwater Trends** (Temporary data, future to be accessed from finalized BC Groundwater datasets)  
-- `analysis_data.RData`
-- `raw_data.RData`
-
-**Aquifer Data**  
-- Aquifer data (`GW_AQUIFER_ATTRS_DATA_TABLE.csv`)
-- Aquifer regions (`Aquifer Location Description and Regions.csv`)
-- Aquifer water districts (`Aquifer_Water_District.csv`)
-- Aquifer hydraulic connectivity (`Hydraulic Connectivity Table.csv`)
-
-**Weather/Climate**  
-- Climate Normals (`All stations BC_CCN_rainfall_snowfall_precip.csv`)
-- Climate IDs (`Key_Aquifer_Obs well_EMS ID_climate ID.xlsx`)
+**Groundwater Trends Full Data** (Temporary data, future to be accessed from finalized BC Groundwater datasets)  
+- `clean_well_data.RData`
 
 **Miscellaneous**  
 - Piper Plot descriptions (`piper_text.xlsx`)
+- Index of extra page types (`extra_page_index.xlsx`)
+- Images to include on extra pages (`extra_page_images.xlsx`)
 
 ### Data - To be downloaded
 
 Data sets downloaded for use in these scripts (automatically downloaded by the `00_download.R` script) are stored in the "./data_dl/" folder and include:
 
 - Daily mean water levels in observation wells (`obs_well_daily_mean.csv`)
-- Well data (`well.csv` & `lithology.csv`)
+- Well data from GWELLS (`well.csv` & `lithology.csv`)
 - University of Victoria aquifer stress test results (`uvic_stress_index.xlsx`)
-- Aquifer Subtype Index (`aquifer_subtypes.xlsx`)
 - Water licences (`licenced_vol.csv`)
-
+- Aquifer data (`aquifers.csv`)
+- Aquifer subtype index (`aquifer_subtypes.csv`)
+- Aquifer map (`./data_dl/aquifer_map.rds`)
+- Groundwater trends - summarized (`groundwater_trends.csv`)
 
 ### Figures
 
 Some figures are created as part of the analysis, some are created in other software. Additional figures used by, but not created in, these scripts are stored in the "./figures/" folder:  
 
-- ./figures/maps/ - Aquifer maps (i.e., Aquifer_Map_0001.pdf)
-- ./figures/piperplots/ - Piper plots (i.e., Piperplot_0001_OW0001.jpg)
+- ./figures/maps/ - Aquifer maps (i.e., `Aquifer_Map_0001.pdf`)
+- ./figures/piperplots/ - Piper plots (i.e., `Piperplot_0001_OW0001.jpg`)
 - ./figures/na/ - Missing plot figures for Combo, Piper plots and Trend plots
 - ./figures/boxplot_key.png - Figure explaining the boxplots for the companion document
 - ./figures/BCID_H_cmyk_rev.pdf - BC Gov Logo
+
+**To get the BC Government logo: **
 
 Download BC Government logo and unzip into figures folder (Then convert to pdf by hand)
 ```
