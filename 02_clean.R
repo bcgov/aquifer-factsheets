@@ -36,7 +36,7 @@ load("tmp/aquifer_factsheet_data.RData")
 aquifer_db <- aquifer_db_raw %>%
   select(aquifer_id, aquifer_name, descriptive_location = location_description,
          aquifer_materials = material, aquifer_subtype_code = subtype,
-         vulnerability, productivity, demand, size_km2 = area) %>%
+         vulnerability, productivity, demand, size_km2 = area, mapping_year) %>%
   mutate_at(c("vulnerability", "productivity", "demand"),
             ~str_extract(., "High|Moderate|Low")) %>%
   mutate(aquifer_classification =

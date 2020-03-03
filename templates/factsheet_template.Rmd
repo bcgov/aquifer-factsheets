@@ -72,10 +72,18 @@ desc <- paste0("\\textbf{Aquifer Description} ",
                "/AQ_",                                                          # Prefix
                sprintf("%05d", aq_num),                                         # Aq number with 5 digits
                "_Aquifer_Mapping_Report.pdf}",                                  # Suffix  
-               "{\\textbf{Mapping Report}}):\\\\",
+               "{\\textbf{Mapping Report - ", aquifer$mapping_year, "}}):\\\\",
                str_replace(aquifer$description, ".$", ""), # Replace the trailing period with nothing
                " (subtype = ", aquifer$aquifer_subtype_code, ").")
 
+# Link to factsheet pdf
+aq_link <- paste0("https://s3.ca-central-1.amazonaws.com/aquifer-docs/", 
+                  sprintf("%05d", round_any(aq_num, 100, f = floor)), 
+                  "/AQ\\_", 
+                  sprintf("%05d", aq_num), 
+                  "\\_Aquifer\\_Factsheet.pdf")
+
+aq_title <- paste0("\\titlelink{https://apps.nrs.gov.bc.ca/gwells/aquifers/", aq_num, "}{Aquifer \\#", aq_num, "}")
 
 
 # Note that ~ (below) means a non-breaking space, which forces the tables to use a different spot to wrap the text

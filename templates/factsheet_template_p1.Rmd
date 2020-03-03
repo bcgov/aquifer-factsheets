@@ -14,8 +14,7 @@ So when commenting between \begin{...} and \end{...}, use either latex comments 
 This code below uses inline R input to be dynamic AND for comments 
 -->
 
-```{r Aquifer Summary Table, results = 'asis', out.width = "35%"}
-
+```{r Aquifer Summary Table, results = 'asis', out.width = "35%", message = FALSE}
 # Here we create the table in latex code using the kable function.
 # We save the latex table as 't' and place it in the tikzpicture later (see below)
 
@@ -42,7 +41,7 @@ t <- kable(aquifer_table, format = "latex", escape = FALSE, booktabs = TRUE, lin
   \node[below right = 0.2cm and 0.5cm of current page.north west]{\includegraphics[width = 4.25cm]{../figures/BCID_H_cmyk_rev.pdf}};
 
   `r  # Title and Aquifer number`
-  \node[below = 0.5cm of current page.north, white, font = \Huge\bf] (num) {Aquifer \#`r aq_num`};
+  \node[below = 0.5cm of current page.north, white, font = \Huge\bf] (num) {`r aq_title`};
   \node[below = 0.15cm of num, white, font = \Large\bf] {`r title`};
 
   `r # Map figure`
@@ -66,7 +65,7 @@ t <- kable(aquifer_table, format = "latex", escape = FALSE, booktabs = TRUE, lin
  \node[above right = 0.65cm and 0.8cm of current page.south west, align = left, font = \scriptsize] {Detailed methods for all figures are described in the companion document (\link{Aquifer Factsheet - Companion Document.pdf}{Aquifer Factsheet - Companion Document.pdf}).};
  
  `r # Add link to current factsheet`
- \node[above right = 0.25cm and 0.8cm of current page.south west, align = left, font = \scriptsize] {Factsheet generated: `r as.character(Sys.Date())`. Available from: \link{`r paste0("https://s3.ca-central-1.amazonaws.com/aquifer-docs/00000/", sprintf("%05d", aq_num), "\\_Aquifer\\_Factsheet.pdf")`}{`r paste0("https://s3.ca-central-1.amazonaws.com/aquifer-docs/00000/", sprintf("%05d", aq_num), "\\_Aquifer\\_Factsheet.pdf")`}. };
+ \node[above right = 0.25cm and 0.8cm of current page.south west, align = left, font = \scriptsize] {Factsheet generated: `r as.character(Sys.Date())`. Available from: \link{`r aq_link`}{`r aq_link`}. };
 
 
 \end{tikzpicture}
