@@ -21,14 +21,12 @@ source("00_functions.R")
 # Read Local Data ---------------------------------------------------------------
 # These data sets must be available in the 'data' folder
 
-# Aquifer data
-# Link from https://apps.nrs.gov.bc.ca/gwells/aquifers/
-aquifer_db_raw <- read_csv("data/aquifers.csv")
-
+# None! Only aquifer map images, piperplots and piperplot text need to be provided.
 
 # Read Downloaded Data ----------------------------------------------------
 # These data sets must be available in the 'data_dl' folder
 # Run the '00_download.R' script to automatically download and extract these files
+aquifer_db_raw <- read_csv("data_dl/aquifers.csv")
 aquifer_subtypes <- read_csv("data_dl/aquifer_subtypes.csv")
 aquifer_map <- read_rds("data_dl/aquifer_map.rds")
 
