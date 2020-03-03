@@ -9,7 +9,8 @@ This repository contains [R](http://www.r-project.org) code that generates aquif
 The data sourced for the analyses is provided under the [Open Government Licence – British Columbia](http://www2.gov.bc.ca/gov/content?id=A519A56BC2BF44E4A008B33FCF527F61).
 
 
-> A detailed walk-through is provided in the [MANUAL.md file](MANUAL.md)
+
+#### A detailed walk-through is provided in the [MANUAL.md file](MANUAL.md)
 
 
 
