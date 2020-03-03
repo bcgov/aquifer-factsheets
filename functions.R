@@ -61,26 +61,25 @@ get_breaks <- function(min, max, length.out) {
 }
 
 check_piper_plots <- function(dir = "./figures/piperplots") {
+  if(file.exists("data_dl/well.csv")) {
+    p <- tibble(file = list.files(dir)) %>%
+      mutate(ow = str_extract(file, "OW[0-9]{4}"),
+             ow = as.numeric(str_extract(ow, "[0-9]{4}")),
+             aquifer_id = str_extract(file, "_[0-9]{4}_"),
+             aquifer_id = as.numeric(str_extract(aquifer_id, "[0-9]{4}")))
 
-  p <- tibble(file = list.files(dir)) %>%
-    mutate(ow = str_extract(file, "OW[0-9]{4}"),
-           ow = as.numeric(str_extract(ow, "[0-9]{4}")),
-           aquifer_id = str_extract(file, "_[0-9]{4}_"),
-           aquifer_id = as.numeric(str_extract(aquifer_id, "[0-9]{4}")))
+    g <- read_csv("data_dl/well.csv", guess_max = 200000) %>%
+      select(aquifer_id, ow = observation_well_number) %>%
+      filter(!is.na(ow)) %>%
+      mutate(ow = as.numeric(ow))
 
-  g <- read_csv("data_dl/well.csv", guess_max = 200000) %>%
-    select(aquifer_id, ow = observation_well_number) %>%
-    filter(!is.na(ow)) %>%
-    mutate(ow = as.numeric(ow))
+    compare <- full_join(p, g, by = "ow", suffix = c("_piper", "_gwells")) %>%
+      filter(aquifer_id_piper != aquifer_id_gwells)
 
-  compare <- full_join(p, g, by = "ow", suffix = c("_piper", "_gwells")) %>%
-    filter(aquifer_id_piper != aquifer_id_gwells)
-
-  if(nrow(compare) > 0) {
-    message("Mismatch between Piperplot Aquifers and GWELLS Aquifers")
-    write_csv(compare, "./out/LOG_PIPER_MISMATCH.csv")
-  } else {
-    message("Piperplots have correct Aquifer IDS")
+    if(nrow(compare) > 0) {
+      message("Mismatch between Piperplot Aquifers and GWELLS Aquifers")
+      write_csv(compare, paste0("./out/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv"))
+    }
   }
 }
 
