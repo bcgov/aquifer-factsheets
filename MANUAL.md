@@ -52,8 +52,21 @@ Open `run_all.R` and follow the instructions therein to do the following:
   - Factsheet pdfs are produced in the `factsheets` folder
 - Run the code to produce the companion document
   
+## Potential Problems
 
-### Appendix
+### Local Team
+- File names should remain constant
+  - i.e. `Aquifer_0000.pdf`, `Piperplot_0000_OW0000.jpg`
+
+### Others
+- Links to resources don't change 
+  - Links to static resources
+  - Links to Aquifer factsheets and companion document
+- Data sources in the `01_download.R` should remain active
+- R and R packages shouldn't change too much in their functionality
+
+
+## Appendix
 
 #### 1. Groundwater Trends
 Although the summarized trend data is available from the online BC Gov data repository, more detailed data is required to recreate the trend figures (for Page 2s). 
