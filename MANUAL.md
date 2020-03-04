@@ -58,8 +58,8 @@ Open `run_all.R` and follow the instructions therein to do the following:
 - File names should remain constant
   - i.e. `Aquifer_0000.pdf`, `Piperplot_0000_OW0000.jpg`
 
-### Others
-- Links to resources don't change 
+### Potentially out of Team's Control
+- Links to resources shouldn't change 
   - Links to static resources
   - Links to Aquifer factsheets and companion document
 - Data sources in the `01_download.R` should remain active
