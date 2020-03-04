@@ -68,6 +68,7 @@ Open `run_all.R` and follow the instructions therein to do the following:
 ### Local Team
 - File names should remain constant
   - i.e. `Aquifer_0000.pdf`, `Piperplot_0000_OW0000.jpg`
+- Groundwater Indicator data shouldn't change. If they do an update, we'll need to get a new `clean_well_data.Rdata` file.
 
 ### Potentially out of Team's Control
 - Links to resources shouldn't change 
