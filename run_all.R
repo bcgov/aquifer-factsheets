@@ -44,7 +44,7 @@ aquifers <- as.numeric(str_extract(list.files("./figures/maps/"), "[0-9]{4}"))
 #aquifers <- aquifers[aquifers >= 300 & aquifers <= 400]
 
 # Specific specific aquifers
-aquifers <- c(6, 8, 353, 662, 738, 750, 15, 157)
+#aquifers <- c(6, 8, 353, 662, 738, 750, 15, 157)
 
 
 
