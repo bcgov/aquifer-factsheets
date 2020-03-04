@@ -25,17 +25,22 @@ factsheet <- function(aq_num, pages = 2, draft = FALSE,
   if(is.null(template_path)) template_path <- file.path(getwd(), "./templates/factsheet_template.Rmd")
 
   if(tolower(tools::file_ext(template_path)) != "rmd") stop("template_path must point to an .Rmd file")
-  out_file <- paste0("AQ_", sprintf("%05d", aq_num), "_Aquifer_Factsheet_",
-                     Sys.Date()) # Get aq_num with leading zeros
-  if(draft) out_file <- paste0(out_file, "_DRAFT.pdf") else out_file <- paste0(out_file, ".pdf")
 
-  rmarkdown::render(template_path,
-                    params = list(aq_num = aq_num,
-                                  pages = pages,
-                                  draft = draft),
-                    output_options = list(keep_tex = keep_tex),
-                    output_file = out_file,
-                    output_dir = out_folder, clean = TRUE, quiet = TRUE)
+  p <- progress_estimated(length(aq_num))
+  for(a in aq_num) {
+    out_file <- paste0("AQ_", sprintf("%05d", a), "_Aquifer_Factsheet_",
+                       Sys.Date()) # Get aq_num with leading zeros
+    if(draft) out_file <- paste0(out_file, "_DRAFT.pdf") else out_file <- paste0(out_file, ".pdf")
+
+    rmarkdown::render(template_path,
+                      params = list(aq_num = a,
+                                    pages = pages,
+                                    draft = draft),
+                      output_options = list(keep_tex = keep_tex),
+                      output_file = out_file,
+                      output_dir = out_folder, clean = TRUE, quiet = TRUE)
+    p$tick()$print()
+  }
 }
 
 draft_tag <- function() {
@@ -68,7 +73,7 @@ check_piper_plots <- function(dir = "./figures/piperplots") {
              aquifer_id = str_extract(file, "_[0-9]{4}_"),
              aquifer_id = as.numeric(str_extract(aquifer_id, "[0-9]{4}")))
 
-    g <- read_csv("data_dl/well.csv", guess_max = 200000) %>%
+    g <- suppressMessages(read_csv("data_dl/well.csv", guess_max = 200000)) %>%
       select(aquifer_id, ow = observation_well_number) %>%
       filter(!is.na(ow)) %>%
       mutate(ow = as.numeric(ow))
@@ -77,7 +82,8 @@ check_piper_plots <- function(dir = "./figures/piperplots") {
       filter(aquifer_id_piper != aquifer_id_gwells)
 
     if(nrow(compare) > 0) {
-      message("Mismatch between Piperplot Aquifers and GWELLS Aquifers")
+      message("Mismatch between Piperplot Aquifers and GWELLS Aquifers, see:\n ",
+              "'out/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv'")
       write_csv(compare, paste0("./out/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv"))
     }
   }
@@ -139,7 +145,7 @@ fix_names <- function(dir = "./figures", type, filename, ext, digits = 4) {
     if(nrow(mismatch <- filter(mismatch, orig != new)) > 0) {
       file.rename(from = file.path(dir, type, mismatch$orig),
                   to = file.path(dir, type, mismatch$new))
-      message(paste0("\n", paste0("Renaming ", mismatch$orig, " to ", mismatch$new), collapse = "\n"))
+      message(paste0(paste0("Renaming ", mismatch$orig, " to ", mismatch$new), collapse = "\n"))
     }
   }
 }

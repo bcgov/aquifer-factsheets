@@ -54,18 +54,14 @@ source("04_output.R")
 # Create aquifer factsheets -----------------------------------------------
 
 # Create all aquifer factsheets
-p <- progress_estimated(length(aquifers))
-for (a in aquifers) {
-  factsheet(a, draft = TRUE)
-  p$tick()$print()
-}
+factsheet(aquifers, draft = TRUE)
 
 # Create a single factsheet
-factsheet(608, draft = TRUE)
-factsheet(21)
+#factsheet(608, draft = TRUE)
+#factsheet(21)
 
 # Create a single factsheet with only page 1
-factsheet(15, draft = FALSE, pages = 1)
+#factsheet(15, draft = FALSE, pages = 1)
 
 # Create the Companion Document -------------------------------------------
 rmarkdown::render("./templates/factsheet_methods.Rmd",
