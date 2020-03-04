@@ -39,8 +39,9 @@ library(weathercan)
 })
 
 # Check names and fix if necessary:
+checknames <- TRUE
 if(exists("checknames") && checknames){
   check_piper_plots()
-  fix_names(type = "maps", filename = "Aquifer_Map", ext = "pdf")
+  fix_names(type = "maps", filename = "Aquifer", ext = "pdf")
   fix_names(type = "piperplots", filename = "Piperplot", ext = "jpg")
 }
