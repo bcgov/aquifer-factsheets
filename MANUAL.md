@@ -51,7 +51,18 @@ Open `run_all.R` and follow the instructions therein to do the following:
   - You can specify `draft = TRUE` to create factsheets with the "DRAFT" watermark
   - Factsheet pdfs are produced in the `factsheets` folder
 - Run the code to produce the companion document
-  
+
+## To Update Factsheets
+
+- New Aquifer Maps in the `figures/maps` folder
+- New Piperplots in the `figures/piperplots` folder
+  - New Piperplot text added to the `piper_text.xlsx` file
+- New Extra Supplementary information in the `figures/extra` folder
+  - Also added to `extra_page_index.xlsx` and `extra_page_images.xlsx` in the `data` folder
+- Download new data (see `run_all.R`)
+- Create the factsheets!
+
+
 ## Potential Problems
 
 ### Local Team
