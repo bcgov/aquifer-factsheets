@@ -16,9 +16,14 @@
 # Create aquifer factsheets
 ##############################
 
+# Load functions and header
+source("functions.R")
+source("header.R")
+
 # Update Data Sources -----------------------------------------------------
-# NOTE: Sometimes the downloads don't work on the first try, if you get an error,
-#       walk through the script and re-run lines which give you an error the first time
+# NOTE: Sometimes the downloads don't work on the first try, if you get an
+#   error, walk through the 01_download.R script and re-run lines which give you
+#   an error the first time
 source("01_download.R") # You don't have to run this every time
 
 
@@ -33,11 +38,10 @@ source("02_load.R")
 # Specify aquifers to run -------------------------------------------------
 
 # Large run - Run all Aquifers that have a Map file
-
-# aquifers <- as.numeric(str_extract(list.files("./figures/maps/"), "[0-9]{4}"))
+aquifers <- as.numeric(str_extract(list.files("./figures/maps/"), "[0-9]{4}"))
 
 # Specify a Range of aquifers (from the above set)
-# aquifers <- aquifers[aquifers >= 300 & aquifers <= 400]
+#aquifers <- aquifers[aquifers >= 300 & aquifers <= 400]
 
 # Specific specific aquifers
 aquifers <- c(6, 8, 353, 662, 738, 750, 15, 157)

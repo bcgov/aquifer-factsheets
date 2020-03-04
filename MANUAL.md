@@ -3,6 +3,9 @@
 ### 0. Install software
 - [Install R](https://mirror.its.sfu.ca/mirror/CRAN/)
 - [Install RStudio](https://rstudio.com/products/rstudio/download/#download)
+- Consider updating R if you have an older version 
+  - Type `R.version.string` to see what version of R you have
+  - If your R version is < 3.6.0 consider updating
 
 ### 1. Get a copy of [the `aquifer-factsheets` repository](https://github.com/bcgov/aquifer-factsheets)
 - Click on the green "Clone or download" button
@@ -10,7 +13,7 @@
 - Save and Unzip Project Folder
   
 ### 2. Setup the project
-- Open the project by double-clicking on the `aquifer-factsheets.Rproj` file
+- Open the project by right-clicking on the `aquifer-factsheets.Rproj` file and open with RStudio
 - Open and run the complete `00_setup.R` script
   - This will install packages and create folders needed
   
@@ -44,7 +47,9 @@ Open `run_all.R` and follow the instructions therein to do the following:
 - Run `03_clean.R` to clean and summarize the data
 - Run `04_output.R` to create figures for the factsheets
 - Use the `factsheet()` function to create factsheets for the specified aquifers. 
-  - Note that if you create a factsheet for an aquifer not specified in the `aquifers` object, it may create a factsheet, but that factsheet will likely be missing data and/or figures!
+  - **Note** that if you create a factsheet for an aquifer not specified in the `aquifers` object, it may create a factsheet, but that factsheet will likely be missing data and/or figures!
+  - You can specify `draft = TRUE` to create factsheets with the "DRAFT" watermark
+  - Factsheet pdfs are produced in the `factsheets` folder
 - Run the code to produce the companion document
   
 
@@ -53,21 +58,9 @@ Open `run_all.R` and follow the instructions therein to do the following:
 #### 1. Groundwater Trends
 Although the summarized trend data is available from the online BC Gov data repository, more detailed data is required to recreate the trend figures (for Page 2s). 
 
-There are several steps needed to create the `clean_well_data.RData` data required:
+The `clean_well_data.RData` data is created by running the `01_load.R` and `02_clean.R` scripts in the [`groundwater-levels-indicator`](https://github.com/bcgov/groundwater-levels-indicator) repository. 
 
-- Clone/Download the [`groundwater-levels-indicator`](https://github.com/bcgov/groundwater-levels-indicator) repository
-- In that project (i.e. **not** in this `aquifers-factsheet` project) run the following code
-   - Make sure to replace `/home/steffi/Projects/aquifer-factsheets/data/` with the path to YOUR aquifer-factsheets folder
-   - Alternatively, simply copy the `clean_well_data.RData` file from the `tmp` folder in the `groundwater-levels-indicator` project and paste it into the `data` folder in the `aquifer-factsheets` project.
-
-```
-library(envreportutils)
-
-source("01_load.R
-source("02_clean.R")
-
-file.copy("tmp/clean_well_data.RData", "/home/steffi/Projects/aquifer-factsheets/data/")
-```
+Unfortunately one of the data sources is currently unavailable, so these scripts are not currently usable.
 
 #### 2. Extra Figures
 
