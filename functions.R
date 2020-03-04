@@ -86,6 +86,9 @@ check_piper_plots <- function(dir = "./figures/piperplots") {
               "'out/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv'")
       write_csv(compare, paste0("./out/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv"))
     }
+    return(TRUE)
+  } else {
+    return(FALSE)
   }
 }
 
