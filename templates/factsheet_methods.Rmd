@@ -21,6 +21,7 @@ header-includes:
    - \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
    - \let\oldhref\href
    - \renewcommand{\href}[2]{\oldhref{#1}{\bfseries#2}}
+   - \setlength{\headheight}{14pt}
 
 params: 
   draft: FALSE
