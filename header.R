@@ -44,6 +44,6 @@ if(exists("checknames") && checknames){
   if(!exists("checked") || !checked) {
     checked <- check_piper_plots()
   }
-  fix_names(type = "maps", filename = "Aquifer", ext = "pdf")
+  fix_names(type = "maps", filename = "Aquifer_Map", ext = "pdf")
   fix_names(type = "piperplots", filename = "Piperplot", ext = "jpg")
 }

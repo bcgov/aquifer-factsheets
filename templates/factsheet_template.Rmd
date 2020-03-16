@@ -129,7 +129,7 @@ aquifer <- aquifer %>%
 figures_p1 <- list()
 
 # Page 1
-figures_p1$map <- list.files("../figures/maps/", pattern = paste0("Aquifer_", aq_num_ch, ".pdf"), full.names = TRUE)
+figures_p1$map <- list.files("../figures/maps/", pattern = paste0("Aquifer_Map_", aq_num_ch, ".pdf"), full.names = TRUE)
 figures_p1$water_depth <- list.files("../out/boxplots/", pattern = paste0("water_depth_", aq_num_ch, ".jpg"), full.names = TRUE)
 figures_p1$well_yield <- list.files("../out/boxplots/", pattern = paste0("yield_", aq_num_ch, ".jpg"), full.names = TRUE)
 figures_p1$well_depth <- list.files("../out/boxplots/", pattern = paste0("well_depth_", aq_num_ch, ".jpg"), full.names = TRUE)
