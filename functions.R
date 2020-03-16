@@ -16,7 +16,7 @@
 # Functions
 ##############################
 
-factsheet <- function(aq_num, pages = 2, draft = FALSE,
+factsheet <- function(aq_num, pages = 3, draft = FALSE,
                       data_folder = NULL, out_folder = "./factsheets/",
                       template_path = NULL,
                       keep_tex = FALSE) {
