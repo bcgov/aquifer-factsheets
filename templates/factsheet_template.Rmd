@@ -86,6 +86,10 @@ aq_link <- paste0("https://s3.ca-central-1.amazonaws.com/aquifer-docs/",
 
 aq_title <- paste0("\\titlelink{https://apps.nrs.gov.bc.ca/gwells/aquifers/", aq_num, "}{Aquifer \\#", aq_num, "}")
 
+# Link to companion document
+companion_link <- paste0("https://www2.gov.bc.ca/assets/gov/environment/",
+                         "air-land-water/water/water-wells/",
+                         "aquifer_factsheet_-_companion_document.pdf")
 
 # Note that ~ (below) means a non-breaking space, which forces the tables to use a different spot to wrap the text
 aquifer <- aquifer %>%
