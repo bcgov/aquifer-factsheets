@@ -52,7 +52,8 @@ aquifer_db <- aquifer_db_raw %>%
                      vulnerability == "Low" & demand == "Moderate" ~ "IIC",
                      vulnerability == "Low" & demand == "Low" ~ "IIIC"),
          aquifer_subtype_code = str_extract(aquifer_subtype_code, "^[^- ]*"),
-         retired = str_detect(tolower(aquifer_name), "retired|merged"))
+         retired = str_detect(tolower(aquifer_name), "retired|merged"),
+         retired = if_else(is.na(retired), FALSE, retired))
 
 
 # Remove retired aquifers with message
@@ -74,7 +75,8 @@ wells_db <- wells_db_raw %>%
          static_water_level,      # equivalent to WATER_DEPTH
          finished_well_depth,     # equivalent to DEPTH_WELL_DRILLED
          latitude,
-         longitude) %>%
+         longitude,
+         licenced_status_code) %>%
   mutate(ow = as.numeric(ow))
 
 obs_wells_index <- wells_db %>%
@@ -85,11 +87,11 @@ obs_wells_index <- wells_db %>%
 
 
 # Master - Number of Wells ---------------------------------------------------
-
+message("  Number of wells")
 # Calculate and add reported number of wells to Aquifer data
 aquifer_db <- wells_db %>%
   group_by(aquifer_id) %>%
-  summarize(reported_no_wells = n()) %>%
+  summarize(reported_no_wells = n(), .groups = "drop") %>%
   left_join(aquifer_db, ., by = "aquifer_id") %>%
   # Fill NAs with zeros
   mutate(reported_no_wells = replace(reported_no_wells,
@@ -113,6 +115,7 @@ rm(n_obswells)
 
 
 # Master - (GIS) Aquifer Water Districts ---------------------------
+message("  Water Districts")
 # Overlap aquifer maps on water_district map
 wd <- st_intersection(select(bcmaps::water_districts(), water_district = DISTRICT_NAME),
                       select(aquifer_map, aquifer_id)) %>%
@@ -140,6 +143,7 @@ aquifer_db <- select(wd, water_district, aquifer_id) %>%
   left_join(aquifer_db, ., by = "aquifer_id")
 
 # Master - (GIS) Region  -------------------------------------------
+message("  Regions")
 aquifer_db <- select(bcmaps::nr_regions(), region = REGION_NAME) %>%
   mutate(region = str_remove(region, " Natural Resource Region"),
          region = str_remove(region, "-Boundary")) %>%
@@ -159,10 +163,12 @@ aquifer_db <- select(bcmaps::nr_regions(), region = REGION_NAME) %>%
 
 # Master - Hydraulic Connectivity ----------------------------------------------
 # Add Hydraulic Connectivity to Aquifer Data
+message("  Hydraulic Connectivity")
 aquifer_db <- left_join(aquifer_db, hc, by = "aquifer_subtype_code")
 
 # Master - Licences -------------------------------------------------------
-# Prepare license data
+# Prepare licence data
+message("  Licences")
 licenced_vol <- licenced_vol %>%
   rename_all(tolower) %>%
   select(licence_number, pod_subtype, aquifer_id = source_name) %>%
@@ -174,7 +180,7 @@ licenced_vol <- licenced_vol %>%
 # Add to aquifer db
 aquifer_db <- licenced_vol %>%
   group_by(aquifer_id) %>%
-  summarize(n_licences = n()) %>%
+  summarize(n_licences = n(), .groups = "drop") %>%
   left_join(aquifer_db, ., by = "aquifer_id") %>%
   # Fill missing counts with zero
   mutate(n_licences = replace(n_licences, is.na(n_licences), 0))
@@ -191,13 +197,14 @@ aquifer_db <- aquifer_subtypes %>%
   left_join(aquifer_db, ., by = "aquifer_subtype_code")
 
 # Master - Stress Indices ----------------------------------------------
+message("  Stress Indices")
 aquifer_db <- stress_index %>%
   select(aquifer_id = AQ_NUM,
          aquifer_pumping_stress_index = Result) %>%
   left_join(aquifer_db, ., by = "aquifer_id")
 
 # Data for boxplots ---------------------------------------------------
-
+message("  Boxplot Data")
 # Converting Yield from GPM to L/s and Feet to Metres
 
 wells_db <- wells_db %>%
@@ -209,6 +216,7 @@ wells_db <- wells_db %>%
 
 
 # Groundwater data --------------------------------------------------------
+message("  Groundwater data")
 # Add Aquifer and OW ids to SOE data
 ground_water <- select(obs_wells_index, aquifer_id, ow) %>%
   distinct() %>%
@@ -218,11 +226,13 @@ ground_water <- select(obs_wells_index, aquifer_id, ow) %>%
 
 ground_water_trends <- select(obs_wells_index, aquifer_id, ow) %>%
   distinct() %>%
-  right_join(ground_water_trends, by = c("ow" = "Well_Num", "aquifer_id")) %>%
+  right_join(ground_water_trends, by = c("ow" = "Well_Num"),
+             suffix = c("", "_gwtrends")) %>%
   filter(!is.na(aquifer_id),
          !is.na(ow))
 
 # Climate index from weathercan -------------------------------------------
+message("  Climate index")
 # Get 10 closest stations within 100km (not all will have data)
 locs <- wells_db %>%
   select(aquifer_id, ow, latitude, longitude) %>%
@@ -244,6 +254,7 @@ locs <- wells_db %>%
   unnest(stations)
 
 # Climate Normals - Precipitation Data ----------------------------------------
+message("  Climate Normals")
 ppt <- locs %>%
   pull(climate_id) %>%
   unique() %>%
@@ -287,7 +298,7 @@ ppt <- ppt_normals %>%
   gather(key = "precipitation", value = "ppt_mm", rain, snow)
 
 # Water level data ----------------------------------------------------
-
+message("  Water level")
 # Read the data and format the dates and date columns
 wl_all <- obs_well %>%
   rename(date = QualifiedTime, ow = myLocation, wl = Value) %>%
@@ -299,28 +310,40 @@ wl_all <- obs_well %>%
          month = month(date),
          month_text = month(date, label = TRUE),
          day = day(date),
-         month_year = paste0(month_text, "-", year))
+         month_year = paste0(month_text, "-", year)) %>%
+  # Check for extreme outliers?
+  group_by(ow) %>%
+  mutate(iqr = IQR(wl),
+         outlier_min = quantile(wl, 0.25) - (iqr * 20),
+         outlier_max = quantile(wl, 0.75) + (iqr * 20),
+         outlier =  wl <= outlier_min | wl >= outlier_max,
+         n_outliers = sum(outlier),
+         outlier = outlier & n_outliers == 1,
+         outlier_value = if_else(outlier, wl, as.numeric(NA)),
+         wl = replace(wl, outlier, as.numeric(NA)))
 
 wl_month_extremes <- wl_all %>%
   group_by(ow, month) %>%
-  summarise(min_monthly_wl = min(wl),
-            max_monthly_wl = max(wl))
+  summarize(min_monthly_wl = min(wl, na.rm = TRUE),
+            max_monthly_wl = max(wl, na.rm = TRUE),
+            .groups = "drop")
 
 # Calculate median water level for each month/year then for each month
 wl_month <- wl_all %>%
   group_by(ow, year, month) %>%
-  summarize(mean_monthly_wl = mean(wl),
-            min_monthly_wl = min(wl),
-            max_monthly_wl = max(wl),
-            median_monthly_wl = median(wl)) %>%
+  summarize(mean_monthly_wl = mean(wl, na.rm = TRUE),
+            min_monthly_wl = min(wl, na.rm = TRUE),
+            max_monthly_wl = max(wl, na.rm = TRUE),
+            median_monthly_wl = median(wl, na.rm = TRUE),
+            .groups = "drop") %>%
   group_by(ow, month) %>%
-  summarise(median_median = median(median_monthly_wl),
-            mean_median = mean(median_monthly_wl),
-            percentile_25 = quantile(median_monthly_wl, 0.25),
-            percentile_75 = quantile(median_monthly_wl, 0.75),
-            percentile_10 = quantile(median_monthly_wl, 0.10),
-            percentile_90 = quantile(median_monthly_wl, 0.90)) %>%
-  ungroup() %>%
+  summarize(median_median = median(median_monthly_wl, na.rm = TRUE),
+            mean_median = mean(median_monthly_wl, na.rm = TRUE),
+            percentile_25 = quantile(median_monthly_wl, 0.25, na.rm = TRUE),
+            percentile_75 = quantile(median_monthly_wl, 0.75, na.rm = TRUE),
+            percentile_10 = quantile(median_monthly_wl, 0.10, na.rm = TRUE),
+            percentile_90 = quantile(median_monthly_wl, 0.90, na.rm = TRUE),
+            .groups = "drop") %>%
   mutate(month_abb = month(month, label = TRUE))
 
 # Summarize years to see max, min and number of years of data
@@ -328,7 +351,8 @@ wl_summary <- wl_all %>%
   group_by(ow) %>%
   summarize(min_yr = min(year),
             max_yr = max(year),
-            num_yrs = max_yr - min_yr)
+            num_yrs = max_yr - min_yr,
+            .groups = "drop")
 
 wl_month <- wl_month %>%
   left_join(wl_month_extremes, by = c("ow", "month")) %>%
@@ -337,7 +361,7 @@ wl_month <- wl_month %>%
 
 
 # Save Data ---------------------------------------------------------------
-
+message("  Saving data")
 # Save RDS files
 save(aquifer_db,
      wells_db,

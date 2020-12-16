@@ -20,14 +20,14 @@
 ## Install the packages we will need from CRAN:
 package_list <- c("dplyr", "tidyr", "readr", "readxl", "ggplot2", "stringr",
                   "lubridate", "purrr", "scales", "sf", "knitr", "rmarkdown",
-                  "kableExtra", "weathercan", "httr")
+                  "kableExtra", "weathercan", "httr", "progress")
 package_new <- package_list[!(package_list %in% installed.packages()[,"Package"])]
 if(length(package_new)) install.packages(package_new)
 
 # Check versions and update
 if(packageVersion("weathercan") < "0.3.1") install.packages("weathercan")
 if(packageVersion("tidyr") < "1.0.0") install.packages("tidyr")
-if(packageVersion("dplyr") < "0.8.0") install.packages("dplyr")
+if(packageVersion("dplyr") < "1.0.0") install.packages("dplyr")
 
 ## Install the packages we will need from GitHub:
 package_github <- c(bcgov = "bcgroundwater", bcgov = "bcdata", bcgov = "bcmaps")
@@ -52,5 +52,6 @@ if (!dir.exists("factsheets")) dir.create("factsheets")
 if (!dir.exists("figures")) dir.create("figures")
 if (!dir.exists("figures/maps")) dir.create("figures/maps")
 if (!dir.exists("figures/piperplots")) dir.create("figures/piperplots")
+if (!dir.exists("figures/piperplots_trimmed")) dir.create("figures/piperplots_trimmed")
 if (!dir.exists("figures/extra")) dir.create("figures/extra")
 if (!dir.exists("figures/na")) dir.create("figures/na")

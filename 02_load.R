@@ -35,7 +35,7 @@ aquifer_map <- read_rds("data_dl/aquifer_map.rds")
 wells_db_raw <- read_csv("data_dl/well.csv", guess_max = 200000)
 wells_lithology <- read_csv("data_dl/lithology.csv", guess_max = 100000)
 
-licenced_vol <- read_csv("data_dl/aquifer_licences.csv", guess_max = 10000)
+licenced_vol <- read_csv("data_dl/aquifer_licences.csv", guess_max = 20000)
 stress_index <- read_excel("data_dl/uvic_stress_index.xlsx", sheet = "R0. Results")
 
 obs_well <- read_csv("data_dl/obs_well_daily_mean.csv")

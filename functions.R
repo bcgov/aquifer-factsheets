@@ -26,20 +26,27 @@ factsheet <- function(aq_num, pages = 3, draft = FALSE,
 
   if(tolower(tools::file_ext(template_path)) != "rmd") stop("template_path must point to an .Rmd file")
 
-  p <- progress_estimated(length(aq_num))
+  aquifers <- suppressMessages(read_csv("./out/aquifer_table.csv"))
+
+  p <- progress::progress_bar$new(format = "  Creating factsheets [:bar] :percent eta: :eta",
+                                  total = length(aq_num), clear = FALSE)
   for(a in aq_num) {
     out_file <- paste0("AQ_", sprintf("%05d", a), "_Aquifer_Factsheet_",
                        Sys.Date()) # Get aq_num with leading zeros
     if(draft) out_file <- paste0(out_file, "_DRAFT.pdf") else out_file <- paste0(out_file, ".pdf")
 
-    rmarkdown::render(template_path,
-                      params = list(aq_num = a,
-                                    pages = pages,
-                                    draft = draft),
-                      output_options = list(keep_tex = keep_tex),
-                      output_file = out_file,
-                      output_dir = out_folder, clean = TRUE, quiet = TRUE)
-    p$tick()$print()
+    if(a %in% aquifers$aquifer_id) {
+      rmarkdown::render(template_path,
+                        params = list(aq_num = a,
+                                      pages = pages,
+                                      draft = draft),
+                        output_options = list(keep_tex = keep_tex),
+                        output_file = out_file,
+                        output_dir = out_folder, clean = TRUE, quiet = TRUE)
+    } else {
+      message("\nSkipping aquifer ", a, " (not in data, probably no longer valid)")
+    }
+      p$tick()
   }
 }
 
@@ -85,6 +92,8 @@ check_piper_plots <- function(dir = "./figures/piperplots") {
       message("Mismatch between Piperplot Aquifers and GWELLS Aquifers, see:\n ",
               "'out/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv'")
       write_csv(compare, paste0("./out/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv"))
+    } else {
+      message("No mismatches between Piperplots and GWELLS")
     }
     return(TRUE)
   } else {
@@ -100,7 +109,7 @@ fix_names <- function(dir = "./figures", type, filename, ext, digits = 4) {
     d <- paste0("_[0-9]{", digits, "}")
     d_nice <- paste0(rep("0", digits), collapse = "")
   }
-  if(type == "piperplots") {
+  if(type == "piperplots" | type == "piperplots_trimmed") {
     d <- paste0("_[0-9]{", digits, "}_OW[0-9]{", digits, "}")
     d_nice <- paste0(paste0(rep("0", digits), collapse = ""),
                      "_OW", paste0(rep("0", digits), collapse = ""))

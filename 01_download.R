@@ -49,7 +49,7 @@ GET(bcdc_get_record("17ffdf71-28f3-4a65-bba2-134622b50e8f")$resources[[1]]$url,
     progress())
 
 # Licences
-message("Water Licences")
+message("\nWater Licences")
 #bcdc_get_record("5549cae0-c2b1-4b96-9777-529d9720803c")
 bcdc_get_data(record = '5549cae0-c2b1-4b96-9777-529d9720803c',
               resource = 'b0f89bdf-2793-4854-a921-b34fd84bcf03') %>%

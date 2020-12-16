@@ -20,6 +20,22 @@
 source("functions.R")
 source("header.R")
 
+# Specify aquifers to run -------------------------------------------------
+
+# Large run - Run all Aquifers that have a Map file
+aquifers <- as.numeric(str_extract(list.files("./figures/maps/"), "[0-9]{4}"))
+
+# Aquifers NOT TO PUBLISH
+aquifers <- aquifers[!aquifers %in% c(73, 405, 554, 909, 1201, 1202, 1203, 1204, 1221)]
+
+# Specify a Range of aquifers based on ID (from the above set)
+#aquifers <- aquifers[aquifers >= 300 & aquifers <= 400]
+
+# Specific specific aquifers
+#aquifers <- c(6, 8, 353, 662, 738, 750, 15, 157)
+#aquifers <- c(1011, 1015, 662, 751, 211, 74, 664)
+
+
 # Update Data Sources -----------------------------------------------------
 # NOTE: Sometimes the downloads don't work on the first try, if you get an
 #   error, walk through the 01_download.R script and re-run lines which give you
@@ -27,43 +43,36 @@ source("header.R")
 source("01_download.R") # You don't have to run this every time
 
 
-
-# Prepare Data and Figures ------------------------------------------------
-# These may take a while, depending how many aquifers have been selected
+# Prepare Data ------------------------------------------------------------
 source("02_load.R")
 
 
-
-
-# Specify aquifers to run -------------------------------------------------
-
-# Large run - Run all Aquifers that have a Map file
-aquifers <- as.numeric(str_extract(list.files("./figures/maps/"), "[0-9]{4}"))
-
-# Specify a Range of aquifers (from the above set)
-#aquifers <- aquifers[aquifers >= 300 & aquifers <= 400]
-
-# Specific specific aquifers
-#aquifers <- c(6, 8, 353, 662, 738, 750, 15, 157)
-
-
-
 # Clean data and Create figures -------------------------------------------
+# These may take a while, depending how many aquifers have been selected
+
 delete_old <- TRUE   # Delete all old figures before rerunning?
 source("03_clean.R")
 source("04_output.R")
 
 
-
 # Create aquifer factsheets -----------------------------------------------
 
 # Create all aquifer factsheets
-factsheet(aquifers, draft = TRUE)
+factsheet(aquifers[aquifers <= 866], draft = FALSE)
+
+# Create some aquifer factsheets
+# - Here, the first 10
+# - Note that this is the first 10 in the list, NOT aquifer IDs 1-10
+# - This is useful when you want to run aquifers factsheets bit by bit (i.e. over lunch)
+factsheet(aquifers[1:10], draft = TRUE)
 
 # Create a single factsheet
-#factsheet(608, draft = TRUE)
+factsheet(74, draft = TRUE)
 #factsheet(21)
 
+
+factsheet(c(6, 8, 25, 254, 255, 256, 259, 1197, 1199), draft = TRUE)
+factsheet(c(220, 320), draft = TRUE)
 # Create a single factsheet with only page 1
 #factsheet(15, draft = FALSE, pages = 1)
 

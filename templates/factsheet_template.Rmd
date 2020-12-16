@@ -6,6 +6,7 @@ output:
      in_header: factsheet_template_header.tex
 geometry: margin=0.75cm
 fontsize: 11pt  
+classoption: table
 df_print: kable
 params: 
   draft: FALSE
@@ -66,14 +67,26 @@ if(nrow(ow) > 20) {
 wells_db <- read_csv("../out/wells_table.csv") %>%
   filter(aquifer_id %in% aq_num)
 
+mapping_report <- paste0("https://s3.ca-central-1.amazonaws.com/aquifer-docs/",   # Main site
+                         sprintf("%05d", round_any(aq_num, 100, f = floor)),      # Folder rounded to lower 100
+                         "/AQ_",                                                  # Prefix
+                         sprintf("%05d", aq_num),                                 # Aq number with 5 digits
+                         "_Aquifer_Mapping_Report.pdf")                           # Suffix  
+
+# No mapping report
+if(httr::http_error(httr::GET(mapping_report))) {
+  mapping_report <- ""
+  mapping_report <- paste0("\\link{", mapping_report, "}",                 
+                           "{\\textbf{Mapping Report - ", aquifer$mapping_year, "}}")
+} else {
+  mapping_report <- paste0("\\link{", mapping_report, "}",                 
+                           "{\\textbf{Mapping Report - ", 
+                           aquifer$mapping_year, "}}")
+}
+
 # Aquifer description
 desc <- paste0("\\textbf{Aquifer Description} ",
-               "(\\link{https://s3.ca-central-1.amazonaws.com/aquifer-docs/",   # Main site
-               sprintf("%05d", round_any(aq_num, 100, f = floor)),              # Folder rounded to lower 100
-               "/AQ_",                                                          # Prefix
-               sprintf("%05d", aq_num),                                         # Aq number with 5 digits
-               "_Aquifer_Mapping_Report.pdf}",                                  # Suffix  
-               "{\\textbf{Mapping Report - ", aquifer$mapping_year, "}}):\\\\",
+               "(", mapping_report, "):\\\\",
                str_replace(aquifer$description, ".$", ""), # Replace the trailing period with nothing
                " (subtype = ", aquifer$aquifer_subtype_code, ").")
 
@@ -153,7 +166,7 @@ if(nrow(ow) > 0) {
                        type = sort(rep(c("combo", "trend", "piper"), length(ow)/3))) %>%
     mutate(fig = case_when(type == "combo" ~ paste0("../out/gwl/combo_", a, "_OW", .data$ow, ".png"),
                            type == "trend" ~ paste0("../out/trends/trends_", a, "_OW", .data$ow, ".png"),
-                           type == "piper" ~ paste0("../figures/piperplots/Piperplot_", a, "_OW", .data$ow, ".jpg")),
+                           type == "piper" ~ paste0("../figures/piperplots_trimmed/Piperplot_", a, "_OW", .data$ow, ".jpg")),
            exists = file.exists(fig),
            fig = replace(fig, !exists, paste0("../figures/na/figure_missing_", type[!exists], ".png"))) %>%
     group_by(.data$ow) %>%

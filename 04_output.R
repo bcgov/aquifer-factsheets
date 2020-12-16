@@ -52,13 +52,17 @@ dpi <- 300
 
 ann_size <- 2.75  # Annotation sizes for samples sizes in boxplots
 
+# General factsheet plot theme
 aq_theme <- theme_bw() +
   theme(axis.title.y.left = element_text(margin = unit(c(0, 2, 0, 0), "mm")),
         axis.title.y.right = element_text(margin = unit(c(0, 0, 0, 2), "mm")),
         panel.grid.major = element_line(colour = "grey90"),
         panel.grid.minor = element_line(colour = "grey90"))
 
-bx_theme <- theme(axis.text.x = element_blank(),
+# Specific to boxplos
+bx_theme <- theme(plot.margin = unit(c(2, 2, 2, 6), "mm"),
+                  axis.title.y = element_text(margin = unit(c(0, 0, 0, 0), "mm")),
+                  axis.text.x = element_blank(),
                   axis.title.x = element_text(margin = unit(c(2, 0, 0, 0), "mm"), size = 10),
                   panel.grid.major = element_line(colour = "grey75"),
                   panel.grid.minor = element_line(colour = "grey75"))
@@ -76,13 +80,15 @@ g <- grid::rasterGrob(c("#FFFFFF00", "#A2B5CD90"),
                       width = unit(1, "npc"),
                       height = unit(1, "npc"), interpolate = TRUE)
 
-message("\nCreating Yield Boxplots")
-p <- progress_estimated(length(aquifers))
+
+p <- progress::progress_bar$new(format = "  Yield Boxplot [:bar] :percent eta: :eta",
+                                total = length(aquifers), )
 for (a in aquifers) {
-  p$tick()$print()
+  p$tick()
 
   # Create data frame with yields for particular aquifer
-  w <- filter(wells_db, aquifer_id == a)
+  w <- filter(wells_db, aquifer_id == a) %>%
+    filter(well_yield != 0)
 
   n <- length(na.omit(w$well_yield))
 
@@ -153,10 +159,10 @@ if(delete_old) file.remove(list.files("./out/boxplots/", pattern = "well_depth",
 # Note: "No data" boxplots must be created after at least one other boxplot WITH
 # data (otherwise you'll get an error)
 
-message("\nCreating Well Depth Boxplots")
-p <- progress_estimated(length(aquifers))
+p <- progress::progress_bar$new(format = "  Well Depth Boxplots [:bar] :percent eta: :eta",
+                                total = length(aquifers))
 for (a in aquifers) {
-  p$tick()$print()
+  p$tick()
 
   # Create data frame with yields for particular aquifer
   w <- filter(wells_db, aquifer_id == a)
@@ -222,10 +228,10 @@ if(delete_old) file.remove(list.files("./out/boxplots/", pattern = "water_depth"
 # Note: "No data" boxplots must be created after at least one other boxplot WITH
 # data (otherwise you'll get an error)
 
-message("\nCreating Water Depth Boxplots")
-p <- progress_estimated(length(aquifers))
+p <- progress::progress_bar$new(format = "  Water Depth Boxplot [:bar] :percent eta: :eta",
+                                total = length(aquifers))
 for (a in aquifers) {
-  p$tick()$print()
+  p$tick()
 
   # Create data frame with yields for particular aquifer
   w <- filter(wells_db, aquifer_id == a)
@@ -295,10 +301,10 @@ if(indiv_gwl_and_precip) {
                                         pattern = "groundwater",
                                         full.name = TRUE))
 
-  message("\nCreating Monthly Water Level Plots")
-  p <- progress_estimated(length(aquifers))
+  p <- progress::progress_bar$new(format = "  Montly Water Level Plots [:bar] :percent eta: :eta",
+                                  total = length(aquifers))
   for (a in aquifers) {
-    p$tick()$print()
+    p$tick()
 
     aq_wl_month <- filter(wl_month, aquifer_id == a)
 
@@ -382,10 +388,10 @@ if(indiv_gwl_and_precip) {
   # Remove old files (make sure no old files to interfere)
   if(delete_old) file.remove(list.files("./out/gwl/", pattern = "precip",
                                         full.name = TRUE))
-  message("\nCreating Monthly Precipitation Plots")
-  p <- progress_estimated(length(aquifers))
+  p <- progress::progress_bar$new(format = "  Monthly Precipitation Plots [:bar] :percent eta: :eta",
+                                  total = length(aquifers))
   for (a in aquifers) {
-    p$tick()$print()
+    p$tick()
 
     ppt_sub <- filter(ppt, aquifer_id == a)
 
@@ -403,7 +409,7 @@ if(indiv_gwl_and_precip) {
       if(nrow(ppt_sub) > 0) {
 
         ppt_overall <- group_by(ppt_sub, month) %>%
-          summarize(total = sum(ppt_mm, na.rm = TRUE))
+          summarize(total = sum(ppt_mm, na.rm = TRUE), .groups = "drop")
 
         # Title with climate station
         ppt_title <- paste0("Climate Normals Based on ",
@@ -450,18 +456,18 @@ if(delete_old) file.remove(list.files("./out/gwl/",
                                       pattern = "combo",
                                       full.name = TRUE))
 
-message("\nCreating Monthly Combo Water Level/Precipitation Plots")
-p <- progress_estimated(length(aquifers))
+p <- progress::progress_bar$new(format = "  Monthly Combo Water Level Plots [:bar] :percent eta: :eta",
+                                total = length(aquifers))
 for (a in aquifers) {
-  p$tick()$print()
+  p$tick()
 
   aq_wl_month <- filter(wl_month, aquifer_id == a)
 
   for(o in unique(aq_wl_month$ow)) {
 
     wl_month_sub <- filter(aq_wl_month, ow == o) %>%
-      mutate_at(vars(median_median, percentile_25, percentile_75, percentile_10, percentile_90,
-                     min_monthly_wl, max_monthly_wl), ~. * -1)
+      mutate_at(vars(median_median, percentile_25, percentile_75, percentile_10,
+                     percentile_90, min_monthly_wl, max_monthly_wl), ~. * -1)
     ppt_sub <- filter(ppt,
                       aquifer_id == a,
                       ow == o) %>%
@@ -486,7 +492,7 @@ for (a in aquifers) {
       # - shift is the value to move the data by to get it at the right place
 
       ppt_overall <- group_by(ppt_sub, month_abb) %>%
-        summarize(total = sum(ppt_mm, na.rm = TRUE))
+        summarize(total = sum(ppt_mm, na.rm = TRUE), .groups = "drop")
 
       proportion <- 0.7
 
@@ -497,7 +503,8 @@ for (a in aquifers) {
                   max_range = max(min(max_monthly_wl, na.rm = TRUE) -
                                     max(min_monthly_wl, na.rm = TRUE)),
                   mult = -(bandwidth/max_range),
-                  shift = -min(max_monthly_wl * mult) + position)
+                  shift = -min(max_monthly_wl * mult) + position,
+                  .groups = "drop")
 
       # Breaks and labels for ppt axis
       breaks_ppt <- get_breaks(0, max(ppt_overall$total, na.rm = TRUE), length.out = 5)
@@ -625,10 +632,10 @@ for (a in aquifers) {
 # Remove old files (make sure no old files to interfere)
 if(delete_old) file.remove(list.files("./out/trends/", full.name = TRUE))
 
-message("\nCreating Trend Plots")
-p <- progress_estimated(length(aquifers))
+p <- progress::progress_bar$new(format = "  Groundwater Level Trend Plots [:bar] :percent eta: :eta",
+                                total = length(aquifers))
 for (a in aquifers) {
-  p$tick()$print()
+  p$tick()
 
   d <- filter(ground_water, aquifer_id == a)
 
