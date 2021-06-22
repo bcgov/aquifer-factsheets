@@ -100,8 +100,10 @@ To include extra page figures:
 - Each figure must be listed in the `extra_page_images.xlsx` file along with the Aquifer ID(s) that it corresponds to and the type of extra figure it is (e.g., `cross_section`)
 - Each "type" of extra figure must be listed in `extra_page_index.xlsx`, along with the header it will receive and the order (i.e. if there are more than one type of extra page figures which should come first?)
 
-**Example of `extra_page_images.xlsx`** listing the associated Aquifers (`aquifer_ids`),
-type (`type`) of content and image names (`image`; i.e. file name of the image in `figures/extra`)
+**Example of content in `extra_page_images.xlsx`** 
+
+Contains the associated Aquifers (`aquifer_ids`), type (`type`) of content and 
+image names (`image`; i.e. file name of the image in `figures/extra`)
 
 aquifer_ids   	 | type	         | image
 ---------------- | ------------- | ----------------
@@ -112,8 +114,9 @@ aquifer_ids   	 | type	         | image
 254	             | water_budget  | Aquifer 254 Water Budget.png
 25               | cross_section | Aquifer 25 X-section.png
 
-**Example of `extra_page_index.xlsx`** listing the
-type (`type`) of content, the heading it should get in the report (`heading`), 
+**Example of content in `extra_page_index.xlsx`**  
+
+Contains type (`type`) of content, the heading it should get in the report (`heading`), 
 and the order in which it should appear (`order`; i.e. here, if a factsheet 
 has both cross sections and water budgets, cross sections will appear first). 
 
