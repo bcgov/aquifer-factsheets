@@ -89,7 +89,9 @@ Unfortunately one of the data sources is currently unavailable, so these scripts
 
 #### 2. Extra Figures
 
-Extra Figures are a method for including extra, non-standard pages in the Aquifer Factsheets. These pages occur after the normal type 2 page for specific observation wells (weather, aquifer trends, and piperplots). Each "extra page figure" can take up 1/2 of a page. 
+Extra Figures are a method for including extra, non-standard pages in the Aquifer Factsheets. 
+These pages occur after the normal type 2 page for specific observation wells (weather, aquifer trends, and piperplots).
+Each "extra page figure" can take up 1/2 of a page. 
 
 To include extra page figures:
 
@@ -97,6 +99,32 @@ To include extra page figures:
 - Place figures in the `figures/extra/` folder
 - Each figure must be listed in the `extra_page_images.xlsx` file along with the Aquifer ID(s) that it corresponds to and the type of extra figure it is (e.g., `cross_section`)
 - Each "type" of extra figure must be listed in `extra_page_index.xlsx`, along with the header it will receive and the order (i.e. if there are more than one type of extra page figures which should come first?)
+
+**Example of `extra_page_images.xlsx`** listing the associated Aquifers (`aquifer_ids`),
+type (`type`) of content and image names (`image`; i.e. file name of the image in `figures/extra`)
+
+aquifer_ids   	 | type	         | image
+---------------- | ------------- | ----------------
+6, 8, 1197, 1199 | cross_section | Aquifers 6-8-1197-1199 Xsection.png
+259	             | water_budget  | Aquifer 259 Water Budget.png
+256	             | water_budget  | Aquifer 256 Water Budget.png
+255	             | water_budget  | Aquifer 255 Water Budget.png
+254	             | water_budget  | Aquifer 254 Water Budget.png
+25               | cross_section | Aquifer 25 X-section.png
+
+**Example of `extra_page_index.xlsx`** listing the
+type (`type`) of content, the heading it should get in the report (`heading`), 
+and the order in which it should appear (`order`; i.e. here, if a factsheet 
+has both cross sections and water budgets, cross sections will appear first). 
+
+> NOTE: Every `type` in `extra_page_images.xlsx` **must** be listed here.
+
+type          | heading       | order
+------------- | ------------- | ------
+cross_section | Cross-Section | 1
+water_budget  | Water Budget  | 2
+
+
 
 #### 3. Get BC Government logo 
 
