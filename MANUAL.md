@@ -25,7 +25,6 @@ All of the following should be placed in the **`data`** folder created in Step 2
 - Groundwater Trends Full Data (`clean_well_data.RData`) - [See Appendix](#1-groundwater-trends)
 - Piper Plot descriptions (`piper_text.xlsx`)
 - Index of extra page types (`extra_page_index.xlsx`)
-- Images to include on extra pages (`extra_page_images.xlsx`)
   
 ### 4. Add supplemental figures
 Some figures need to be supplied prior to running the aquifer factsheets.
@@ -34,7 +33,7 @@ All of the following should be placed in the `figures` folder created in Step 2.
 
 - Aquifer maps in **`maps`** folder (i.e., `maps/Aquifer_Map_0001.pdf`)
 - Piper plots in **`piperplots`** folder (i.e., `piperplots/Piperplot_0001_OW0001.jpg`)
-- Extra figures in **`extra`** folder (i.e., `extra/Chilliwack_CrossSection_2L.jpg`) - [See Appendix](#2-extra-figures)
+- Extra figures in **`extra`** folder (i.e., `extra/Aquifer 137 Water Budget.jpg`) - [See Appendix](#2-extra-figures)
 - Missing plot figures for Combo, Piper plots and Trend plots in **`na`** folder (i.e., `na/figure_missing_combo.png`)
 - Figure explaining the boxplots for the companion document (`boxplot_key.png`)
 - BC Gov Logo (`BCID_H_cmyk_rev.pdf`) - [See Appendix](#3-get-bc-government-logo)
@@ -57,8 +56,9 @@ Open `run_all.R` and follow the instructions therein to do the following:
 - New Aquifer Maps in the `figures/maps` folder
 - New Piperplots in the `figures/piperplots` folder
   - New Piperplot text added to the `piper_text.xlsx` file
-- New Extra Supplementary information in the `figures/extra` folder
-  - Also added to `extra_page_index.xlsx` and `extra_page_images.xlsx` in the `data` folder
+- New Extra Supplementary information 
+  - Images added to the `figures/extra` folder
+  - If a new type of supplementary (i.e water budget), also add to `data/extra_page_index.xlsx`
 - Download new data (see `run_all.R`)
 - Create the factsheets!
 
@@ -97,22 +97,12 @@ To include extra page figures:
 
 - Makes sure the figure dimensions are a ratio of 5:3 (e.g., 5 in wide and 3 in high)
 - Place figures in the `figures/extra/` folder
-- Each figure must be listed in the `extra_page_images.xlsx` file along with the Aquifer ID(s) that it corresponds to and the type of extra figure it is (e.g., `cross_section`)
-- Each "type" of extra figure must be listed in `extra_page_index.xlsx`, along with the header it will receive and the order (i.e. if there are more than one type of extra page figures which should come first?)
-
-**Example of content in `extra_page_images.xlsx`** 
-
-Contains the associated Aquifers (`aquifer_ids`), type (`type`) of content and 
-image names (`image`; i.e. file name of the image in `figures/extra`)
-
-aquifer_ids   	 | type	         | image
----------------- | ------------- | ----------------
-6, 8, 1197, 1199 | cross_section | Aquifers 6-8-1197-1199 Xsection.png
-259	             | water_budget  | Aquifer 259 Water Budget.png
-256	             | water_budget  | Aquifer 256 Water Budget.png
-255	             | water_budget  | Aquifer 255 Water Budget.png
-254	             | water_budget  | Aquifer 254 Water Budget.png
-25               | cross_section | Aquifer 25 X-section.png
+- Each "type" of extra figure must be listed in `extra_page_index.xlsx`, along
+with the header it will receive and the order (i.e. if there are more than one
+type of extra page figures which should come first?). You must also provide a
+`match` which is text used to match the type of figure to text in the figure
+name (e.g., for type `water_budget` add a match of `Water Budget`. This will
+match the name "Aquifer 133 Water Budget.png"
 
 **Example of content in `extra_page_index.xlsx`**  
 
@@ -120,12 +110,14 @@ Contains type (`type`) of content, the heading it should get in the report (`hea
 and the order in which it should appear (`order`; i.e. here, if a factsheet 
 has both cross sections and water budgets, cross sections will appear first). 
 
-> NOTE: Every `type` in `extra_page_images.xlsx` **must** be listed here.
+> NOTE: 
+> - `match` can contain more than one pattern, separated by comma (,)
+> - match is case insensitive
 
-type          | heading       | order
-------------- | ------------- | ------
-cross_section | Cross-Section | 1
-water_budget  | Water Budget  | 2
+type          | heading       | order  | match
+------------- | ------------- | ------ | ------
+cross_section | Cross-Section | 1      | x-section, Xsection
+water_budget  | Water Budget  | 2      | Water Budget
 
 
 

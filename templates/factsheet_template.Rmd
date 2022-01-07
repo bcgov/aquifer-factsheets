@@ -199,9 +199,8 @@ if(nrow(ow) > 0) {
 }
 
 # Page 3
-extra <- read_excel("../data/extra_page_images.xlsx") %>%
-  separate_rows(aquifer_ids, sep = ",", convert = TRUE) %>%
-  filter(aq_num == aquifer_ids) %>%
+extra <- read_csv("../out/extra_page_images.csv", show_col_types = FALSE) %>%
+  filter(aquifer_ids %in% !!aq_num) %>%
   left_join(read_excel("../data/extra_page_index.xlsx"), by = "type") %>%
   arrange(order, image) %>%
   distinct() #in case of duplicates
