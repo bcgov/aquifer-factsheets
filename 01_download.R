@@ -35,7 +35,7 @@ GET(paste0("http://www.env.gov.bc.ca/wsd/data_searches/obswell/",
 # GWells Data
 # Link from https://apps.nrs.gov.bc.ca/gwells/
 message("GWELLS")
-GET("https://s3.ca-central-1.amazonaws.com/gwells-export/export/gwells.zip",
+GET("https://s3.ca-central-1.amazonaws.com/gwells-export/export/v2/gwells.zip",
     write_disk("./data_dl/gwells.zip", overwrite = TRUE), progress())
 unzip("./data_dl/gwells.zip", exdir = "./data_dl/",
       files = c("well.csv", "lithology.csv"), overwrite = TRUE)
