@@ -80,7 +80,7 @@ check_piper_plots <- function(dir = "./figures/piperplots") {
              aquifer_id = str_extract(file, "_[0-9]{4}_"),
              aquifer_id = as.numeric(str_extract(aquifer_id, "[0-9]{4}")))
 
-    g <- suppressMessages(read_csv("data_dl/well.csv", guess_max = 200000)) %>%
+    g <- read_csv("data_dl/well.csv", guess_max = Inf, col_types = cols(), n_max = 1000000000) %>%
       select(aquifer_id, ow = observation_well_number) %>%
       filter(!is.na(ow)) %>%
       mutate(ow = as.numeric(ow))
