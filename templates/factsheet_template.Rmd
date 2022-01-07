@@ -106,12 +106,16 @@ companion_link <- paste0("https://www2.gov.bc.ca/assets/gov/environment/",
 
 # Note that ~ (below) means a non-breaking space, which forces the tables to use a different spot to wrap the text
 aquifer <- aquifer %>%
-  mutate(ow = case_when(nrow(ow) > 0 ~ paste0(ow$format, collapse = ", "),
-                        TRUE ~ "None")) %>%
-  mutate(size_km2 = replace(size_km2, 
+  mutate(
+    ow = if_else(nrow(ow) > 0, paste0(ow$format, collapse = ", "), "None"),
+         size_km2 = replace(size_km2, 
                             size_km2 != "Unknown",
                             paste(size_km2, "km\\textsuperscript{2}")),
-         n_licences = replace(n_licences, n_licences == 0, "Unknown")) %>%
+         n_licences = replace(n_licences, n_licences == 0, "Unknown"),
+         hydraulic_connectivity = if_else(
+           hydraulic_connectivity == "Not Likely", 
+           "\\link{https://a100.gov.bc.ca/pub/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{see guidance document}", 
+           hydraulic_connectivity)) %>%
   select(`Region` = region, 
          `Water District` = water_district, 
          `Aquifer Area` = size_km2,
@@ -119,11 +123,11 @@ aquifer <- aquifer %>%
          `Vulnerability to Contamination` = vulnerability,
          `Productivity` = productivity,
          `Aquifer Classification` = aquifer_classification,
-         `Hydraulic~Connectivity\\textsuperscript{1}` = hydraulic_connectivity,
-         `Aquifer Stress Index` = aquifer_pumping_stress_index,
+         `Hydraulic~Connection` = hydraulic_connectivity,
+         #`Aquifer Stress Index` = aquifer_pumping_stress_index,
          `No. Water Licences Issued~to~Wells` = n_licences,
          `Observation Wells (\\footnotesize{\\textbf{Active},~Inactive})` = .data$ow) %>%
-  mutate_if(is.na, ~ "Unknown")
+  mutate(across(everything(), .funs = ~if_else(is.na(.), "Unknown", .)))
 
 # Add hyperlinks
 aquifer <- aquifer %>%
@@ -131,8 +135,8 @@ aquifer <- aquifer %>%
          `\\link{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf\\#page=16}{Vulnerability to Contamination}` = `Vulnerability to Contamination`,
          `\\link{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf\\#page=19}{Productivity}` = `Productivity`,
          `\\link{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf\\#page=15}{Aquifer Classification}` = `Aquifer Classification`,
-         `\\link{http://a100.gov.bc.ca/appsdata/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{Hydraulic~Connectivity\\textsuperscript{1}}` = `Hydraulic~Connectivity\\textsuperscript{1}`,
-         `\\link{http://governmentofbc.maps.arcgis.com/home/webmap/viewer.html?webmap=6c137fb01a364ee699440a28619e45c2}{Aquifer Stress Index}` = `Aquifer Stress Index`)
+         `\\link{http://a100.gov.bc.ca/appsdata/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{Hydraulic~Connection}` = `Hydraulic~Connection`)
+         #`\\link{http://governmentofbc.maps.arcgis.com/home/webmap/viewer.html?webmap=6c137fb01a364ee699440a28619e45c2}{Aquifer Stress Index}` = `Aquifer Stress Index`)
 
 # Transform for factsheet
 aquifer <- aquifer %>%

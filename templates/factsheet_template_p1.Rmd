@@ -34,8 +34,7 @@ t <- kable(aquifer_table, format = "latex", escape = FALSE, booktabs = TRUE, lin
                 position = "left", font_size = 9, stripe_color = "tablegrey") %>%
   add_header_above(c("Aquifer Details" = 2), bold = TRUE) %>%
   column_spec(1, width = "5cm") %>%
-  column_spec(2, width = "2.5cm") %>%
-  add_footnote(c("Based on broad regional assessment"), notation = "number", threeparttable = TRUE)
+  column_spec(2, width = "2.5cm")
 
 # if(!is.null(txt)) {
 #   t <- add_footnote(t, txt, notation = "number", threeparttable = TRUE)
