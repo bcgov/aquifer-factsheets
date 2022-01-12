@@ -68,15 +68,19 @@ if(any(aquifers %in% aquifer_db$aquifer_id[aquifer_db$retired])) {
 #   str_remove(wells_db_raw$longitude, "^[-0-9]+.") %>% nchar() %>% unique()
 # - Use this to round (gets rid of weird differences in numbers
 wells_db <- wells_db_raw %>%
-  select(aquifer_id, well_tag_number, bcgs_id,
-         well_yield,              # equivalent to YEILD_VALUE
-         well_yield_unit_code,    # equivalent to YIELD_UNIT_CODE
-         ow = observation_well_number, ow_status = obs_well_status_code,
-         static_water_level,      # equivalent to WATER_DEPTH
-         finished_well_depth,     # equivalent to DEPTH_WELL_DRILLED
-         latitude,
-         longitude,
-         licenced_status_code) %>%
+  select("aquifer_id", "well_tag_number",
+         "well_yield" = "well_yield_usgpm",
+         "well_yield_unit_code",
+         "ow" = "observation_well_number",
+         "ow_status" = "obs_well_status_code",
+         "static_water_level" = "static_water_level_ft-btoc",
+         "finished_well_depth" = "finished_well_depth_ft-bgl",
+         "latitude" = "latitude_Decdeg",
+         "longitude" = "longitude_Decdeg",
+         "licenced_status_code",
+         "conductivity" = "hydraulic_conductivity_m/s",
+         "transmissivity" = "transmissivity_m^2/s",
+         "storativity") %>%
   mutate(ow = as.numeric(ow))
 
 obs_wells_index <- wells_db %>%
@@ -94,8 +98,7 @@ aquifer_db <- wells_db %>%
   summarize(reported_no_wells = n(), .groups = "drop") %>%
   left_join(aquifer_db, ., by = "aquifer_id") %>%
   # Fill NAs with zeros
-  mutate(reported_no_wells = replace(reported_no_wells,
-                                     is.na(reported_no_wells), 0))
+  mutate(reported_no_wells = replace_na(reported_no_wells, 0))
 
 # Calculate number of OBSERVATION wells (inactive and active wells)
 n_obswells <- wells_db %>%
@@ -112,7 +115,19 @@ rm(n_obswells)
 # DECISION - wells table has multiple cases where an obs well number is assigned but may not be an obs well?
 # eg. obs well no. given for wells classified as UNK, DOM, NA, AND OBS - what should we use?
 
+# Master - Hydraulic properties ---------------------------------------------------
+message("  Hydraulic properties")
+# Calculate and add hydraulic properties wells to Aquifer data
 
+min_na <- function(x) if(!all(is.na(x))) min(x, na.rm = TRUE) else NA_real_
+max_na <- function(x) if(!all(is.na(x))) max(x, na.rm = TRUE) else NA_real_
+
+aquifer_db <- wells_db %>%
+  group_by(aquifer_id) %>%
+  summarize(across(
+    .cols = c("conductivity", "transmissivity", "storativity"),
+    .fns = list(min = min_na, max = max_na, n = ~sum(!is.na(.x))))) %>%
+  left_join(aquifer_db, ., by = "aquifer_id")
 
 # Master - (GIS) Aquifer Water Districts ---------------------------
 message("  Water Districts")
@@ -197,11 +212,11 @@ aquifer_db <- aquifer_subtypes %>%
   left_join(aquifer_db, ., by = "aquifer_subtype_code")
 
 # Master - Stress Indices ----------------------------------------------
-message("  Stress Indices")
-aquifer_db <- stress_index %>%
-  select(aquifer_id = AQ_NUM,
-         aquifer_pumping_stress_index = Result) %>%
-  left_join(aquifer_db, ., by = "aquifer_id")
+# message("  Stress Indices")
+# aquifer_db <- stress_index %>%
+#   select(aquifer_id = AQ_NUM,
+#          aquifer_pumping_stress_index = Result) %>%
+#   left_join(aquifer_db, ., by = "aquifer_id")
 
 # Data for boxplots ---------------------------------------------------
 message("  Boxplot Data")
@@ -233,6 +248,7 @@ ground_water_trends <- select(obs_wells_index, aquifer_id, ow) %>%
 
 # Climate index from weathercan -------------------------------------------
 message("  Climate index")
+stations_dl(quiet = TRUE)
 # Get 10 closest stations within 100km (not all will have data)
 locs <- wells_db %>%
   select(aquifer_id, ow, latitude, longitude) %>%
@@ -244,7 +260,7 @@ locs <- wells_db %>%
   distinct() %>%
   mutate(stations = map2(latitude, longitude,
                          ~stations_search(coords = c(.x, .y), dist = 150,
-                                          normals_only = TRUE) %>%
+                                          normals_years = "current") %>%
                            select(station_name, climate_id, lat_climate = lat,
                                   lon_climate = lon, elev_climate = elev,
                                   distance) %>%
@@ -375,5 +391,5 @@ save(aquifer_db,
      file = "tmp/aquifer_factsheet_clean_data.RData")
 
 # Save .csv files to pull in by aquifer factsheets
-write_csv(aquifer_db, path = "./out/aquifer_table.csv")
-write_csv(wells_db, path = "./out/wells_table.csv")
+write_csv(aquifer_db, "./out/aquifer_table.csv")
+write_csv(wells_db, "./out/wells_table.csv")

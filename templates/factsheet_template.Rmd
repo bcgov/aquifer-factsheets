@@ -41,19 +41,23 @@ library(dplyr)
 library(tidyr)
 library(knitr)
 library(kableExtra)
+library(here)
+
+logo <- here("figures/BCID_H_cmyk_rev.pdf")
 
 aq_num_ch <- sprintf("%04d", aq_num)
 
-aquifer <- read_csv("../out/aquifer_table.csv") %>%
+aquifer <- read_csv(here("out/aquifer_table.csv")) %>%
   filter(aquifer_id %in% aq_num) %>%
-  mutate_all(funs(str_replace_all(., c("\\&" = "\\\\&", "\\#" = "\\\\#")))) # Escape & symbols
+  mutate(across(where(is.character), 
+                ~str_replace_all(., c("\\&" = "\\\\&", "\\#" = "\\\\#")))) # Escape & symbols
 
 title <- aquifer$aquifer_name
 if(title == "" | title == aq_num_ch | title == aq_num | is.na(title)) {
   #title <- "No local name currently assigned"
   title <- ""
 }
-ow <- read_csv("../out/aquifer_ow.csv") %>%
+ow <- read_csv(here("out/aquifer_ow.csv")) %>%
   filter(aquifer_id %in% aq_num) %>%
   arrange(ow_status, ow) %>%
   mutate(ow_ch = sprintf("%04d", ow),
@@ -64,7 +68,7 @@ if(nrow(ow) > 20) {
   ow$format[20] <- "..."
 }
 
-wells_db <- read_csv("../out/wells_table.csv") %>%
+wells_db <- read_csv(here("out/wells_table.csv")) %>%
   filter(aquifer_id %in% aq_num)
 
 mapping_report <- paste0("https://s3.ca-central-1.amazonaws.com/aquifer-docs/",   # Main site
@@ -105,17 +109,36 @@ companion_link <- paste0("https://www2.gov.bc.ca/assets/gov/environment/",
                          "aquifer_factsheet_-_companion_document.pdf")
 
 # Note that ~ (below) means a non-breaking space, which forces the tables to use a different spot to wrap the text
+
+fmt_props <- function(x_min, x_max, x_n, units, digits = 3) {
+  if_else(!is.na(x_min),
+          paste0(format(round(x_min, digits), nsmall = digits),
+                 " - ", 
+                 format(round(x_max, digits), nsmall = digits),
+                 " ", units, " (n=", x_n, ")"),
+          NA_character_)
+}
+  
+
 aquifer <- aquifer %>%
   mutate(
     ow = if_else(nrow(ow) > 0, paste0(ow$format, collapse = ", "), "None"),
-         size_km2 = replace(size_km2, 
-                            size_km2 != "Unknown",
-                            paste(size_km2, "km\\textsuperscript{2}")),
-         n_licences = replace(n_licences, n_licences == 0, "Unknown"),
-         hydraulic_connectivity = if_else(
-           hydraulic_connectivity == "Not Likely", 
-           "\\link{https://a100.gov.bc.ca/pub/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{see guidance document}", 
-           hydraulic_connectivity)) %>%
+    size_km2 = replace(size_km2, 
+                       size_km2 != "Unknown",
+                       paste(size_km2, "km\\textsuperscript{2}")),
+    conductivity = fmt_props(conductivity_min, conductivity_max, conductivity_n,
+                             units = "m/s"),
+    transmissivity = fmt_props(transmissivity_min, 
+                               transmissivity_max, transmissivity_n,
+                               units = "m\\textsuperscript{2}/s"),
+    storativity = fmt_props(storativity_min, 
+                            storativity_max, storativity_n,
+                            units = "units"),
+    n_licences = replace(n_licences, n_licences == 0, "Unknown"),
+    hydraulic_connectivity = if_else(
+      hydraulic_connectivity == "Not Likely", 
+      "\\link{https://a100.gov.bc.ca/pub/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{see guidance document}", 
+      hydraulic_connectivity)) %>%
   select(`Region` = region, 
          `Water District` = water_district, 
          `Aquifer Area` = size_km2,
@@ -124,10 +147,14 @@ aquifer <- aquifer %>%
          `Productivity` = productivity,
          `Aquifer Classification` = aquifer_classification,
          `Hydraulic~Connection` = hydraulic_connectivity,
+         `Hydraulic~Conductivity (min-max)` = conductivity,
+         `Transmissivity (min-max)` = transmissivity,
+         `Storativity (min-max)` = storativity,
          #`Aquifer Stress Index` = aquifer_pumping_stress_index,
          `No. Water Licences Issued~to~Wells` = n_licences,
          `Observation Wells (\\footnotesize{\\textbf{Active},~Inactive})` = .data$ow) %>%
-  mutate(across(everything(), .funs = ~if_else(is.na(.), "Unknown", .)))
+  mutate(across(everything(), as.character)) %>%
+  mutate(across(everything(), .fns = ~if_else(is.na(.), "Unknown", .)))
 
 # Add hyperlinks
 aquifer <- aquifer %>%
@@ -150,16 +177,24 @@ aquifer <- aquifer %>%
 figures_p1 <- list()
 
 # Page 1
-figures_p1$map <- list.files("../figures/maps/", pattern = paste0("Aquifer_Map_", aq_num_ch, ".pdf"), full.names = TRUE)
-figures_p1$water_depth <- list.files("../out/boxplots/", pattern = paste0("water_depth_", aq_num_ch, ".jpg"), full.names = TRUE)
-figures_p1$well_yield <- list.files("../out/boxplots/", pattern = paste0("yield_", aq_num_ch, ".jpg"), full.names = TRUE)
-figures_p1$well_depth <- list.files("../out/boxplots/", pattern = paste0("well_depth_", aq_num_ch, ".jpg"), full.names = TRUE)
+figures_p1$map <- list.files(
+  here("figures/maps/"), 
+  pattern = paste0("Aquifer_Map_", aq_num_ch, ".pdf"), full.names = TRUE)
+figures_p1$water_depth <- list.files(
+  here("out/boxplots/"), 
+  pattern = paste0("water_depth_", aq_num_ch, ".jpg"), full.names = TRUE)
+figures_p1$well_yield <- list.files(
+  here("out/boxplots/"), 
+  pattern = paste0("yield_", aq_num_ch, ".jpg"), full.names = TRUE)
+figures_p1$well_depth <- list.files(
+  here("out/boxplots/"),
+  pattern = paste0("well_depth_", aq_num_ch, ".jpg"), full.names = TRUE)
 
 # Replace empty figures with NA plots
-if(length(figures_p1$map) == 0) figures_p1$map <- "../figures/maps/NA.png"
-if(length(figures_p1$water_depth) == 0) figures_p1$water_depth <- "../out/boxplots/water_depth_NA.jpg"
-if(length(figures_p1$well_yield) == 0) figures_p1$well_yield <- "../out/boxplots/yield_NA.jpg"
-if(length(figures_p1$well_depth) == 0) figures_p1$well_depth <- "../out/boxplots/well_depth_NA.jpg"
+#if(length(figures_p1$map) == 0) figures_p1$map <- here("figures/maps/NA.png")
+if(length(figures_p1$water_depth) == 0) figures_p1$water_depth <- here("out/boxplots/water_depth_NA.jpg")
+if(length(figures_p1$well_yield) == 0) figures_p1$well_yield <- here("out/boxplots/yield_NA.jpg")
+if(length(figures_p1$well_depth) == 0) figures_p1$well_depth <- here("out/boxplots/well_depth_NA.jpg")
 
 # Page 2
 # Only active wells
@@ -168,11 +203,12 @@ ow <- filter(ow, ow_status == "Active")
 if(nrow(ow) > 0) {
   figures_p2 <- tibble(a = rep(aq_num_ch, 3*nrow(ow)), ow = rep(ow$ow_ch, 3), 
                        type = sort(rep(c("combo", "trend", "piper"), length(ow)/3))) %>%
-    mutate(fig = case_when(type == "combo" ~ paste0("../out/gwl/combo_", a, "_OW", .data$ow, ".png"),
-                           type == "trend" ~ paste0("../out/trends/trends_", a, "_OW", .data$ow, ".png"),
-                           type == "piper" ~ paste0("../figures/piperplots_trimmed/Piperplot_", a, "_OW", .data$ow, ".jpg")),
-           exists = file.exists(fig),
-           fig = replace(fig, !exists, paste0("../figures/na/figure_missing_", type[!exists], ".png"))) %>%
+    mutate(fig = case_when(
+      type == "combo" ~ here(paste0("out/gwl/combo_", a, "_OW", .data$ow, ".png")),
+      type == "trend" ~ here(paste0("out/trends/trends_", a, "_OW", .data$ow, ".png")),
+      type == "piper" ~ here(paste0("figures/piperplots_trimmed/Piperplot_", a, "_OW", .data$ow, ".jpg"))),
+      exists = file.exists(fig),
+      fig = replace(fig, !exists, here(paste0("figures/na/figure_missing_", type[!exists], ".png")))) %>%
     group_by(.data$ow) %>%
     mutate(missing = sum(!exists)) %>%
     filter(missing != 3) %>%
@@ -186,12 +222,13 @@ if(nrow(ow) > 0) {
   }
   
   # Get Piper text for each obs well and add link
-  piper_text <- read_excel("../data/piper_text.xlsx", sheet = 1) %>%
+  piper_text <- read_excel(here("data/piper_text.xlsx"), sheet = 1) %>%
     rename_all(tolower) %>%
-    mutate(hydrogeochemistry = paste0(hydrogeochemistry,
-                                     " \\link{https://a100.gov.bc.ca/pub/ems/mainmenu.do?",
-                                     "userAction=monitoringLocationsCriteria&bean.p_mon_locn_id=", ems_id, 
-                                     "}{For EMS water chemistry data, EMSID ", ems_id, "}."))
+    mutate(hydrogeochemistry = paste0(
+      hydrogeochemistry,
+      " \\link{https://a100.gov.bc.ca/pub/ems/mainmenu.do?",
+      "userAction=monitoringLocationsCriteria&bean.p_mon_locn_id=", ems_id, 
+      "}{For EMS water chemistry data, EMSID ", ems_id, "}."))
   
   
 } else {
@@ -199,9 +236,9 @@ if(nrow(ow) > 0) {
 }
 
 # Page 3
-extra <- read_csv("../out/extra_page_images.csv", show_col_types = FALSE) %>%
+extra <- read_csv(here("out/extra_page_images.csv"), show_col_types = FALSE) %>%
   filter(aquifer_ids %in% !!aq_num) %>%
-  left_join(read_excel("../data/extra_page_index.xlsx"), by = "type") %>%
+  left_join(read_excel(here("data/extra_page_index.xlsx")), by = "type") %>%
   arrange(order, image) %>%
   distinct() #in case of duplicates
 
@@ -244,7 +281,7 @@ for (o in obs_wells) {
 
 for(i in seq(1, nrow(extra), 2)) {
   e <- slice(extra, i:(i+1)) %>%
-    mutate(image = file.path("../figures/extra", image))
+    mutate(image = here("figures/extra", image))
   cat("\\newpage")
   cat(knit_child(p3))
 }

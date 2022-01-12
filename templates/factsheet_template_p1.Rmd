@@ -48,7 +48,7 @@ t <- kable(aquifer_table, format = "latex", escape = FALSE, booktabs = TRUE, lin
   `r  # Top blue bar with title and gold line`
   \fill[blue] (current page.north west) rectangle ([yshift = -2.1cm]current page.north east);
   \fill[gold] ([yshift = -2.1cm]current page.north west) rectangle ([yshift = -2.25cm]current page.north east);
-  \node[below right = 0.2cm and 0.5cm of current page.north west]{\includegraphics[width = 4.25cm]{../figures/BCID_H_cmyk_rev.pdf}};
+  \node[below right = 0.2cm and 0.5cm of current page.north west]{\includegraphics[width = 4.25cm]{`r logo`}};
 
   `r  # Title and Aquifer number`
   \node[below = 0.5cm of current page.north, white, font = \Huge\bf] (num) {`r aq_title`};
