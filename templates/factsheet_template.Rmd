@@ -110,13 +110,22 @@ companion_link <- paste0("https://www2.gov.bc.ca/assets/gov/environment/",
 
 # Note that ~ (below) means a non-breaking space, which forces the tables to use a different spot to wrap the text
 
-fmt_props <- function(x_min, x_max, x_n, units, digits = 3) {
-  if_else(!is.na(x_min),
-          paste0(format(round(x_min, digits), nsmall = digits),
-                 " - ", 
-                 format(round(x_max, digits), nsmall = digits),
-                 " ", units, " (n=", x_n, ")"),
-          NA_character_)
+fmt_props <- function(x_min, x_max, x_n, units) {
+  
+  if(is.na(x_min)) {
+    x <- NA_character_
+  } else {
+    if(x_n == 1) {
+      x <- format(x_min, digits = 2, scientific = TRUE)
+    } else {
+      x <- paste0(format(x_min, digits = 2, scientific = TRUE),
+                  " - ", 
+                  format(x_max, digits = 2, scientific = TRUE))
+    }
+    x <- paste0(x, if_else(units == "", "", paste0(" ", units)), 
+                " (n=", x_n, ")")
+  }
+  x
 }
   
 
@@ -133,37 +142,40 @@ aquifer <- aquifer %>%
                                units = "m\\textsuperscript{2}/s"),
     storativity = fmt_props(storativity_min, 
                             storativity_max, storativity_n,
-                            units = "units"),
-    n_licences = replace(n_licences, n_licences == 0, "Unknown"),
-    hydraulic_connectivity = if_else(
-      hydraulic_connectivity == "Not Likely", 
-      "\\link{https://a100.gov.bc.ca/pub/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{see guidance document}", 
-      hydraulic_connectivity)) %>%
+                            units = ""),
+    n_licences = replace(n_licences, n_licences == 0, "Unknown")#,
+    #hydraulic_connectivity = "\\link{https://a100.gov.bc.ca/pub/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{see guidance document}"
+    ) %>%
   select(`Region` = region, 
          `Water District` = water_district, 
          `Aquifer Area` = size_km2,
-         `No. Wells Correlated to Aquifer` = reported_no_wells,
+         #`No. Wells Correlated to Aquifer` = reported_no_wells,
+         `No. Wells Correlated` = reported_no_wells,
          `Vulnerability to Contamination` = vulnerability,
          `Productivity` = productivity,
          `Aquifer Classification` = aquifer_classification,
-         `Hydraulic~Connection` = hydraulic_connectivity,
-         `Hydraulic~Conductivity (min-max)` = conductivity,
-         `Transmissivity (min-max)` = transmissivity,
-         `Storativity (min-max)` = storativity,
+         #`Hydraulic~Connection` = hydraulic_connectivity,
+         `Hydraulic~Conductivity \\footnotesize{(min-max)}` = conductivity,
+         `Transmissivity \\footnotesize{(min-max)}` = transmissivity,
+         `Storativity \\footnotesize{(min-max)}` = storativity,
          #`Aquifer Stress Index` = aquifer_pumping_stress_index,
          `No. Water Licences Issued~to~Wells` = n_licences,
-         `Observation Wells (\\footnotesize{\\textbf{Active},~Inactive})` = .data$ow) %>%
+         `Observation Wells \\footnotesize{(\\textbf{Active},~Inactive)}` = .data$ow) %>%
   mutate(across(everything(), as.character)) %>%
+  mutate(across(contains("min-max"), .fns = ~if_else(is.na(.), "no data available", .))) %>%
   mutate(across(everything(), .fns = ~if_else(is.na(.), "Unknown", .)))
 
 # Add hyperlinks
 aquifer <- aquifer %>%
-  rename(`\\link{http://www.bclaws.ca/civix/document/id/complete/statreg/38_2016}{Water District}` = `Water District`,
-         `\\link{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf\\#page=16}{Vulnerability to Contamination}` = `Vulnerability to Contamination`,
-         `\\link{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf\\#page=19}{Productivity}` = `Productivity`,
-         `\\link{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf\\#page=15}{Aquifer Classification}` = `Aquifer Classification`,
-         `\\link{http://a100.gov.bc.ca/appsdata/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{Hydraulic~Connection}` = `Hydraulic~Connection`)
-         #`\\link{http://governmentofbc.maps.arcgis.com/home/webmap/viewer.html?webmap=6c137fb01a364ee699440a28619e45c2}{Aquifer Stress Index}` = `Aquifer Stress Index`)
+  rename(
+    `\\link{http://www.bclaws.ca/civix/document/id/complete/statreg/38_2016}{Water District}` = 
+      `Water District`,
+         `\\link{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf\\#page=16}{Vulnerability to Contamination}` = 
+      `Vulnerability to Contamination`,
+         `\\link{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf\\#page=19}{Productivity}` = 
+      `Productivity`,
+         `\\link{http://www.env.gov.bc.ca/wsd/plan_protect_sustain/groundwater/aquifers/reports/aquifer_maps.pdf\\#page=15}{Aquifer Classification}` = 
+      `Aquifer Classification`)
 
 # Transform for factsheet
 aquifer <- aquifer %>%

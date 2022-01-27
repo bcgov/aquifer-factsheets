@@ -40,6 +40,8 @@ Ratio: 20.59/12.32 = 1.671266 ~ 5:3
   `r  # Top blue bar with title`
   \fill[blue] ([xshift = -0.05cm]tl) rectangle ([yshift = -0.6cm, xshift = 0.05cm]tr);
   \node[below = 0.6cm of current page.north, white, font = \large\bf] (num) {Supplementary Info \#`r ceiling(i/2)`};
+  \node[below left = 0.65cm and 0.55cm of current page.north east, white, font = \bf] (num) {Aquifer \#`r aq_num`};
+
 
   `r # Figures (width = 0.94\paperwidth`
   \node[below = 0.85cm of line0, anchor = north] {\includegraphics[height = 0.49\paperheight]{`r e$image[1]`}};

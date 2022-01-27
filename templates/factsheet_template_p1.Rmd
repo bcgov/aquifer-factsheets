@@ -33,8 +33,9 @@ t <- kable(aquifer_table, format = "latex", escape = FALSE, booktabs = TRUE, lin
   kable_styling(full_width = FALSE, latex_options = "striped", 
                 position = "left", font_size = 9, stripe_color = "tablegrey") %>%
   add_header_above(c("Aquifer Details" = 2), bold = TRUE) %>%
-  column_spec(1, width = "5cm") %>%
-  column_spec(2, width = "2.5cm")
+  column_spec(1, width = "3.5cm") %>%
+  column_spec(2, width = "4cm") %>%
+  add_footnote(label = "For Hydraulic Connection see \\link{https://a100.gov.bc.ca/pub/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{guidance document}", escape = FALSE, notation = "none")
 
 # if(!is.null(txt)) {
 #   t <- add_footnote(t, txt, notation = "number", threeparttable = TRUE)
