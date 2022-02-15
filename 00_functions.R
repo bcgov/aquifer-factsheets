@@ -170,7 +170,8 @@ check_piper_plots_gwells <- function(dir = "./out/piperplots") {
 }
 
 check_piper_plots_text <- function(dir = "./out/piperplots",
-                                   text_file = "./data/piper_text.xlsx") {
+                                   text_file = "./data/piper_text.xlsx",
+                                   maps = "./figures/maps/") {
 
   # Check piperplots against pipertext
   p <- tibble(file = list.files(dir, pattern = "piperplot")) %>%
@@ -181,15 +182,36 @@ check_piper_plots_text <- function(dir = "./out/piperplots",
   p_text <- read_excel(text_file) %>%
     mutate(aquifer_id = as.numeric(str_extract(AQUIFER_ID, "[0-9]{1,4}")))
 
+  p_text_limited <- p_text %>%
+    filter(str_detect(
+      Hydrogeochemistry,
+      regex(paste(c("(Insufficient data)", "(Limited data)",
+                    "(NO EMS DATA)", "(Low quality data)"), collapse = "|"),
+            ignore_case = TRUE)))
+
+
+  map_aquifers <- list.files(maps) %>%
+    str_extract("[0-9]{4}") %>%
+    as.numeric()
+
   # No fig
-  no_fig <- anti_join(select(p_text, aquifer_id, obs_well),
-                      select(p, aquifer_id, obs_well),
-                      by = c("obs_well", "aquifer_id"))
+  no_fig <- anti_join(p_text, p_text_limited, by = "obs_well") %>%
+    select(aquifer_id_text = aquifer_id, obs_well, Hydrogeochemistry) %>%
+    anti_join(select(p, obs_well),
+              by = c("obs_well")) %>%
+    mutate(map = aquifer_id_text %in% map_aquifers)
 
   # No text
   no_text <- anti_join(select(p, aquifer_id, obs_well),
-                       select(p_text, obs_well, aquifer_id),
-                       by = c("obs_well", "aquifer_id"))
+                       select(p_text, obs_well),
+                       by = c("obs_well"))
+
+  # Wrong Aquifer ID
+  wrong_id <- left_join(select(p, aquifer_id, obs_well),
+                        select(p_text, aquifer_id, obs_well),
+                        by = c("obs_well"),
+                        suffix = c("_gwells", "_text")) %>%
+    filter(aquifer_id_gwells != aquifer_id_text)
 
   # Backup log files
   logs <- list.files("./out/", pattern = "LOG_PIPER_MISSING", full.names = TRUE)
@@ -208,8 +230,16 @@ check_piper_plots_text <- function(dir = "./out/piperplots",
   if(nrow(no_text) > 0) {
     f <- paste0("./out/LOG_PIPER_MISSING_TEXT_", Sys.Date(), ".csv")
     write_csv(no_text, f)
-    message("\nSome piperplots with figures in ./figures/piperplots/ do not have ",
-            "corresponding text in ./data/piper_text.xlsx ...\n",
+    message("\nSome piperplots with figures in ", dir, " do not have ",
+            "corresponding text in ", text_file, "...\n",
+            "Details saved to ", f)
+  }
+
+  if(nrow(wrong_id) > 0) {
+    f <- paste0("./out/LOG_PIPER_TEXT_AQUIFER_ID", Sys.Date(), ".csv")
+    write_csv(wrong_id, f)
+    message("\nSome piperplots with listed in ", text_file, " do not ",
+            "correspond to the same Aquifer ID as in GWELLS...\n",
             "Details saved to ", f)
   }
 
