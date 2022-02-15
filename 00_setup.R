@@ -17,27 +17,37 @@
 # Preparation
 ##############################
 
-## Install the packages we will need from CRAN:
-package_list <- c("dplyr", "tidyr", "readr", "readxl", "ggplot2", "stringr",
-                  "lubridate", "purrr", "scales", "sf", "knitr", "rmarkdown",
-                  "kableExtra", "weathercan", "httr", "progress")
-package_new <- package_list[!(package_list %in% installed.packages()[,"Package"])]
-if(length(package_new)) install.packages(package_new)
+# Use renv for reproducible package management
+renv::restore()
 
-# Check versions and update
-if(packageVersion("weathercan") < "0.3.1") install.packages("weathercan")
-if(packageVersion("tidyr") < "1.0.0") install.packages("tidyr")
-if(packageVersion("dplyr") < "1.0.0") install.packages("dplyr")
+## Load required packages
+suppressMessages({
+  library(readr)
+  library(readxl)
+  library(dplyr)
+  library(tidyr)
+  library(purrr)
+  library(sf)
+  library(stringr)
+  library(lubridate)
+  library(httr)
 
-## Install the packages we will need from GitHub:
-package_github <- c(bcgov = "bcgroundwater", bcgov = "bcdata", bcgov = "bcmaps")
-package_new <- package_github[!(package_github %in% installed.packages()[,"Package"])]
-if(length(package_new)) {
-  remotes::install_github(paste(names(package_new), package_new, sep = "/"))
-}
+  library(ggplot2)
+  library(scales)
+  library(magick)
 
-rm(package_github, package_list, package_new)
+  library(knitr)
+  library(rmarkdown)
+  library(kableExtra)
 
+  library(bcgroundwater)
+  library(bcdata)
+  library(rems2aquachem)
+
+  library(weathercan)
+  library(smwrBase)
+  library(smwrGraphs)
+})
 
 ## Create project directories
 if (!dir.exists("tmp")) dir.create("tmp")
@@ -47,6 +57,7 @@ if (!dir.exists("out")) dir.create("out")
 if (!dir.exists("out/gwl")) dir.create("out/gwl")
 if (!dir.exists("out/boxplots")) dir.create("out/boxplots")
 if (!dir.exists("out/trends")) dir.create("out/trends")
+if (!dir.exists("out/piperplots")) dir.create("out/piperplots")
 if (!dir.exists("out/archive")) dir.create("out/archive")
 if (!dir.exists("factsheets")) dir.create("factsheets")
 if (!dir.exists("figures")) dir.create("figures")
@@ -55,3 +66,5 @@ if (!dir.exists("figures/piperplots")) dir.create("figures/piperplots")
 if (!dir.exists("figures/piperplots_trimmed")) dir.create("figures/piperplots_trimmed")
 if (!dir.exists("figures/extra")) dir.create("figures/extra")
 if (!dir.exists("figures/na")) dir.create("figures/na")
+
+source("functions.R")

@@ -72,35 +72,6 @@ get_breaks <- function(min, max, length.out) {
   seq(min, max, by = by)
 }
 
-check_piper_plots <- function(dir = "./figures/piperplots") {
-  if(file.exists("data_dl/well.csv")) {
-    p <- tibble(file = list.files(dir)) %>%
-      mutate(ow = str_extract(file, "OW[0-9]{4}"),
-             ow = as.numeric(str_extract(ow, "[0-9]{4}")),
-             aquifer_id = str_extract(file, "_[0-9]{4}_"),
-             aquifer_id = as.numeric(str_extract(aquifer_id, "[0-9]{4}")))
-
-    g <- read_csv("data_dl/well.csv", guess_max = Inf, col_types = cols(), n_max = 1000000000) %>%
-      select(aquifer_id, ow = observation_well_number) %>%
-      filter(!is.na(ow)) %>%
-      mutate(ow = as.numeric(ow))
-
-    compare <- full_join(p, g, by = "ow", suffix = c("_piper", "_gwells")) %>%
-      filter(aquifer_id_piper != aquifer_id_gwells)
-
-    if(nrow(compare) > 0) {
-      message("Mismatch between Piperplot Aquifers and GWELLS Aquifers, see:\n ",
-              "'out/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv'")
-      write_csv(compare, paste0("./out/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv"))
-    } else {
-      message("No mismatches between Piperplots and GWELLS")
-    }
-    return(TRUE)
-  } else {
-    return(FALSE)
-  }
-}
-
 fix_names <- function(dir = "./figures", type, filename, ext, digits = 4) {
 
   f <- list.files(file.path(dir, type))
@@ -167,3 +138,91 @@ fix_names <- function(dir = "./figures", type, filename, ext, digits = 4) {
 round_any <- function(x, accuracy, f = round){
   f(x / accuracy) * accuracy
 }
+
+check_piper_plots_gwells <- function(dir = "./out/piperplots") {
+  if(file.exists("data_dl/well.csv")) {
+    p <- tibble(file = list.files(dir)) %>%
+      mutate(ow = str_extract(file, "OW[0-9]{4}"),
+             ow = as.numeric(str_extract(ow, "[0-9]{4}")),
+             aquifer_id = str_extract(file, "_[0-9]{4}_"),
+             aquifer_id = as.numeric(str_extract(aquifer_id, "[0-9]{4}")))
+
+    g <- read_csv("data_dl/well.csv", guess_max = Inf, col_types = cols(),
+                  n_max = 1000000000) %>%
+      select(aquifer_id, ow = observation_well_number) %>%
+      filter(!is.na(ow)) %>%
+      mutate(ow = as.numeric(ow))
+
+    compare <- full_join(p, g, by = "ow", suffix = c("_piper", "_gwells")) %>%
+      filter(aquifer_id_piper != aquifer_id_gwells)
+
+    if(nrow(compare) > 0) {
+      message("Mismatch between Piperplot Aquifers and GWELLS Aquifers, see:\n ",
+              "'out/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv'")
+      write_csv(compare, paste0("./out/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv"))
+    } else {
+      message("No mismatches between Piperplots and GWELLS")
+    }
+    return(TRUE)
+  } else {
+    return(FALSE)
+  }
+}
+
+check_piper_plots_text <- function(dir = "./out/piperplots",
+                                   text_file = "./data/piper_text.xlsx") {
+
+  # Check piperplots against pipertext
+  p <- tibble(file = list.files(dir, pattern = "piperplot")) %>%
+    mutate(file2 = str_remove_all(file, "(piperplot_)|(.png)"),
+           aquifer_id = as.numeric(str_extract(file2, "^[0-9]{4}")),
+           obs_well = as.numeric(str_extract(file2, "[0-9]{4}$")))
+
+  p_text <- read_excel(text_file) %>%
+    mutate(aquifer_id = as.numeric(str_extract(AQUIFER_ID, "[0-9]{1,4}")))
+
+  # No fig
+  no_fig <- anti_join(select(p_text, aquifer_id, obs_well),
+                      select(p, aquifer_id, obs_well),
+                      by = c("obs_well", "aquifer_id"))
+
+  # No text
+  no_text <- anti_join(select(p, aquifer_id, obs_well),
+                       select(p_text, obs_well, aquifer_id),
+                       by = c("obs_well", "aquifer_id"))
+
+  # Backup log files
+  logs <- list.files("./out/", pattern = "LOG_PIPER_MISSING", full.names = TRUE)
+  file.copy(logs, "./out/archive/", overwrite = TRUE)
+  file.remove(logs)
+
+  # Save new log files
+  if(nrow(no_fig) > 0) {
+    f <- paste0("./out/LOG_PIPER_MISSING_FIG_", Sys.Date(), ".csv")
+    write_csv(no_fig, f)
+    message("\nSome piperplots listed in ./data/piper_text.xlsx do not have ",
+            "corresponding figures in ./figures/piperplots/...\n",
+            "Details saved to ", f)
+  }
+
+  if(nrow(no_text) > 0) {
+    f <- paste0("./out/LOG_PIPER_MISSING_TEXT_", Sys.Date(), ".csv")
+    write_csv(no_text, f)
+    message("\nSome piperplots with figures in ./figures/piperplots/ do not have ",
+            "corresponding text in ./data/piper_text.xlsx ...\n",
+            "Details saved to ", f)
+  }
+
+}
+
+check_piper_plots <- function(dir = "./out/piperplots",
+                              text_file = "./data/piper_text.xlsx",
+                              which = c("text")) {
+
+  if("gwells" %in% which) check_piper_plots_gwells(dir)
+  if("text" %in% which) check_piper_plots_text(dir, text_file)
+}
+
+
+
+

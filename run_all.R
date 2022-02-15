@@ -16,49 +16,43 @@
 # Create aquifer factsheets
 ##############################
 
-# Load functions and header
-source("functions.R")
+# Load functions and packages
 source("header.R")
-
-# Specify aquifers to run -------------------------------------------------
-
-# Large run - Run all Aquifers that have a Map file
-aquifers <- as.numeric(str_extract(list.files("./figures/maps/"), "[0-9]{4}"))
-
-# Aquifers NOT TO PUBLISH
-aquifers <- aquifers[!aquifers %in% c(73, 405, 554, 909, 1201, 1202, 1203, 1204, 1221)]
-
-# Specify a Range of aquifers based on ID (from the above set)
-#aquifers <- aquifers[aquifers >= 300 & aquifers <= 400]
-
-# Specific specific aquifers
-#aquifers <- c(6, 8, 353, 662, 738, 750, 15, 157)
-#aquifers <- c(1011, 1015, 662, 751, 211, 74, 664)
-
 
 # Update Data Sources -----------------------------------------------------
 # NOTE: Sometimes the downloads don't work on the first try, if you get an
 #   error, walk through the 01_download.R script and re-run lines which give you
 #   an error the first time
-source("01_download.R") # You don't have to run this every time
 
+# source("01_download.R") # You don't have to run this every time
 
 # Prepare Data ------------------------------------------------------------
 source("02_load.R")
+source("03_clean.R")
 
-
-# Clean data and Create figures -------------------------------------------
+# Create figures -------------------------------------------
 # These may take a while, depending how many aquifers have been selected
 
+aquifers <- as.numeric(str_extract(list.files("./figures/maps/"), "[0-9]{4}"))  #ALL Aquifers
 delete_old <- TRUE   # Delete all old figures before rerunning?
-source("03_clean.R")
+
+aquifers <- c(1, 8, 15, 133, 157, 1147)
+
 source("04_output.R")
 
+
+# Checks -----------------------
+check_piper_plots() # Check piper plot text vs. figures
+fix_names(type = "maps", filename = "Aquifer_Map", ext = "pdf") # Check/fix map names
 
 # Create aquifer factsheets -----------------------------------------------
 
 # Create all aquifer factsheets
-factsheet(aquifers[aquifers <= 866], draft = FALSE)
+#factsheet(aquifers[aquifers <= 866], draft = FALSE)
+
+factsheet(c(27, 50, 161, 172), draft = TRUE)
+
+
 
 # Create some aquifer factsheets
 # - Here, the first 10
@@ -67,7 +61,7 @@ factsheet(aquifers[aquifers <= 866], draft = FALSE)
 factsheet(aquifers[1:10], draft = TRUE)
 
 # Create a single factsheet
-factsheet(74, draft = TRUE)
+factsheet(1242, draft = TRUE)
 #factsheet(21)
 
 
@@ -76,7 +70,18 @@ factsheet(c(220, 320), draft = TRUE)
 # Create a single factsheet with only page 1
 #factsheet(15, draft = FALSE, pages = 1)
 
+factsheet(c(133, 134, 157, 1147, 50), draft = TRUE)
+
+factsheet(c(27, 50, 161, 172), draft = TRUE)
+
+factsheet(c(133, 161), draft = TRUE)
+
+factsheet(c(25, 254), draft = TRUE)
+
+factsheet(c(1, 8, 15, 133, 157, 1147), draft = TRUE) # E.g. with only 1 obs Hydraulic conductivity
+
 # Create the Companion Document -------------------------------------------
 rmarkdown::render("./templates/factsheet_methods.Rmd",
                   output_file = "Aquifer Factsheet - Companion Document.pdf",
                   output_dir = "./factsheets/")
+
