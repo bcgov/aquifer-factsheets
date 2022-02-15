@@ -79,3 +79,7 @@ message("Groundwater Trends")
 bcdc_get_data(record = 'a74f1b97-17f7-499b-84e7-6455e169e425',
               resource = 'a8933793-eadb-4a9c-992c-da4f6ac8ca51') %>%
   write_csv("./data_dl/groundwater_trends.csv")
+
+# EMS data
+rems::download_historic_data(ask = FALSE)
+rems::get_ems_data(which = "2yr", ask = FALSE, check_only = TRUE)

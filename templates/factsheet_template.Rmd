@@ -218,7 +218,7 @@ if(nrow(ow) > 0) {
     mutate(fig = case_when(
       type == "combo" ~ here(paste0("out/gwl/combo_", a, "_OW", .data$ow, ".png")),
       type == "trend" ~ here(paste0("out/trends/trends_", a, "_OW", .data$ow, ".png")),
-      type == "piper" ~ here(paste0("figures/piperplots_trimmed/Piperplot_", a, "_OW", .data$ow, ".jpg"))),
+      type == "piper" ~ here(paste0("out/piperplots/piperplot_", a, "_OW", .data$ow, ".png"))),
       exists = file.exists(fig),
       fig = replace(fig, !exists, here(paste0("figures/na/figure_missing_", type[!exists], ".png")))) %>%
     group_by(.data$ow) %>%

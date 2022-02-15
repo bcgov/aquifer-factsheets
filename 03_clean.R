@@ -80,9 +80,11 @@ wells_db <- wells_db_raw %>%
          "licenced_status_code",
          "conductivity" = "hydraulic_conductivity_m/s",
          "transmissivity" = "transmissivity_m^2/s",
-         "storativity") %>%
+         "storativity",
+         "ems") %>%
   mutate(ow = as.numeric(ow))
 
+## Obs Well Index -------------------------------------------
 obs_wells_index <- wells_db %>%
   filter(!is.na(ow), !is.na(aquifer_id)) %>%
   select(aquifer_id, ow, well_tag_number, ow_status) %>%
@@ -375,6 +377,20 @@ wl_month <- wl_month %>%
   left_join(wl_summary, by = "ow") %>%
   left_join(distinct(select(obs_wells_index_climate, aquifer_id, ow)), by = "ow")
 
+# EMS Data for piperplots ----------------------------------------------------
+
+# Get ids
+ems_ids <- wells_db %>%
+  filter(!is.na(aquifer_id), !is.na(ow), !is.na(ems)) %>%
+  pull(ems)
+
+# Get data formatted for piperplots
+ems <- rems_to_aquachem(ems_ids, interactive = FALSE) %>%
+  mutate(StationID = as.numeric(StationID)) %>%
+  left_join(select(obs_wells_index, aquifer_id, ow),
+            by = c("StationID" = "ow"))
+
+
 
 # Save Data ---------------------------------------------------------------
 message("  Saving data")
@@ -388,6 +404,7 @@ save(aquifer_db,
      ppt_good,
      ground_water,
      ground_water_trends,
+     ems,
      file = "tmp/aquifer_factsheet_clean_data.RData")
 
 # Save .csv files to pull in by aquifer factsheets

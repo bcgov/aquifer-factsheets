@@ -48,6 +48,9 @@ combo_width <- 10
 trend_height <- 3.85
 trend_width <- 10
 
+piper_height <- 3.85
+piper_width <- 5
+
 dpi <- 300
 
 ann_size <- 2.75  # Annotation sizes for samples sizes in boxplots
@@ -670,3 +673,50 @@ for (a in aquifers) {
            height = trend_height, width = trend_width, dpi = dpi)
   }
 }
+
+
+# Piper plots -----------------------------------------------------------------
+# Remove old files (make sure no old files to interfere)
+if(delete_old) file.remove(list.files("./out/piperplots/", full.name = TRUE))
+
+p <- progress::progress_bar$new(format = "  Piperplots [:bar] :percent eta: :eta",
+                                total = length(aquifers))
+for (a in aquifers) {
+  p$tick()
+
+  d <- filter(ems, aquifer_id == a) %>%
+    mutate(charge_balance = as.numeric(charge_balance),
+           charge_balance2 = as.numeric(charge_balance2))
+
+  for(o in unique(d$StationID)) {
+
+    # Only take samples with good charge balance
+    # - both missing, or both good
+    # - if one missing the other is good
+    d2 <- filter(d, StationID == o) %>%
+      filter((is.na(charge_balance) & is.na(charge_balance2)) |
+               (is.na(charge_balance) & abs(charge_balance2) <= 10) |
+               (abs(charge_balance) <= 10 & is.na(charge_balance2)) |
+               (abs(charge_balance) <= 10 & abs(charge_balance2) <= 10))
+
+
+    if(nrow(d2) > 1) {
+      # Make plot
+      f <- paste0("./out/piperplots/piperplot_",
+                  sprintf("%04d", as.numeric(a)), "_OW",
+                  sprintf("%04d", as.numeric(o)), ".png")
+      pp <- image_graph(width = 2000,
+                        height = 2100, res = dpi)
+      piper_plot(d2, legend = FALSE)
+      dev.off()
+      #print(p)
+
+      # Trim plot and add in small border
+      pp2 <- image_trim(pp) %>%
+        image_border(color = "white")
+      #print(p2)
+
+      # Save plot
+      image_write(pp2, path = f)
+    }
+  }
