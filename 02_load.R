@@ -17,8 +17,7 @@
 ##############################
 
 # Load Packages and Functions --------------------------------------------------------
-source("header.R")
-source("functions.R")
+source("00_setup.R")
 
 # Read Local Data ---------------------------------------------------------------
 # These data sets must be available in the 'data' folder

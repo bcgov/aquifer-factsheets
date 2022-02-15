@@ -34,8 +34,7 @@ if(!exists("aquifers")) {
 
 
 # Load functions, packages and data
-source("functions.R")
-source("header.R")
+source("00_setup.R")
 load("tmp/aquifer_factsheet_clean_data.RData")
 
 # Figure defaults ---------------------------------------------------------

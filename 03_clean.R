@@ -19,8 +19,7 @@
 # Setup -------------------------------------------------------------------
 
 # Load functions, packages and data
-source("functions.R")
-source("header.R")
+source("00_setup.R")
 load("tmp/aquifer_factsheet_data.RData")
 
 # Master Aquifer Data -----------------------------------------------------

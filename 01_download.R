@@ -13,8 +13,7 @@
 # the License.
 
 # Load Packages and Functions --------------------------------------------------------
-source("functions.R")
-source("header.R")
+source("00_setup.R")
 
 
 # Download Remote Data --------------------------------------------------------
