@@ -67,4 +67,4 @@ if (!dir.exists("figures/piperplots_trimmed")) dir.create("figures/piperplots_tr
 if (!dir.exists("figures/extra")) dir.create("figures/extra")
 if (!dir.exists("figures/na")) dir.create("figures/na")
 
-source("functions.R")
+source("00_functions.R")
