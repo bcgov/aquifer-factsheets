@@ -12,14 +12,10 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-##############################
-# Load/Acquire Data
-##############################
-
-# Load Packages and Functions --------------------------------------------------------
+# Load Packages and Functions -------------------------------------------------
 source("00_setup.R")
 
-# Read Local Data ---------------------------------------------------------------
+# Read Local Data -------------------------------------------------------------
 # These data sets must be available in the 'data' folder
 
 # None! Only aquifer map images, piperplots and piperplot text need to be provided.
@@ -27,17 +23,17 @@ source("00_setup.R")
 # Read Downloaded Data ----------------------------------------------------
 # These data sets must be available in the 'data_dl' folder
 # Run the '00_download.R' script to automatically download and extract these files
-aquifer_db_raw <- read_csv("data_dl/aquifers.csv")
-aquifer_subtypes <- read_csv("data_dl/aquifer_subtypes.csv")
+aquifer_db_raw <- read_csv("data_dl/aquifers.csv", show_col_types = FALSE)
+aquifer_subtypes <- read_csv("data_dl/aquifer_subtypes.csv", show_col_types = FALSE)
 aquifer_map <- read_rds("data_dl/aquifer_map.rds")
 
-wells_db_raw <- read_csv("data_dl/well.csv", guess_max = 200000)
-wells_lithology <- read_csv("data_dl/lithology.csv", guess_max = 100000)
+wells_db_raw <- read_csv("data_dl/well.csv", guess_max = 200000, show_col_types = FALSE)
+wells_lithology <- read_csv("data_dl/lithology.csv", guess_max = 100000, show_col_types = FALSE)
 
-licenced_vol <- read_csv("data_dl/aquifer_licences.csv", guess_max = 20000)
+licenced_vol <- read_csv("data_dl/aquifer_licences.csv", guess_max = 20000, show_col_types = FALSE)
 #stress_index <- read_excel("data_dl/uvic_stress_index.xlsx", sheet = "R0. Results")
 
-obs_well <- read_csv("data_dl/obs_well_daily_mean.csv")
+obs_well <- read_csv("data_dl/obs_well_daily_mean.csv", show_col_types = FALSE)
 
 
 # Create small data frames ------------------------------------------------
@@ -71,7 +67,7 @@ ground_water <- monthlywells_ts
 #ground_water_trends <- results_out
 
 #ground_water <- read_csv("./data_dl/groundwater.csv")
-ground_water_trends <- read_csv("./data_dl/groundwater_trends.csv")
+ground_water_trends <- read_csv("./data_dl/groundwater_trends.csv", show_col_types = FALSE)
 
 # Extra pages
 extra_index <- read_excel("./data/extra_page_index.xlsx")
