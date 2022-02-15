@@ -73,12 +73,13 @@ aq_theme <- theme_bw() +
         panel.grid.minor = element_line(colour = "grey90"))
 
 # Specific to boxplos
-bx_theme <- theme(plot.margin = unit(c(2, 2, 2, 6), "mm"),
-                  axis.title.y = element_text(margin = unit(c(0, 0, 0, 0), "mm")),
-                  axis.text.x = element_blank(),
-                  axis.title.x = element_text(margin = unit(c(2, 0, 0, 0), "mm"), size = 10),
-                  panel.grid.major = element_line(colour = "grey75"),
-                  panel.grid.minor = element_line(colour = "grey75"))
+bx_theme <- theme(
+  plot.margin = unit(c(1, 3, 1, 3), "mm"),
+  axis.title.y = element_text(margin = unit(c(0, 0, 0, 0), "mm")),
+  axis.text.x = element_blank(),
+  axis.title.x = element_text(margin = unit(c(2, 0, 0, 0), "mm"), size = 9),
+  panel.grid.major = element_line(colour = "grey75"),
+  panel.grid.minor = element_line(colour = "grey75"))
 
 # Boxplots: Yield Boxplots ----------------------------------------------------------
 
@@ -158,7 +159,8 @@ Yield_NA <- Yield_base +
            label = "n = 0", size = ann_size) +
   xlab("\n") + # To match regular plots
   scale_y_reverse(limits = c(3, 0)) +
-  scale_x_continuous(breaks = c(-1, 0, 1))
+  scale_x_continuous(breaks = c(-1, 0, 1)) +
+  labs(x = "")
 
 ggsave("yield_NA.jpg", plot = Yield_NA, path = "out/boxplots/",
        width = bx_width, height = bx_height, dpi = dpi)
@@ -227,7 +229,8 @@ depthdrilled_NA <- depthdrilled_base +
            label = "n = 0", size = ann_size) +
   xlab("\n") + # To match regular plots +
   scale_y_reverse(limits = c(10, 0)) +
-  scale_x_continuous(breaks = c(-1, 0, 1))
+  scale_x_continuous(breaks = c(-1, 0, 1)) +
+  labs(x = "")
 ggsave("well_depth_NA.jpg", plot = depthdrilled_NA, path = "out/boxplots/",
        width = bx_width, height = bx_height, dpi = dpi)
 
@@ -297,7 +300,8 @@ waterdepth_NA <- waterdepth_base +
            label = "n = 0", size = ann_size) +
   xlab("\n") + # To match regular plots +
   scale_y_reverse(limits = c(10, 0)) +
-  scale_x_continuous(breaks = c(-1, 0, 1))
+  scale_x_continuous(breaks = c(-1, 0, 1)) +
+  labs(x = "")
 
 ggsave("water_depth_NA.jpg", plot = waterdepth_NA, path = "out/boxplots/",
        width = bx_width, height = bx_height, dpi = dpi)
