@@ -18,29 +18,21 @@ This code below uses inline R input to be dynamic AND for comments
 # Here we create the table in latex code using the kable function.
 # We save the latex table as 't' and place it in the tikzpicture later (see below)
 
-# Fix stress text
-# if(any(str_detect(aquifer$Data, "Method not applicable"))) {
-#   txt <- str_remove(aquifer$Data[9], "Method not applicable - ")
-#   aquifer$Data[9] <- str_extract(aquifer$Data[9], "Method not applicable")
-# } else txt <- NULL
-
 # Remove the headings
 aquifer_table <- as.matrix(aquifer)
 colnames(aquifer_table) <- NULL
 
 # Create the table and edit
 t <- kable(aquifer_table, format = "latex", escape = FALSE, booktabs = TRUE, linesep = "") %>%
-  kable_styling(full_width = FALSE, latex_options = "striped", 
+  kable_styling(full_width = FALSE, latex_options = "striped",
                 position = "left", font_size = 9, stripe_color = "tablegrey") %>%
   add_header_above(c("Aquifer Details" = 2), bold = TRUE) %>%
-  column_spec(1, width = "3.5cm") %>%
-  column_spec(2, width = "4cm") %>%
+  column_spec(1, width = "3.4cm") %>%
+  column_spec(2, width = "4.2cm") %>%
+  add_footnote(label = "* min - max", escape = FALSE, notation = "none") %>%
   add_footnote(label = "For Hydraulic Connection see \\link{https://a100.gov.bc.ca/pub/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{guidance document}", escape = FALSE, notation = "none")
 
-# if(!is.null(txt)) {
-#   t <- add_footnote(t, txt, notation = "number", threeparttable = TRUE)
-# }
-
+t <- stringr::str_replace(t, "max\\}\\\\\\\\", "max\\}\\\\\\\\\\[-0.3em\\]")
 
 ```
 
@@ -59,9 +51,9 @@ t <- kable(aquifer_table, format = "latex", escape = FALSE, booktabs = TRUE, lin
   \node[below = 2.6cm of current page.north] (map) {\includegraphics{`r figures_p1$map`}};
   
   `r # Boxplots`
-  \node[below = 0.25cm of map.south east, anchor = north east] (third) {\includegraphics[width = 0.18\paperwidth]{`r figures_p1$well_depth`}};
-  \node[left = 0cm of third.north west, anchor = north east] (second) {\includegraphics[width = 0.18\paperwidth]{`r figures_p1$water_depth`}};
-  \node[left = 0cm of second.north west, anchor = north east] (first) {\includegraphics[width = 0.18\paperwidth]{`r figures_p1$well_yield`}};
+  \node[below = 0.25cm of map.south east, anchor = north east] (third) {\includegraphics[width = 0.175\paperwidth]{`r figures_p1$well_depth`}};
+  \node[left = 0cm of third.north west, anchor = north east] (second) {\includegraphics[width = 0.175\paperwidth]{`r figures_p1$water_depth`}};
+  \node[left = 0cm of second.north west, anchor = north east] (first) {\includegraphics[width = 0.175\paperwidth]{`r figures_p1$well_yield`}};
 
   `r # Aquifer Description`
   \node[below = 0.35cm of map.south west, anchor = north west, align = left, text width = 8cm] (desc) {`r desc`};

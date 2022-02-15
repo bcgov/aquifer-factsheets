@@ -71,11 +71,12 @@ if(nrow(ow) > 20) {
 wells_db <- read_csv(here("out/wells_table.csv")) %>%
   filter(aquifer_id %in% aq_num)
 
-mapping_report <- paste0("https://s3.ca-central-1.amazonaws.com/aquifer-docs/",   # Main site
-                         sprintf("%05d", round_any(aq_num, 100, f = floor)),      # Folder rounded to lower 100
-                         "/AQ_",                                                  # Prefix
-                         sprintf("%05d", aq_num),                                 # Aq number with 5 digits
-                         "_Aquifer_Mapping_Report.pdf")                           # Suffix  
+mapping_report <- paste0(
+  "https://s3.ca-central-1.amazonaws.com/aquifer-docs/", # Main site
+  sprintf("%05d", round_any(aq_num, 100, f = floor)),    # Folder round to lower 100
+  "/AQ_",                                                # Prefix
+  sprintf("%05d", aq_num),                               # Aq number, 5 digits
+  "_Aquifer_Mapping_Report.pdf")                         # Suffix  
 
 # No mapping report
 if(httr::http_error(httr::GET(mapping_report))) {
@@ -112,15 +113,18 @@ companion_link <- paste0("https://www2.gov.bc.ca/assets/gov/environment/",
 
 fmt_props <- function(x_min, x_max, x_n, units) {
   
+  fmt <- function(x) {
+    x <- format(x, digits = 2, scientific = TRUE)
+    stringr::str_replace(x, "e-0*([0-9]{1,2})", "x10\\\\textsuperscript{-\\1}")
+  }
+  
   if(is.na(x_min)) {
     x <- NA_character_
   } else {
     if(x_n == 1) {
-      x <- format(x_min, digits = 2, scientific = TRUE)
+      x <- fmt(x_min)
     } else {
-      x <- paste0(format(x_min, digits = 2, scientific = TRUE),
-                  " - ", 
-                  format(x_max, digits = 2, scientific = TRUE))
+      x <- paste0(fmt(x_min), " - ", fmt(x_max))
     }
     x <- paste0(x, if_else(units == "", "", paste0(" ", units)), 
                 " (n=", x_n, ")")
@@ -155,9 +159,9 @@ aquifer <- aquifer %>%
          `Productivity` = productivity,
          `Aquifer Classification` = aquifer_classification,
          #`Hydraulic~Connection` = hydraulic_connectivity,
-         `Hydraulic~Conductivity \\footnotesize{(min-max)}` = conductivity,
-         `Transmissivity \\footnotesize{(min-max)}` = transmissivity,
-         `Storativity \\footnotesize{(min-max)}` = storativity,
+         `Hydraulic~Conductivity *` = conductivity,
+         `Transmissivity *` = transmissivity,
+         `Storativity *` = storativity,
          #`Aquifer Stress Index` = aquifer_pumping_stress_index,
          `No. Water Licences Issued~to~Wells` = n_licences,
          `Observation Wells \\footnotesize{(\\textbf{Active},~Inactive)}` = .data$ow) %>%
