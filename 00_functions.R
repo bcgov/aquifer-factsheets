@@ -200,8 +200,8 @@ check_piper_plots_text <- function(dir = "./out/piperplots",
   if(nrow(no_fig) > 0) {
     f <- paste0("./out/LOG_PIPER_MISSING_FIG_", Sys.Date(), ".csv")
     write_csv(no_fig, f)
-    message("\nSome piperplots listed in ./data/piper_text.xlsx do not have ",
-            "corresponding figures in ./figures/piperplots/...\n",
+    message("\nSome piperplots listed in ", text_file, " do not have ",
+            "corresponding figures in ", dir, "...\n",
             "Details saved to ", f)
   }
 

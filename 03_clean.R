@@ -367,7 +367,7 @@ ems_ids <- wells_db %>%
   pull(ems)
 
 # Get data formatted for piperplots
-ems <- rems_to_aquachem(ems_ids, interactive = FALSE) %>%
+ems <- rems_to_aquachem(ems_ids, interactive = FALSE, save = FALSE) %>%
   mutate(StationID = as.numeric(StationID)) %>%
   left_join(select(obs_wells_index, aquifer_id, ow),
             by = c("StationID" = "ow"))
