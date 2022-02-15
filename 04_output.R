@@ -615,15 +615,17 @@ for (a in aquifers) {
       g <- g +
         # Scales and Labels
         # These add specific colours to the lables assigned to the aes above
-        scale_colour_manual(values = c("Extreme Minimum" = "bisque3",
-                                      "Median" = "black",
-                                      "Extreme Maximum" = "slategray3")) +
-        scale_fill_manual(values = c("Total rainfall (mm)" = "lightcyan3",
-                                     "Total snowfall\n(rainfall equivalent)" = "white",
-                                     "10-90th Percentile" = "lightskyblue2",
-                                     "25-75th Percentile" = "steelblue1")) +
+        scale_colour_manual(values = c("Extreme Maximum" = "slategray3",
+                                       "Median" = "black",
+                                       "Extreme Minimum" = "bisque3")) +
+        scale_fill_manual(values = c("10-90th Percentile" = "lightskyblue2",
+                                     "25-75th Percentile" = "steelblue1",
+                                     "Total rainfall (mm)" = "lightcyan3",
+                                     "Total snowfall\n(rainfall equivalent)" = "white")) +
         # Remove point from median line
-        guides(colour = guide_legend(override.aes = list(shape = c(19, 19, NA)))) +
+        guides(colour = guide_legend(order = 1,
+                                     override.aes = list(shape = c(19, NA, 19))),
+               fill = guide_legend(order = 2)) +
         labs(x = "Month",
              y = paste0("Monthly Precipitation (mm) at\n", climate_title),
              title = wl_title)
@@ -734,3 +736,4 @@ for (a in aquifers) {
       image_write(pp2, path = f)
     }
   }
+}
