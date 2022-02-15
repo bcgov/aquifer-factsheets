@@ -1,8 +1,7 @@
-library(tesseract)
+#library(tesseract)
 library(magrittr)
 library(magick)
 library(stringr)
-library(tidyverse)
 
 p <- tibble(f = list.files("figures/piperplots", full.names = TRUE, include.dirs = FALSE)) %>%
   filter(!str_detect(f, "\\.xlsx|\\.db")) %>%
