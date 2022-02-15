@@ -97,7 +97,7 @@ if(any(is.na(extra_images$type))) stop("Problems assigning Supplementary pages t
 write_csv(extra_images, "out/extra_page_images.csv")
 
 # Save all data -----------------------------------------------------------
-save(hc, stress_index, licenced_vol,
+save(hc, licenced_vol,  #stress_index
      aquifer_db_raw, aquifer_map, aquifer_subtypes,
      wells_db_raw, wells_lithology, obs_well,
      ground_water, ground_water_trends,
