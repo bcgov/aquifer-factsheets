@@ -55,6 +55,16 @@ dpi <- 300
 
 ann_size <- 2.75  # Annotation sizes for samples sizes in boxplots
 
+# Retired aquifers ----------------
+
+# Remove retired aquifers with message
+if(any(aquifers %in% aquifer_db$aquifer_id[aquifer_db$retired])) {
+  a <- aquifers[aquifers %in% aquifer_db$aquifer_id[aquifer_db$retired]]
+  message("Retired aquifers removed from run: ", paste0(a, collapse = ", "))
+  aquifers <- aquifers[!aquifers %in% a]
+}
+
+
 # General factsheet plot theme
 aq_theme <- theme_bw() +
   theme(axis.title.y.left = element_text(margin = unit(c(0, 2, 0, 0), "mm")),

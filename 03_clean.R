@@ -18,15 +18,6 @@
 
 # Setup -------------------------------------------------------------------
 
-# Check for aquifer numbers
-if(!exists("aquifers")) {
-  stop("Can't run 03_clean.R without first specifying which aquifers to summarize", call. = FALSE)
-} else if(length(aquifers) == 0) {
-  stop("'aquifers' is empty, specify at least one aquifer to summarize", call. = FALSE)
-} else if(!is.vector(aquifers)) {
-  stop("'aquifers' should be a vector of aquifer ids")
-}
-
 # Load functions, packages and data
 source("functions.R")
 source("header.R")
@@ -54,14 +45,6 @@ aquifer_db <- aquifer_db_raw %>%
          aquifer_subtype_code = str_extract(aquifer_subtype_code, "^[^- ]*"),
          retired = str_detect(tolower(aquifer_name), "retired|merged"),
          retired = if_else(is.na(retired), FALSE, retired))
-
-
-# Remove retired aquifers with message
-if(any(aquifers %in% aquifer_db$aquifer_id[aquifer_db$retired])) {
-  a <- aquifers[aquifers %in% aquifer_db$aquifer_id[aquifer_db$retired]]
-  message("Retired aquifers removed from run: ", paste0(a, collapse = ", "))
-  aquifers <- aquifers[!aquifers %in% a]
-}
 
 # Set up Wells Database with pertinent information
 # - Get max number of digits after decimal:
