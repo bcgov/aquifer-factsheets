@@ -177,34 +177,25 @@ check_piper_plots_text <- function(dir = "./out/piperplots",
   p <- tibble(file = list.files(dir, pattern = "piperplot")) %>%
     mutate(file2 = str_remove_all(file, "(piperplot_)|(.png)"),
            aquifer_id = as.numeric(str_extract(file2, "^[0-9]{4}")),
-           obs_well = as.numeric(str_extract(file2, "[0-9]{4}$")))
+           obs_well = as.numeric(str_extract(file2, "[0-9]{4}$")),
+           plot = TRUE)
 
-  p_text <- read_excel(text_file) %>%
-    mutate(aquifer_id = as.numeric(str_extract(AQUIFER_ID, "[0-9]{1,4}")))
+  p_text <- read_excel(text_file)
 
-  p_text_limited <- p_text %>%
-    filter(str_detect(
-      Hydrogeochemistry,
-      regex(paste(c("(Insufficient data)", "(Limited data)",
-                    "(NO EMS DATA)", "(Low quality data)"), collapse = "|"),
-            ignore_case = TRUE)))
-
+  # All text
+  all_text <- full_join(p_text,
+                        select(p, aquifer_id, obs_well, plot),
+                        by = c("aquifer_id", "obs_well")) %>%
+    mutate(plot = replace_na(plot, FALSE))
 
   map_aquifers <- list.files(maps) %>%
     str_extract("[0-9]{4}") %>%
     as.numeric()
 
   # No fig
-  no_fig <- anti_join(p_text, p_text_limited, by = "obs_well") %>%
-    select(aquifer_id_text = aquifer_id, obs_well, Hydrogeochemistry) %>%
-    anti_join(select(p, obs_well),
-              by = c("obs_well")) %>%
-    mutate(map = aquifer_id_text %in% map_aquifers)
-
-  # No text
-  no_text <- anti_join(select(p, aquifer_id, obs_well),
-                       select(p_text, obs_well),
-                       by = c("obs_well"))
+  no_fig <- all_text %>%
+    filter(!plot, hydrogeochemistry != "Do not publish") %>%
+    mutate(map = aquifer_id %in% map_aquifers)
 
   # Wrong Aquifer ID
   wrong_id <- left_join(select(p, aquifer_id, obs_well),
@@ -213,8 +204,34 @@ check_piper_plots_text <- function(dir = "./out/piperplots",
                         suffix = c("_gwells", "_text")) %>%
     filter(aquifer_id_gwells != aquifer_id_text)
 
+  # Get water type where there is no text
+  ems <- read_csv("out/ems.csv", show_col_types = FALSE, guess_max = Inf) %>%
+    group_by(obs_well = StationID) %>%
+    select(ems_id = SampleID, obs_well, water_type) %>%
+    mutate(ems_id = str_remove(ems_id, "-[0-9]+$")) %>%
+    group_by(obs_well, water_type) %>%
+    summarize(n = sum(!is.na(water_type)),
+              ems_id = paste0(unique(ems_id), collapse = ","),
+              .groups = "drop") %>%
+    arrange(desc(n)) %>%
+    group_by(ems_id, obs_well) %>%
+    summarize(water_type = paste0(water_type, " (", n, ")"),
+              water_type = paste0(water_type[water_type != "NA (0)"],
+                                             collapse = "; "),
+              .groups = "drop") %>%
+    distinct()
+
+  all_text <- left_join(select(all_text, -water_type, -ems_id),
+                        select(ems, ems_id, obs_well, water_type),
+                        by = c("obs_well")) %>%
+    select(aquifer_id, obs_well, ems_id, everything()) %>%
+    arrange(aquifer_id, obs_well)
+
+  no_text <- filter(all_text, is.na(hydrogeochemistry)) %>%
+    select(aquifer_id, obs_well, ems_id, water_type)
+
   # Backup log files
-  logs <- list.files("./out/", pattern = "LOG_PIPER_MISSING", full.names = TRUE)
+  logs <- list.files("./out/", pattern = "LOG_PIPER_", full.names = TRUE)
   file.copy(logs, "./out/archive/", overwrite = TRUE)
   file.remove(logs)
 
@@ -233,10 +250,11 @@ check_piper_plots_text <- function(dir = "./out/piperplots",
     message("\nSome piperplots with figures in ", dir, " do not have ",
             "corresponding text in ", text_file, "...\n",
             "Details saved to ", f)
+    #write_csv(all_text, paste0("./out/piper_plot_text_",  Sys.Date(), ".csv"))
   }
 
   if(nrow(wrong_id) > 0) {
-    f <- paste0("./out/LOG_PIPER_TEXT_AQUIFER_ID", Sys.Date(), ".csv")
+    f <- paste0("./out/LOG_PIPER_TEXT_AQUIFER_ID_", Sys.Date(), ".csv")
     write_csv(wrong_id, f)
     message("\nSome piperplots with listed in ", text_file, " do not ",
             "correspond to the same Aquifer ID as in GWELLS...\n",
