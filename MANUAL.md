@@ -134,3 +134,19 @@ if(!file.exists("./figures/BCID_H_cmyk_rev.eps")) {
   file.remove("./figures/2018_BCID_Files.zip")
 }
 ```
+
+
+#### 4. Piper plots
+
+Piper plots are now being created as part of the R workflow, using the `rems2aquachem` package.
+This package uses `rems` to download EMS data for the wells in question.
+Where EMS charge balances do not exist, we calculate charge balances. 
+
+Piper plots are created for any well with at least **one** 'good' sample (charge balance <= 10).
+Note that this does not mean that every anion and cation is presentT, but that
+even in their absence there is an acceptable charge balance. 
+
+
+
+
+
