@@ -31,6 +31,7 @@ suppressMessages({
   library(stringr)
   library(lubridate)
   library(httr)
+  library(assertr)
 
   library(ggplot2)
   library(scales)
