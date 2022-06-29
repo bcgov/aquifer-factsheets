@@ -16,41 +16,58 @@
 # Create aquifer factsheets
 ##############################
 
-# Load functions and packages
-source("header.R")
-
 # Update Data Sources -----------------------------------------------------
 # NOTE: Sometimes the downloads don't work on the first try, if you get an
 #   error, walk through the 01_download.R script and re-run lines which give you
 #   an error the first time
+source("00_setup.R")
 
-# source("01_download.R") # You don't have to run this every time
+if(TRUE) source("01_download.R") # You don't have to run this every time
 
 # Prepare Data ------------------------------------------------------------
 source("02_load.R")
 source("03_clean.R")
 
-# Create figures -------------------------------------------
-# These may take a while, depending how many aquifers have been selected
-
+# Check aquifer map names and select aquifers to use
+fix_names(type = "maps", filename = "Aquifer_Map", ext = "pdf") # Check/fix map names
 aquifers <- as.numeric(str_extract(list.files("./figures/maps/"), "[0-9]{4}"))  #ALL Aquifers
+
+#aquifers <- c(aquifers, 1248:1274)
+
+#aquifers <- 229
+
+# wells_db %>%
+#   filter(!is.na(ow), is.na(ems), ow_status != "Inactive", aquifer_id %in% aquifers) %>%
+#   select(aquifer_id, ow) %>%
+#   arrange(aquifer_id, ow) %>%
+#   mutate(txt = paste0("Aq", aquifer_id, "/OW", ow)) %>%
+#   pull(txt) %>%
+#   write("out/gwells_missing_ems.txt")
+
+# Create figures -------------------------------------------
+# - These may take a while, depending how many aquifers have been selected
+# - Every year, make sure to check piper plot omits to ensure they're still valid
+
 delete_old <- TRUE   # Delete all old figures before rerunning?
-
-aquifers <- c(1, 8, 15, 133, 157, 1147)
-
 source("04_output.R")
 
 
 # Checks -----------------------
 check_piper_plots() # Check piper plot text vs. figures
-fix_names(type = "maps", filename = "Aquifer_Map", ext = "pdf") # Check/fix map names
+
 
 # Create aquifer factsheets -----------------------------------------------
+source("00_setup.R")
 
 # Create all aquifer factsheets
+factsheet(aquifers, draft = TRUE)
+
+
 #factsheet(aquifers[aquifers <= 866], draft = FALSE)
 
-factsheet(c(27, 50, 161, 172), draft = TRUE)
+factsheet(c(37), draft = TRUE)
+
+factsheet(c(131, 255, 297, 390, 1241), draft = TRUE)
 
 
 
