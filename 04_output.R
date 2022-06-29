@@ -117,11 +117,11 @@ for (a in aquifers) {
     if(n < 5) {
       # Insufficient data
       Yield <- Yield_base +
-        annotate("text", x = 0, y = 1.5, label = "Insufficient data\navailable (n < 5)", size = 3) +
+        annotate("text", x = 0, y = 5, label = "Insufficient data\navailable (n < 5)", size = 3) +
         annotate(geom = "text", x = Inf, y = Inf, vjust = -0.5, hjust = 1.1,
                  label = paste0("n = ", n), size = ann_size) +
         xlab("\n") + # To match regular plots
-        scale_y_reverse(limits = c(3, 0)) +
+        scale_y_reverse(limits = c(10, 0)) +
         scale_x_continuous(breaks = c(-1, 0, 1))
     } else {
       # Sufficient data
@@ -153,13 +153,12 @@ for (a in aquifers) {
 
 # Create empty boxplot
 Yield_NA <- Yield_base +
-  annotate("text", x = 0, y = 1.5, label = "No Data", size = 3) +
+  annotate("text", x = 0, y = 5, label = "No Data", size = 3) +
   annotate(geom = "text", x = Inf, y = Inf, vjust = -0.5, hjust = 1.1,
            label = "n = 0", size = ann_size) +
   xlab("\n") + # To match regular plots
-  scale_y_reverse(limits = c(3, 0)) +
-  scale_x_continuous(breaks = c(-1, 0, 1)) +
-  labs(x = "")
+  scale_y_reverse(limits = c(10, 0)) +
+  scale_x_continuous(breaks = c(-1, 0, 1))
 
 ggsave("yield_NA.jpg", plot = Yield_NA, path = "out/boxplots/",
        width = bx_width, height = bx_height, dpi = dpi)
@@ -228,8 +227,8 @@ depthdrilled_NA <- depthdrilled_base +
            label = "n = 0", size = ann_size) +
   xlab("\n") + # To match regular plots +
   scale_y_reverse(limits = c(10, 0)) +
-  scale_x_continuous(breaks = c(-1, 0, 1)) +
-  labs(x = "")
+  scale_x_continuous(breaks = c(-1, 0, 1))
+
 ggsave("well_depth_NA.jpg", plot = depthdrilled_NA, path = "out/boxplots/",
        width = bx_width, height = bx_height, dpi = dpi)
 
@@ -299,8 +298,7 @@ waterdepth_NA <- waterdepth_base +
            label = "n = 0", size = ann_size) +
   xlab("\n") + # To match regular plots +
   scale_y_reverse(limits = c(10, 0)) +
-  scale_x_continuous(breaks = c(-1, 0, 1)) +
-  labs(x = "")
+  scale_x_continuous(breaks = c(-1, 0, 1))
 
 ggsave("water_depth_NA.jpg", plot = waterdepth_NA, path = "out/boxplots/",
        width = bx_width, height = bx_height, dpi = dpi)
