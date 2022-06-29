@@ -689,6 +689,9 @@ for (a in aquifers) {
 
 
 # Piper plots -----------------------------------------------------------------
+
+#' - Create all plots, but note in piper plot text if any shouldn't be used.
+
 # Remove old files (make sure no old files to interfere)
 if(delete_old) file.remove(list.files("./out/piperplots/", full.name = TRUE))
 
@@ -697,40 +700,38 @@ p <- progress::progress_bar$new(format = "  Piperplots [:bar] :percent eta: :eta
 for (a in aquifers) {
   p$tick()
 
-  d <- filter(ems, aquifer_id == a) %>%
-    mutate(charge_balance = as.numeric(charge_balance),
-           charge_balance2 = as.numeric(charge_balance2))
+  d <- filter(ems, aquifer_id == a)
 
   for(o in unique(d$StationID)) {
 
-    # Only take samples with good charge balance
-    # - both missing, or both good
-    # - if one missing the other is good
     d2 <- filter(d, StationID == o) %>%
-      filter((is.na(charge_balance) & is.na(charge_balance2)) |
-               (is.na(charge_balance) & abs(charge_balance2) <= 10) |
-               (abs(charge_balance) <= 10 & is.na(charge_balance2)) |
-               (abs(charge_balance) <= 10 & abs(charge_balance2) <= 10))
+      mutate(n = n_distinct(ems_id)) %>%
+      assert(in_set(1), n) # Check that we don't have multiple ems ids per well
 
-
-    if(nrow(d2) > 1) {
+    # Note: By default piper_plot() uses only valid (abs(charge_balance) <=10) data
+    if(nrow(d2) >= 1) {
       # Make plot
       f <- paste0("./out/piperplots/piperplot_",
                   sprintf("%04d", as.numeric(a)), "_OW",
                   sprintf("%04d", as.numeric(o)), ".png")
-      pp <- image_graph(width = 2000,
-                        height = 2100, res = dpi)
-      piper_plot(d2, legend = FALSE)
-      dev.off()
-      #print(p)
 
-      # Trim plot and add in small border
-      pp2 <- image_trim(pp) %>%
-        image_border(color = "white")
-      #print(p2)
+      # Only if it would plot...
+      if(!is.null(piper_plot(d2, legend = FALSE, plot_data = TRUE))) {
+        pp <- image_graph(width = 2000,
+                          height = 2100, res = dpi)
+        piper_plot(d2, legend = FALSE)
+        dev.off()
 
-      # Save plot
-      image_write(pp2, path = f)
+        #print(p)
+
+        # Trim plot and add in small border
+        pp2 <- image_trim(pp) %>%
+          image_border(color = "white")
+        #print(p2)
+
+        # Save plot
+        image_write(pp2, path = f)
+      }
     }
   }
 }
