@@ -217,6 +217,16 @@ if(length(figures_p1$well_depth) == 0) figures_p1$well_depth <- here("out/boxplo
 ow <- filter(ow, ow_status == "Active") 
 
 if(nrow(ow) > 0) {
+  # Get Piper text for each obs well and add link
+  piper_text <- read_excel(here("data/piper_text.xlsx"), sheet = 1) %>%
+    rename_all(tolower) %>%
+    filter(hydrogeochemistry != "Do not publish") %>% # Omit bad plots
+    mutate(hydrogeochemistry = paste0(
+      hydrogeochemistry,
+      " \\link{https://a100.gov.bc.ca/pub/ems/mainmenu.do?",
+      "userAction=monitoringLocationsCriteria&bean.p_mon_locn_id=", ems_id, 
+      "}{For EMS water chemistry data, see EMS ID ", ems_id, "}."))
+  
   figures_p2 <- tibble(a = rep(aq_num_ch, 3*nrow(ow)), ow = rep(ow$ow_ch, 3), 
                        type = sort(rep(c("combo", "trend", "piper"), length(ow)/3))) %>%
     mutate(fig = case_when(
@@ -224,6 +234,8 @@ if(nrow(ow) > 0) {
       type == "trend" ~ here(paste0("out/trends/trends_", a, "_OW", .data$ow, ".png")),
       type == "piper" ~ here(paste0("out/piperplots/piperplot_", a, "_OW", .data$ow, ".png"))),
       exists = file.exists(fig),
+      # Don't publish piper plots without a blurb
+      exists = if_else(type == "piper" & !as.numeric(.data$ow) %in% .env$piper_text$obs_well, FALSE, exists),
       fig = replace(fig, !exists, here(paste0("figures/na/figure_missing_", type[!exists], ".png")))) %>%
     group_by(.data$ow) %>%
     mutate(missing = sum(!exists)) %>%
@@ -236,16 +248,6 @@ if(nrow(ow) > 0) {
       figures_p2 <- filter(figures_p2, .data$ow != o)
     }
   }
-  
-  # Get Piper text for each obs well and add link
-  piper_text <- read_excel(here("data/piper_text.xlsx"), sheet = 1) %>%
-    rename_all(tolower) %>%
-    mutate(hydrogeochemistry = paste0(
-      hydrogeochemistry,
-      " \\link{https://a100.gov.bc.ca/pub/ems/mainmenu.do?",
-      "userAction=monitoringLocationsCriteria&bean.p_mon_locn_id=", ems_id, 
-      "}{For EMS water chemistry data, EMSID ", ems_id, "}."))
-  
   
 } else {
   figures_p2 <- tibble()
