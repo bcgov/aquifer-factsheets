@@ -64,12 +64,16 @@ wells_db <- wells_db_raw %>%
          "transmissivity" = "transmissivity_m^2/s",
          "storativity",
          "ems") %>%
-  mutate(ow = as.numeric(ow))
+  mutate(ow = str_remove_all(ow, "OW"),
+         ow = as.numeric(ow))
+
+## Omit wells incorrectly placed in aquifer ----------------------------------
+wells_db <- filter(wells_db, is.na(ow) | ow != 433) # Not in Aquifer 217, but below
 
 ## Obs Well Index -------------------------------------------
 obs_wells_index <- wells_db %>%
   filter(!is.na(ow), !is.na(aquifer_id)) %>%
-  select(aquifer_id, ow, well_tag_number, ow_status) %>%
+  select(aquifer_id, ow, well_tag_number, ow_status, ems) %>%
   distinct() %>%
   arrange(aquifer_id, ow)
 
@@ -363,16 +367,23 @@ wl_month <- wl_month %>%
 
 # Get ids
 ems_ids <- wells_db %>%
-  filter(!is.na(aquifer_id), !is.na(ow), !is.na(ems)) %>%
+  filter(!is.na(aquifer_id), !is.na(ow), !is.na(ems),
+         ow_status != "Inactive",
+         !ems %in% c(
+           "E262639",  # Omit deep part of nested well (with E262640)
+           "E290173"   # Omit manually measured well
+           )
+         ) %>%
   pull(ems)
 
 # Get data formatted for piperplots
 ems <- rems_to_aquachem(ems_ids, interactive = FALSE, save = FALSE) %>%
-  mutate(StationID = as.numeric(StationID)) %>%
-  left_join(select(obs_wells_index, aquifer_id, ow),
-            by = c("StationID" = "ow"))
-
-
+  units_remove() %>%
+  select(-StationID) %>%
+  mutate(ems_id = str_extract(SampleID, "^[[:alnum:]]+")) %>%
+  left_join(select(obs_wells_index, aquifer_id, ow, ems),
+            by = c("ems_id" = "ems")) %>%
+  rename(StationID = ow)
 
 # Save Data ---------------------------------------------------------------
 message("  Saving data")
@@ -389,6 +400,7 @@ save(aquifer_db,
      ems,
      file = "tmp/aquifer_factsheet_clean_data.RData")
 
-# Save .csv files to pull in by aquifer factsheets
+# Save .csv files to pull in by aquifer factsheets and checks
 write_csv(aquifer_db, "./out/aquifer_table.csv")
 write_csv(wells_db, "./out/wells_table.csv")
+write_csv(ems, "./out/ems.csv")
