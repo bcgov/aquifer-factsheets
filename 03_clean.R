@@ -370,7 +370,6 @@ ems_ids <- wells_db %>%
   filter(!is.na(aquifer_id), !is.na(ow), !is.na(ems),
          ow_status != "Inactive",
          !ems %in% c(
-           "E262639",  # Omit deep part of nested well (with E262640)
            "E290173"   # Omit manually measured well
            )
          ) %>%
