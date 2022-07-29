@@ -97,6 +97,22 @@ factsheet(c(25, 254), draft = TRUE)
 
 factsheet(c(1, 8, 15, 133, 157, 1147), draft = TRUE) # E.g. with only 1 obs Hydraulic conductivity
 
+# Archive old sheets
+old <- list.files("factsheets/", "DRAFT", full.names = TRUE)
+file.copy(old, "factsheets/Archive")
+file.remove(old)
+
+# Rename and zip final run
+final <- list.files("factsheets", "AQ_[0-9]{5}_Aquifer_Factsheet_[0-9]{4}-[0-9]{2}-[0-9]{2}.pdf",
+                    full.names = TRUE) %>%
+  tibble(names = .) %>%
+  mutate(aq = str_extract(tolower(names), "(?<=aq_)[0-9]{5}"),
+         new_names = file.path("factsheets", paste0("aquifer_factsheet_", aq, ".pdf")))
+
+file.rename(from = final$names, to = final$new_names)
+zip(paste0("factsheets_final_", Sys.Date(), ".zip"),
+    files = final$new_names)
+
 # Create the Companion Document -------------------------------------------
 rmarkdown::render("./templates/factsheet_methods.Rmd",
                   output_file = "Aquifer Factsheet - Companion Document.pdf",
