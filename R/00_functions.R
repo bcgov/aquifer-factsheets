@@ -12,9 +12,75 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-##############################
-# Functions
-##############################
+# Functions ----------------------------
+
+aq_read <- function(file, sheet = NULL) {
+  ext <- fs::path_ext(file)
+  if(ext == "csv") d <- readr::read_csv(file, guess_max = 200000, show_col_types = FALSE)
+  if(ext == "xlsx") d <- readxl::read_excel(file, sheet)
+  if(ext == "fst") d <- fst::read_fst(file)
+  if(ext == "rds") d <- readr::read_rds(file)
+  janitor::clean_names(d)
+}
+
+aq_dl <- function(x, remove_sf = FALSE, update = TRUE) {
+
+  if(update || !file_exists(x$path)) {
+
+    # Download URL
+    if("url" %in% names(x)) GET(x$url, write_disk(x$path, overwrite = TRUE))
+
+    # Download BC Data record
+    if("record" %in% names(x)) {
+      d <- bcdc_get_data(x$record, x$resource)
+      if(remove_sf) d <- st_drop_geometry(d)
+      if(inherits(d, "sf")) write_rds(d, x$path) else write_fst(d, x$path)
+    }
+
+  }
+  x$path
+}
+
+aq_unzip <- function(zip, path, files) {
+  unzip(zip, exdir = path, files = files, overwrite = TRUE)
+  file.path(path, files) |>
+    setNames(files)
+}
+
+aq_bcdata_url <- function(record, name) {
+  bcdata::bcdc_tidy_resources(record) |>
+    dplyr::filter(.data$name == .env$name) |>
+    dplyr::pull(.data$url)
+}
+
+aq_hc <- function() {
+  # Hydraulic Connectivity
+  # (originally from "Hydraulic Connectivity Table.csv" of unknown origin)
+  tribble(~ aquifer_subtype_code, ~ hydraulic_connectivity,
+          "1a", "Likely",
+          "1b", "Likely",
+          "1c", "Likely",
+          "2", "Likely",
+          "3", "Likely",
+          "4a", "Likely",
+          "4b", "Not Likely",
+          "4c", "Not Likely",
+          "5a", "Not Likely",
+          "5b", "Likely",
+          "6a", "Not Likely",
+          "6b", "Not Likely",
+          "UNK", "Unknown")
+}
+
+
+min_na <- function(x) {
+  if(!all(is.na(x))) min(x, na.rm = TRUE) else NA_real_
+}
+
+max_na <- function(x) {
+  if(!all(is.na(x))) max(x, na.rm = TRUE) else NA_real_
+}
+
 
 factsheet <- function(aq_num, pages = 3, draft = FALSE,
                       data_folder = NULL, out_folder = "./factsheets/",
