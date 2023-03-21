@@ -13,59 +13,33 @@
 # the License.
 
 
-##############################
-# Preparation
-##############################
-
-# Use renv for reproducible package management
-renv::restore()
+# Preparation -------------------------------------------
 
 ## Load required packages
-suppressMessages({
-  library(readr)
-  library(readxl)
-  library(dplyr)
-  library(tidyr)
-  library(purrr)
-  library(sf)
-  library(stringr)
-  library(lubridate)
-  library(httr)
-  library(assertr)
+# suppressMessages({
 
-  library(ggplot2)
-  library(scales)
-  library(magick)
+#   source("00_functions.R")
+# })
 
-  library(knitr)
-  library(rmarkdown)
-  library(kableExtra)
 
-  library(bcgroundwater)
-  library(bcdata)
-  library(rems2aquachem)
+prep_dir <- function() {
+  ## Create project directories
+  if (!dir.exists("tmp")) dir.create("tmp")
+  if (!dir.exists("data")) dir.create("data")
+  if (!dir.exists("data_dl")) dir.create("data_dl")
+  if (!dir.exists("out")) dir.create("out")
+  if (!dir.exists("out/gwl")) dir.create("out/gwl")
+  if (!dir.exists("out/boxplots")) dir.create("out/boxplots")
+  if (!dir.exists("out/trends")) dir.create("out/trends")
+  if (!dir.exists("out/piperplots")) dir.create("out/piperplots")
+  if (!dir.exists("out/archive")) dir.create("out/archive")
+  if (!dir.exists("factsheets")) dir.create("factsheets")
+  if (!dir.exists("figures")) dir.create("figures")
+  if (!dir.exists("figures/maps")) dir.create("figures/maps")
+  if (!dir.exists("figures/piperplots")) dir.create("figures/piperplots")
+  if (!dir.exists("figures/piperplots_trimmed")) dir.create("figures/piperplots_trimmed")
+  if (!dir.exists("figures/extra")) dir.create("figures/extra")
+  if (!dir.exists("figures/na")) dir.create("figures/na")
+}
 
-  library(weathercan)
-  library(smwrBase)
-  library(smwrGraphs)
-})
 
-## Create project directories
-if (!dir.exists("tmp")) dir.create("tmp")
-if (!dir.exists("data")) dir.create("data")
-if (!dir.exists("data_dl")) dir.create("data_dl")
-if (!dir.exists("out")) dir.create("out")
-if (!dir.exists("out/gwl")) dir.create("out/gwl")
-if (!dir.exists("out/boxplots")) dir.create("out/boxplots")
-if (!dir.exists("out/trends")) dir.create("out/trends")
-if (!dir.exists("out/piperplots")) dir.create("out/piperplots")
-if (!dir.exists("out/archive")) dir.create("out/archive")
-if (!dir.exists("factsheets")) dir.create("factsheets")
-if (!dir.exists("figures")) dir.create("figures")
-if (!dir.exists("figures/maps")) dir.create("figures/maps")
-if (!dir.exists("figures/piperplots")) dir.create("figures/piperplots")
-if (!dir.exists("figures/piperplots_trimmed")) dir.create("figures/piperplots_trimmed")
-if (!dir.exists("figures/extra")) dir.create("figures/extra")
-if (!dir.exists("figures/na")) dir.create("figures/na")
-
-source("00_functions.R")
