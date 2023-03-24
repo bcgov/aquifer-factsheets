@@ -148,4 +148,9 @@ list(
   tar_target(
     aquifers,
     fmt_aquifers(aquifers_file, aq_ids, wells, regions, licences, subtypes, stress)),
+
+
+  # Create plots --------------------------------------------
+  tar_group_by(wells_by_aquifer, wells, aquifer_id),
+  tar_target(bx_yield, plot_bx_yield(wells_by_aquifer), pattern = map(wells_by_aquifer))
 )

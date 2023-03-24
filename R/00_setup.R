@@ -42,4 +42,46 @@ prep_dir <- function() {
   if (!dir.exists("figures/na")) dir.create("figures/na")
 }
 
+#' # Figure defaults ---------------------------------------------------------
+bx_height <- 5.4
+bx_width <- 1.8
 
+combo_height <- 3.85
+combo_width <- 10
+
+trend_height <- 3.85
+trend_width <- 10
+
+piper_height <- 3.85
+piper_width <- 5
+
+dpi <- 300
+
+ann_size <- 2.75  # Annotation sizes for samples sizes in boxplots
+
+# General factsheet plot theme
+aq_theme <- function() {
+  theme_bw() +
+    theme(axis.title.y.left = element_text(margin = unit(c(0, 2, 0, 0), "mm")),
+          axis.title.y.right = element_text(margin = unit(c(0, 0, 0, 2), "mm")),
+          panel.grid.major = element_line(colour = "grey90"),
+          panel.grid.minor = element_line(colour = "grey90"))
+}
+
+# Specific to boxplots
+bx_theme <- function() {
+  theme(
+    plot.margin = unit(c(1, 3, 1, 3), "mm"),
+    axis.title.y = element_text(margin = unit(c(0, 0, 0, 0), "mm")),
+    axis.text.x = element_blank(),
+    axis.title.x = element_text(margin = unit(c(2, 0, 0, 0), "mm"), size = 9),
+    panel.grid.major = element_line(colour = "grey75"),
+    panel.grid.minor = element_line(colour = "grey75"))
+}
+
+# Create gradient background (same for each Yield Boxplot)
+y_gradient <- function() {
+  grid::rasterGrob(c("#FFFFFF00", "#A2B5CD90"),
+                   width = unit(1, "npc"),
+                   height = unit(1, "npc"), interpolate = TRUE)
+}
