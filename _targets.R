@@ -47,6 +47,37 @@ u_bc <- aq_urls_bcdata(update)
 # Targets -------------------------
 list(
 
+  # Specify aquifers
+  tar_target(
+    aq_ids, {
+      fix_names(type = "maps", filename = "Aquifer_Map", ext = "pdf") # Check/fix map names
+      as.numeric(str_extract(list.files("./figures/maps/"), "[0-9]{4}"))  #ALL Aquifers
+    }, format = "rds"),
+
+  # Subset for targeted factsheet re-runs
+  tar_target(aq_ids_sub,
+             if(length(sub_aq) > 0) aq_ids[aq_ids %in% sub_aq] else aq_ids),
+
+  # Downloads - Alternate methods -------------------------------------
+  # ONLY UPDATE if `update <- TRUE`
+  tar_target( # File served via API
+    aquifers_file,
+    aq_dl(u_dl[["aquifers"]], update = update),
+    format = "file"),
+
+  tar_target( # Downloaded via bcdata
+    licences_file,
+    aq_dl(u_bc[["licences"]], remove_sf = TRUE, update = update),
+    format = "file"),
+
+  tar_target(# Downloaded via bcdata
+    aquifer_map_file,
+    aq_dl(u_bc[["aquifer_map"]], update = update),
+    format = "file"),
+
+  tar_target(ppt_normals_raw, dl_ppt_normals(ow_index, normals_yrs, update)),
+  tar_target(ems_updated, dl_ems(update)),
+
   # Downloads - Direct from url -------------------
   tar_download(
     ow_file,
@@ -69,27 +100,14 @@ list(
     paths = u_dl[["subtypes"]]$path),
 
   tar_download(
-    gw_file,
-    urls = u_dl[["gw"]]$url,
-    paths = u_dl[["gw"]]$path),
+    gwl_trends_file,
+    urls = u_dl[["gwl_trends"]]$url,
+    paths = u_dl[["gwl_trends"]]$path),
 
-  # Downloads - Alternate methods -------------------------------------
-  tar_target( # File served via API
-    aquifers_file,
-    aq_dl(u_dl[["aquifers"]], update = update),
-    format = "file"),
-
-  tar_target( # Downloaded via bcdata
-    licences_file,
-    aq_dl(u_bc[["licences"]], remove_sf = TRUE, update = update),
-    format = "file"
-  ),
-
-  tar_target(# Downloaded via bcdata
-    aquifer_map_file,
-    aq_dl(u_bc[["aquifer_map"]], update = update),
-    format = "file"
-  ),
+  tar_download(
+    gwl_monthly_file,
+    urls = u_dl[["gwl_monthly"]]$url,
+    paths = u_dl[["gwl_monthly"]]$path),
 
   # Extract zip files
   tar_target(gwells_files,
