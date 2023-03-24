@@ -16,390 +16,326 @@
 # Clean and Prepare Data
 #
 
-# Setup -------------------------------------------------------------------
+fmt_aquifers <- function(aquifers_file, aq_ids, wells,
+                         regions, licences, subtypes, stress) {
 
-# Load functions, packages and data
-source("00_setup.R")
-load("tmp/aquifer_factsheet_data.RData")
+  a <- aquifers_file |>
+    aq_read() %>%
+    filter(aquifer_id %in% aq_ids) |>
+    select(aquifer_id, aquifer_name, descriptive_location = location_description,
+           aquifer_materials = material, aquifer_subtype_code = subtype,
+           vulnerability, productivity, demand, size_km2 = area, mapping_year) %>%
+    mutate_at(c("vulnerability", "productivity", "demand"),
+              ~str_extract(., "High|Moderate|Low")) %>%
+    mutate(aquifer_classification =
+             case_when(vulnerability == "High" & demand == "High" ~ "IA",
+                       vulnerability == "High" & demand == "Moderate" ~ "IIA",
+                       vulnerability == "High" & demand == "Low" ~ "IIIA",
+                       vulnerability == "Moderate" & demand == "High" ~ "IB",
+                       vulnerability == "Moderate" & demand == "Moderate" ~ "IIB",
+                       vulnerability == "Moderate" & demand == "Low" ~ "IIIB",
+                       vulnerability == "Low" & demand == "High" ~ "IC",
+                       vulnerability == "Low" & demand == "Moderate" ~ "IIC",
+                       vulnerability == "Low" & demand == "Low" ~ "IIIC"),
+           aquifer_subtype_code = str_extract(aquifer_subtype_code, "^[^- ]*"),
+           retired = str_detect(tolower(aquifer_name), "retired|merged"),
+           retired = if_else(is.na(retired), FALSE, retired))
 
-# Master Aquifer Data -----------------------------------------------------
+  # Add Wells
+  # - Calculate and add hydraulic properties wells to Aquifer data
+  # - Calculate and add reported number of wells to Aquifer data
+  a <- wells %>%
+    group_by(aquifer_id) %>%
+    summarize(across(
+      .cols = c("conductivity", "transmissivity", "storativity"),
+      .fns = list(min = min_na, max = max_na, n = ~sum(!is.na(.x)))),
+      reported_no_wells = n(), .groups = "drop") %>%
+    left_join(a, ., by = "aquifer_id") %>%
+    # Fill NAs with zeros
+    mutate(reported_no_wells = replace_na(reported_no_wells, 0))
 
-# Set up a master aquifer data frame with pertinent information we can add to
-aquifer_db <- aquifer_db_raw %>%
-  select(aquifer_id, aquifer_name, descriptive_location = location_description,
-         aquifer_materials = material, aquifer_subtype_code = subtype,
-         vulnerability, productivity, demand, size_km2 = area, mapping_year) %>%
-  mutate_at(c("vulnerability", "productivity", "demand"),
-            ~str_extract(., "High|Moderate|Low")) %>%
-  mutate(aquifer_classification =
-           case_when(vulnerability == "High" & demand == "High" ~ "IA",
-                     vulnerability == "High" & demand == "Moderate" ~ "IIA",
-                     vulnerability == "High" & demand == "Low" ~ "IIIA",
-                     vulnerability == "Moderate" & demand == "High" ~ "IB",
-                     vulnerability == "Moderate" & demand == "Moderate" ~ "IIB",
-                     vulnerability == "Moderate" & demand == "Low" ~ "IIIB",
-                     vulnerability == "Low" & demand == "High" ~ "IC",
-                     vulnerability == "Low" & demand == "Moderate" ~ "IIC",
-                     vulnerability == "Low" & demand == "Low" ~ "IIIC"),
-         aquifer_subtype_code = str_extract(aquifer_subtype_code, "^[^- ]*"),
-         retired = str_detect(tolower(aquifer_name), "retired|merged"),
-         retired = if_else(is.na(retired), FALSE, retired))
+  # Add Regions
+   a <- left_join(a, regions, by = "aquifer_id")
+
+  # Add Hydraulic Connectivity
+  a <- left_join(a, aq_hc(), by = "aquifer_subtype_code")
+
+  # Add licences
+  a <- left_join(a, licences, by = "aquifer_id") |>
+    mutate(n_licences = replace_na(n_licences, 0))
+
+  # Mapping Dates (Available in Aquifers)
+  #
+  # Add Subtype Descriptions
+   a <- left_join(a, subtypes, by = "aquifer_subtype_code")
+
+  # Add Stress tests
+   a <- left_join(a, stress, by = "aquifer_id")
+
+  a
+}
 
 # Set up Wells Database with pertinent information
 # - Get max number of digits after decimal:
 #   str_remove(wells_db_raw$longitude, "^[-0-9]+.") %>% nchar() %>% unique()
 # - Use this to round (gets rid of weird differences in numbers
-wells_db <- wells_db_raw %>%
-  select("aquifer_id", "well_tag_number",
-         "well_yield" = "well_yield_usgpm",
-         "well_yield_unit_code",
-         "ow" = "observation_well_number",
-         "ow_status" = "obs_well_status_code",
-         "static_water_level" = "static_water_level_ft-btoc",
-         "finished_well_depth" = "finished_well_depth_ft-bgl",
-         "latitude" = "latitude_Decdeg",
-         "longitude" = "longitude_Decdeg",
-         "licenced_status_code",
-         "conductivity" = "hydraulic_conductivity_m/s",
-         "transmissivity" = "transmissivity_m^2/s",
-         "storativity",
-         "ems") %>%
-  mutate(ow = str_remove_all(ow, "OW"),
-         ow = as.numeric(ow))
+fmt_wells <- function(wells_file, aq_ids, omit_ow) {
+  wells_file |>
+    aq_read() |>
+    filter(aquifer_id %in% aq_ids) |>
+    select("aquifer_id", "well_tag_number",
+           "well_yield" = "well_yield_usgpm",
+           "well_yield_unit_code",
+           "ow" = "observation_well_number",
+           "ow_status" = "obs_well_status_code",
+           "static_water_level" = "static_water_level_ft_btoc",
+           "finished_well_depth" = "finished_well_depth_ft_bgl",
+           "latitude" = "latitude_decdeg",
+           "longitude" = "longitude_decdeg",
+           "licenced_status_code",
+           "conductivity" = "hydraulic_conductivity_m_s",
+           "transmissivity" = "transmissivity_m_2_s",
+           "storativity",
+           "ems") %>%
+    mutate(ow = str_remove_all(ow, "OW"),
+           ow = as.numeric(ow)) |>
 
-## Omit wells incorrectly placed in aquifer ----------------------------------
-wells_db <- filter(wells_db, is.na(ow) | ow != 433) # Not in Aquifer 217, but below
+    # Data for boxplots
+    # - Converting Yield from GPM to L/s and Feet to Metres
+    mutate(well_yield = well_yield * 0.06309,
+           well_yield_unit_code = "L/s",
+           finished_well_depth_m = finished_well_depth * 0.3048,
+           static_water_level_m = static_water_level * 0.3048) |>
+    group_by(aquifer_id) |>
+    mutate(n_yield = sum(!is.na(well_yield) & well_yield != 0),
+           n_well_depth = sum(!is.na(finished_well_depth_m)),
+           n_water_depth = sum(!is.na(static_water_level_m))) |>
+    ungroup() |>
+    select(-finished_well_depth, -static_water_level) |>
 
-## Obs Well Index -------------------------------------------
-obs_wells_index <- wells_db %>%
-  filter(!is.na(ow), !is.na(aquifer_id)) %>%
-  select(aquifer_id, ow, well_tag_number, ow_status, ems) %>%
-  distinct() %>%
-  arrange(aquifer_id, ow)
+    # Omit wells
+    # - incorrectly placed in aquifer (etc.)
+    # - but keep wells missing observation well numbers (i.e. keep NAs in ow)
+    filter(is.na(ow) | !ow %in% omit_ow)
 
+}
 
-# Master - Number of Wells ---------------------------------------------------
-message("  Number of wells")
-# Calculate and add reported number of wells to Aquifer data
-aquifer_db <- wells_db %>%
-  group_by(aquifer_id) %>%
-  summarize(reported_no_wells = n(), .groups = "drop") %>%
-  left_join(aquifer_db, ., by = "aquifer_id") %>%
-  # Fill NAs with zeros
-  mutate(reported_no_wells = replace_na(reported_no_wells, 0))
+fmt_ow_index <- function(wells) {
+  wells %>%
+    filter(!is.na(ow), !is.na(aquifer_id)) %>%
+    select(aquifer_id, ow, well_tag_number, ow_status, ems_id = ems,
+           latitude, longitude) %>%
+    distinct() %>%
+    arrange(aquifer_id, ow)
+}
 
-# Calculate number of OBSERVATION wells (inactive and active wells)
-n_obswells <- wells_db %>%
-  filter(!is.na(ow), !is.na(aquifer_id)) %>%
-  select(aquifer_id, ow, ow_status) %>%
-  distinct()
+# Fetch water districts
+# - Overlay aquifer maps on water_district map
+fmt_water_districts <- function(water_district_map, aquifer_map) {
+  # TODO: Check if using correct map (resolution okay?)
+  wd <- water_district_map |>
+    st_set_agr("constant") |>
+    select(water_district = DISTRICT_NAME) |>
+    st_intersection(select(aquifer_map, aquifer_id)) %>%
+    # Calculate area of overlap
+    mutate(area = as.numeric(st_area(.))) %>%
+    # Calculate dominant water district (max area)
+    group_by(aquifer_id) %>%
+    mutate(parea = area / sum(area) * 100,
+           n = n()) %>%
+    arrange(desc(parea)) %>%
+    mutate(water_district = if_else(n > 1 & all(parea < 95),
+                                    paste0(water_district, collapse = " and "),
+                                    water_district)) %>%
+    filter(parea == max(parea)) %>%
+    ungroup() %>%
+    select(aquifer_id, water_district) %>%
+    # Remove spatialness
+    st_set_geometry(NULL)
 
-# Save index to file for factsheet_template.Rmd
-write_csv(n_obswells, "./out/aquifer_ow.csv")
+  # TODO: Temporary fix for #496
+  wd <- mutate(wd, water_district = if_else(aquifer_id == 496, "Vernon", water_district))
 
-# Clean up
-rm(n_obswells)
+  wd
+}
 
-# DECISION - wells table has multiple cases where an obs well number is assigned but may not be an obs well?
-# eg. obs well no. given for wells classified as UNK, DOM, NA, AND OBS - what should we use?
+fmt_regions <- function(regions_map, aquifer_map) {
+    regions_map |>
+    st_set_agr("constant") |>
+    select(region = REGION_NAME) |>
+    mutate(region = str_remove(region, " Natural Resource Region"),
+           region = str_remove(region, "-Boundary")) |>
+    st_intersection(select(aquifer_map, aquifer_id)) %>%
+    mutate(area = as.numeric(st_area(.))) %>%
+    group_by(aquifer_id) %>%
+    mutate(parea = area / sum(area) * 100,
+           n = n()) %>%
+    arrange(desc(parea)) %>%
+    mutate(region = if_else(n > 1 & all(parea < 95),
+                            paste0(region, collapse = " and "),
+                            region)) %>%
+    filter(parea == max(parea)) %>%
+    ungroup() %>%
+    st_set_geometry(NULL)
+}
 
-# Master - Hydraulic properties ---------------------------------------------------
-message("  Hydraulic properties")
-# Calculate and add hydraulic properties wells to Aquifer data
-
-min_na <- function(x) if(!all(is.na(x))) min(x, na.rm = TRUE) else NA_real_
-max_na <- function(x) if(!all(is.na(x))) max(x, na.rm = TRUE) else NA_real_
-
-aquifer_db <- wells_db %>%
-  group_by(aquifer_id) %>%
-  summarize(across(
-    .cols = c("conductivity", "transmissivity", "storativity"),
-    .fns = list(min = min_na, max = max_na, n = ~sum(!is.na(.x))))) %>%
-  left_join(aquifer_db, ., by = "aquifer_id")
-
-# Master - (GIS) Aquifer Water Districts ---------------------------
-message("  Water Districts")
-# Overlap aquifer maps on water_district map
-wd <- st_intersection(select(bcmaps::water_districts(), water_district = DISTRICT_NAME),
-                      select(aquifer_map, aquifer_id)) %>%
-  # Calculate area of overlap
-  mutate(area = as.numeric(st_area(.))) %>%
-  # Calculate dominant water district (max area)
-  group_by(aquifer_id) %>%
-  mutate(parea = area / sum(area) * 100,
-         n = n()) %>%
-  arrange(desc(parea)) %>%
-  mutate(water_district = if_else(n > 1 & all(parea < 95),
-                                  paste0(water_district, collapse = " and "),
-                                  water_district)) %>%
-  filter(parea == max(parea)) %>%
-  ungroup() %>%
-  select(-area) %>%
-  # Remove spatialness
-  st_set_geometry(NULL)
-
-# Temporary fix for #496
-wd <- mutate(wd, water_district = if_else(aquifer_id == 496, "Vernon", water_district))
-
-# Add to aquifers
-aquifer_db <- select(wd, water_district, aquifer_id) %>%
-  left_join(aquifer_db, ., by = "aquifer_id")
-
-# Master - (GIS) Region  -------------------------------------------
-message("  Regions")
-aquifer_db <- select(bcmaps::nr_regions(), region = REGION_NAME) %>%
-  mutate(region = str_remove(region, " Natural Resource Region"),
-         region = str_remove(region, "-Boundary")) %>%
-  st_intersection(select(aquifer_map, aquifer_id)) %>%
-  mutate(area = as.numeric(st_area(.))) %>%
-  group_by(aquifer_id) %>%
-  mutate(parea = area / sum(area) * 100,
-         n = n()) %>%
-  arrange(desc(parea)) %>%
-  mutate(region = if_else(n > 1 & all(parea < 95),
-                          paste0(region, collapse = " and "),
-                          region)) %>%
-  filter(parea == max(parea)) %>%
-  ungroup() %>%
-  st_set_geometry(NULL) %>%
-  left_join(aquifer_db, ., by = "aquifer_id")
-
-# Master - Hydraulic Connectivity ----------------------------------------------
-# Add Hydraulic Connectivity to Aquifer Data
-message("  Hydraulic Connectivity")
-aquifer_db <- left_join(aquifer_db, hc, by = "aquifer_subtype_code")
-
-# Master - Licences -------------------------------------------------------
-# Prepare licence data
-message("  Licences")
-licenced_vol <- licenced_vol %>%
-  rename_all(tolower) %>%
-  select(licence_number, pod_subtype, aquifer_id = source_name) %>%
-  filter(pod_subtype %in% c("PWD", "PG")) %>% # Groundwater-only licences
-  mutate(aquifer_id = suppressWarnings(as.numeric(aquifer_id))) %>%
-  filter(!is.na(aquifer_id)) %>%
-  distinct() # Some licences tied to more than one well within an aquifer, but still, just one licence
-
-# Add to aquifer db
-aquifer_db <- licenced_vol %>%
-  group_by(aquifer_id) %>%
-  summarize(n_licences = n(), .groups = "drop") %>%
-  left_join(aquifer_db, ., by = "aquifer_id") %>%
-  # Fill missing counts with zero
-  mutate(n_licences = replace(n_licences, is.na(n_licences), 0))
-
-# Mapping Dates (Available in Aquifers)
-
-# Aquifer Subtype Descriptions
-aquifer_db <- aquifer_subtypes %>%
-  rename_all(~str_replace_all(tolower(.), " ", "_")) %>%
-  select(aquifer_subtype_code, description) %>%
-  mutate(description = replace(description,
-                               description == "Unkonwn",
-                               "Unknown")) %>%
-  left_join(aquifer_db, ., by = "aquifer_subtype_code")
-
-# Master - Stress Indices ----------------------------------------------
-# message("  Stress Indices")
-# aquifer_db <- stress_index %>%
-#   select(aquifer_id = AQ_NUM,
-#          aquifer_pumping_stress_index = Result) %>%
-#   left_join(aquifer_db, ., by = "aquifer_id")
-
-# Data for boxplots ---------------------------------------------------
-message("  Boxplot Data")
-# Converting Yield from GPM to L/s and Feet to Metres
-
-wells_db <- wells_db %>%
-  mutate(well_yield = well_yield * 0.06309,
-         well_yield_unit_code = "L/s",
-         finished_well_depth_m = finished_well_depth * 0.3048,
-         static_water_level_m = static_water_level * 0.3048) %>%
-  select(-finished_well_depth, -static_water_level)
+fmt_licences <- function(licences_file) {
+  licences_file |>
+    aq_read() |>
+    rename_all(tolower) |>
+    select(licence_number, pod_subtype, aquifer_id = source_name) |>
+    filter(pod_subtype %in% c("PWD", "PG")) |> # Groundwater-only licences
+    mutate(aquifer_id = suppressWarnings(as.numeric(aquifer_id))) |>
+    filter(!is.na(aquifer_id)) |>
+    distinct() |> # Some licences tied to more than one well within an aquifer, but still, just one licence
+    group_by(aquifer_id) |>
+    summarize(n_licences = n(), .groups = "drop")
+}
 
 
-# Groundwater data --------------------------------------------------------
-message("  Groundwater data")
-# Add Aquifer and OW ids to SOE data
-ground_water <- select(obs_wells_index, aquifer_id, ow) %>%
-  distinct() %>%
-  right_join(ground_water, by = c("ow" = "Well_Num")) %>%
-  filter(!is.na(aquifer_id),
-         !is.na(ow))
+fmt_subtypes <- function(subtypes_file) {
+  subtypes_file |>
+    aq_read() |>
+    mutate(
+      description = replace(description, description == "Unkonwn", "Unknown"))
+}
 
-ground_water_trends <- select(obs_wells_index, aquifer_id, ow) %>%
-  distinct() %>%
-  right_join(ground_water_trends, by = c("ow" = "Well_Num"),
-             suffix = c("", "_gwtrends")) %>%
-  filter(!is.na(aquifer_id),
-         !is.na(ow))
+fmt_stress <- function(stress_file) {
+  stress_file |>
+    aq_read(sheet = "R0. Results") |>
+    select(aquifer_id = aq_num,
+           aquifer_pumping_stress_index = result)
+}
 
-# Climate index from weathercan -------------------------------------------
-message("  Climate index")
-stations_dl(quiet = TRUE)
-# Get 10 closest stations within 100km (not all will have data)
-locs <- wells_db %>%
-  select(aquifer_id, ow, latitude, longitude) %>%
-  filter(!is.na(ow), !is.na(aquifer_id)) %>%
-  # Round lat/lon because some OW are off by tiny amounts between observations
-  # and we don't care (stations only has 2 decimal places)
-  mutate(latitude = round(latitude, 4),
-         longitude = round(longitude, 4)) %>%
-  distinct() %>%
-  mutate(stations = map2(latitude, longitude,
-                         ~stations_search(coords = c(.x, .y), dist = 150,
-                                          normals_years = "current") %>%
-                           select(station_name, climate_id, lat_climate = lat,
-                                  lon_climate = lon, elev_climate = elev,
-                                  distance) %>%
-                           mutate(climate_id = as.character(climate_id),
-                                  n = 1:n()) %>%
-                           slice(1:5))) %>%
-  unnest(stations)
+fmt_gwl <- function(gwl, ow_index) {
+  gwl |>
+    aq_read() |>
+    inner_join(ow_index, by = c("well_num" = "ow"), suffix = c("_gwl", ""))
+}
 
-# Climate Normals - Precipitation Data ----------------------------------------
-message("  Climate Normals")
-ppt <- locs %>%
-  pull(climate_id) %>%
-  unique() %>%
-  normals_dl() # Download the climate normals for all these stations
 
-# Public data, so all codes must be D or better
-# (therefore don't have to filter by code quality)
-ppt_good <- unnest(ppt, normals) %>%
-  select(climate_id, month_abb = period, rain, snow, code = snow_code) %>%
-  filter(month_abb != "Year") %>%
-  group_by(climate_id) %>%
-  filter(sum(is.na(rain)) == 0, sum(is.na(snow)) == 0) %>%
-  nest(normals = c(month_abb, rain, snow)) %>%
-  left_join(locs, ., by = "climate_id") %>%
-  mutate(data = map_lgl(normals, is.data.frame))
+fmt_ppt_normals <- function(ppt_normals_raw) {
 
-# Get data from station with best quality data within 15km of closest station
-ppt_normals <- ppt_good %>%
-  group_by(aquifer_id, ow) %>%
-  mutate(min_dist = min(distance[data]),
-         close = distance <= min_dist + 15) %>%
-  arrange(aquifer_id, ow, desc(data), desc(close), code) %>%
-  slice(1) %>%
-  select(-n, -data, -min_dist, -close)
+  # Public data, so all codes must be D or better
+  # (therefore don't have to filter by code quality)
+  ppt_good <- ppt_normals_raw |>
+    select(aquifer_id, ow, distance,
+           prov, station_name, climate_id, normals_years,
+           month_abb = period, rain, snow, code = snow_code) %>%
+    filter(month_abb != "Year") %>%
+    group_by(climate_id) %>%
+    filter(sum(is.na(rain)) == 0, sum(is.na(snow)) == 0) %>%
+    nest(normals = c(month_abb, rain, snow)) %>%
+    #left_join(ppt_normals_raw, ., by = "climate_id") %>%
+    mutate(data = map_lgl(normals, is.data.frame)) |>
+    ungroup()
 
-# Use stations as climate index
-obs_wells_index_climate <- ppt_normals %>%
-  select(aquifer_id, ow, climate_id, climate_name = station_name) %>%
-  mutate(climate_name = tools::toTitleCase(tolower(climate_name)),
-         climate_name = str_replace_all(climate_name,
-                                        c(" a$" = " Airport",
-                                          "Int'l" = "International")),
-         climate_name = str_replace(climate_name,
-                                    " (Cs|Cda|Rcs|Awos|Se)(?= |$)",
-                                    toupper))
+  # Get data from station with best quality data within 15km of closest station
+  ppt_normals <- ppt_good %>%
+    group_by(aquifer_id, ow) %>%
+    mutate(min_dist = min(distance[data]),
+           close = distance <= min_dist + 15) %>%
+    arrange(aquifer_id, ow, desc(data), desc(close), code) %>%
+    slice(1) %>%
+    select(-data, -min_dist, -close) |>
+    ungroup()
 
-# Finalize ppt normals
-ppt <- ppt_normals %>%
-  select(aquifer_id, ow, climate_name = station_name, normals) %>%
-  unnest(normals) %>%
-  gather(key = "precipitation", value = "ppt_mm", rain, snow)
+  # # Use stations as climate index
+  # TODO: is this needed for plot names?
 
-# Water level data ----------------------------------------------------
-message("  Water level")
-# Read the data and format the dates and date columns
-wl_all <- obs_well %>%
-  rename(date = QualifiedTime, ow = myLocation, wl = Value) %>%
-  filter(ow != "myLocation") %>%
-  mutate(date = ymd(date),
-         ow = as.numeric(str_extract(ow, "[0-9]*$")),
-         wl = as.numeric(wl),
-         year = year(date),
-         month = month(date),
-         month_text = month(date, label = TRUE),
-         day = day(date),
-         month_year = paste0(month_text, "-", year)) %>%
-  # Check for extreme outliers?
-  group_by(ow) %>%
-  mutate(iqr = IQR(wl),
-         outlier_min = quantile(wl, 0.25) - (iqr * 20),
-         outlier_max = quantile(wl, 0.75) + (iqr * 20),
-         outlier =  wl <= outlier_min | wl >= outlier_max,
-         n_outliers = sum(outlier),
-         outlier = outlier & n_outliers == 1,
-         outlier_value = if_else(outlier, wl, as.numeric(NA)),
-         wl = replace(wl, outlier, as.numeric(NA)))
+  # obs_wells_index_climate <- ppt_normals %>%
+  #   select(aquifer_id, ow, climate_id, climate_name = station_name) %>%
+  #   mutate(climate_name = tools::toTitleCase(tolower(climate_name)),
+  #          climate_name = str_replace_all(climate_name,
+  #                                         c(" a$" = " Airport",
+  #                                           "Int'l" = "International")),
+  #          climate_name = str_replace(climate_name,
+  #                                     " (Cs|Cda|Rcs|Awos|Se)(?= |$)",
+  #                                     toupper))
 
-wl_month_extremes <- wl_all %>%
-  group_by(ow, month) %>%
-  summarize(min_monthly_wl = min(wl, na.rm = TRUE),
-            max_monthly_wl = max(wl, na.rm = TRUE),
-            .groups = "drop")
+  # Finalize ppt normals
+  ppt_normals %>%
+    select(aquifer_id, ow, climate_name = station_name, normals) %>%
+    unnest("normals") %>%
+    pivot_longer(cols = c("rain", "snow"),
+                 names_to = "precipitation", values_to = "ppt_mm")
+}
 
-# Calculate median water level for each month/year then for each month
-wl_month <- wl_all %>%
-  group_by(ow, year, month) %>%
-  summarize(mean_monthly_wl = mean(wl, na.rm = TRUE),
-            min_monthly_wl = min(wl, na.rm = TRUE),
-            max_monthly_wl = max(wl, na.rm = TRUE),
-            median_monthly_wl = median(wl, na.rm = TRUE),
-            .groups = "drop") %>%
-  group_by(ow, month) %>%
-  summarize(median_median = median(median_monthly_wl, na.rm = TRUE),
-            mean_median = mean(median_monthly_wl, na.rm = TRUE),
-            percentile_25 = quantile(median_monthly_wl, 0.25, na.rm = TRUE),
-            percentile_75 = quantile(median_monthly_wl, 0.75, na.rm = TRUE),
-            percentile_10 = quantile(median_monthly_wl, 0.10, na.rm = TRUE),
-            percentile_90 = quantile(median_monthly_wl, 0.90, na.rm = TRUE),
-            .groups = "drop") %>%
-  mutate(month_abb = month(month, label = TRUE))
+fmt_water_levels <- function(ow_file, ow_index) {
+  wl_all <- ow_file |>
+    aq_read() |>
+    rename(date = qualified_time, ow = my_location, wl = value) %>%
+    filter(ow != "myLocation") %>%
+    mutate(date = ymd(date),
+           ow = as.numeric(str_extract(ow, "[0-9]*$")),
+           wl = as.numeric(wl),
+           year = year(date),
+           month = month(date),
+           month_text = month(date, label = TRUE),
+           day = day(date),
+           month_year = paste0(month_text, "-", year)) %>%
+    # Check for extreme outliers?
+    group_by(ow) %>%
+    mutate(iqr = IQR(wl),
+           outlier_min = quantile(wl, 0.25) - (iqr * 20),
+           outlier_max = quantile(wl, 0.75) + (iqr * 20),
+           outlier =  wl <= outlier_min | wl >= outlier_max,
+           n_outliers = sum(outlier),
+           outlier = outlier & n_outliers == 1,
+           outlier_value = if_else(outlier, wl, as.numeric(NA)),
+           wl = replace(wl, outlier, as.numeric(NA)))
 
-# Summarize years to see max, min and number of years of data
-wl_summary <- wl_all %>%
-  group_by(ow) %>%
-  summarize(min_yr = min(year),
-            max_yr = max(year),
-            num_yrs = max_yr - min_yr,
-            .groups = "drop")
+  wl_month_extremes <- wl_all %>%
+    group_by(ow, month) %>%
+    summarize(min_monthly_wl = min(wl, na.rm = TRUE),
+              max_monthly_wl = max(wl, na.rm = TRUE),
+              .groups = "drop")
 
-wl_month <- wl_month %>%
-  left_join(wl_month_extremes, by = c("ow", "month")) %>%
-  left_join(wl_summary, by = "ow") %>%
-  left_join(distinct(select(obs_wells_index_climate, aquifer_id, ow)), by = "ow")
+  # Calculate median water level for each month/year then for each month
+  wl_month <- wl_all %>%
+    group_by(ow, year, month) %>%
+    summarize(mean_monthly_wl = mean(wl, na.rm = TRUE),
+              min_monthly_wl = min(wl, na.rm = TRUE),
+              max_monthly_wl = max(wl, na.rm = TRUE),
+              median_monthly_wl = median(wl, na.rm = TRUE),
+              .groups = "drop") %>%
+    group_by(ow, month) %>%
+    summarize(median_median = median(median_monthly_wl, na.rm = TRUE),
+              mean_median = mean(median_monthly_wl, na.rm = TRUE),
+              percentile_25 = quantile(median_monthly_wl, 0.25, na.rm = TRUE),
+              percentile_75 = quantile(median_monthly_wl, 0.75, na.rm = TRUE),
+              percentile_10 = quantile(median_monthly_wl, 0.10, na.rm = TRUE),
+              percentile_90 = quantile(median_monthly_wl, 0.90, na.rm = TRUE),
+              .groups = "drop") %>%
+    mutate(month_abb = month(month, label = TRUE))
 
-# EMS Data for piperplots ----------------------------------------------------
+  # Summarize years to see max, min and number of years of data
+  wl_summary <- wl_all %>%
+    group_by(ow) %>%
+    summarize(min_yr = min(year),
+              max_yr = max(year),
+              num_yrs = max_yr - min_yr,
+              .groups = "drop")
 
-# Get ids
-ems_ids <- wells_db %>%
-  filter(!is.na(aquifer_id), !is.na(ow), !is.na(ems),
-         ow_status != "Inactive",
-         !ems %in% c(
-           "E290173"   # Omit manually measured well
-           )
-         ) %>%
-  pull(ems)
+  # TODO: Require obs_wells_index_climate for names?
 
-# Get data formatted for piperplots
-ems <- rems_to_aquachem(ems_ids, interactive = FALSE, save = FALSE) %>%
-  units_remove() %>%
-  select(-StationID) %>%
-  mutate(ems_id = str_extract(SampleID, "^[[:alnum:]]+")) %>%
-  left_join(select(obs_wells_index, aquifer_id, ow, ems),
-            by = c("ems_id" = "ems")) %>%
-  rename(StationID = ow)
+  wl_month %>%
+    left_join(wl_month_extremes, by = c("ow", "month")) %>%
+    left_join(wl_summary, by = "ow")# %>%
+    #left_join(ow_index, by = "ow")
+}
 
-# Save Data ---------------------------------------------------------------
-message("  Saving data")
-# Save RDS files
-save(aquifer_db,
-     wells_db,
-     wl_month,
-     wl_all,
-     ppt,
-     ppt_normals,
-     ppt_good,
-     ground_water,
-     ground_water_trends,
-     ems,
-     file = "tmp/aquifer_factsheet_clean_data.RData")
+fmt_ems <- function(ow_index, omit_ems, update = TRUE) {
+  # Get ids
+  ids <- ow_index |>
+    filter(ow_status != "Inactive", !ems_id %in% omit_ems) |>
+    select(aquifer_id, ow, ems_id)
 
-# Save .csv files to pull in by aquifer factsheets and checks
-write_csv(aquifer_db, "./out/aquifer_table.csv")
-write_csv(wells_db, "./out/wells_table.csv")
-write_csv(ems, "./out/ems.csv")
+  # Get data formatted for piperplots
+  rems_to_aquachem(ids$ems_id, interactive = FALSE, save = FALSE) %>%
+    units_remove() %>%
+    select(-StationID) %>%
+    mutate(ems_id = str_extract(SampleID, "^[[:alnum:]]+")) %>%
+    left_join(ids, by = "ems_id") %>%
+    rename(StationID = ow)
+}

@@ -40,9 +40,17 @@ update <- FALSE
 u_dl <- aq_urls(update)
 u_bc <- aq_urls_bcdata(update)
 
+normals_yrs <- "1981-2010" # Available: https://climate.weather.gc.ca/climate_normals/index_e.html
 
-# Troubleshooting
-# tar_make(callr_function = NULL)
+# Wells / Aquifers to omit ------------------
+omit_ow <- 433        # Not in Aquifer 217, but below
+omit_ems <- "E290173" # Manually measured well
+
+# Aquifer ids subset
+sub_aq <- c()
+
+# See run.R for runs and troubleshooting
+
 
 # Targets -------------------------
 list(
@@ -113,30 +121,31 @@ list(
   tar_target(gwells_files,
              aq_unzip(gwells_zip, "data_dl", files = c("well.csv", "lithology.csv")),
              format = "rds"),
-  tar_target(gwells_wells, gwells_files[["well.csv"]], format = "file"),
-  tar_target(gwells_lith, gwells_files[["lithology.csv"]], format = "file"),
+  tar_target(wells_file, gwells_files[["well.csv"]], format = "file"),
 
-  # Load data ---------------------------------------------
-  tar_target(aquifers_raw, aq_read(aquifers_file)),
-  tar_target(ow, aq_read(ow_file)),
-  tar_target(wells_raw, aq_read(gwells_wells)),
-  tar_target(wells_lith, aq_read(gwells_lith)),
-  tar_target(stress, aq_read(stress_file, sheet = "R0. Results")),
-  tar_target(subtypes, aq_read(subtypes_file)),
-  tar_target(gw, aq_read(gw_file)),
-  tar_target(licences, aq_read(licences_file)),
-  tar_target(aquifer_map, aq_read(aquifer_map_file), format = "rds"),
-  tar_target(hc, aq_hc()),
+  # Load Common Data ---------------------------------------------
+  tar_target(aquifer_map,
+             aq_read(aquifer_map_file) |> st_set_agr("constant"),
+             format = "rds"),
 
-  # Clean data --------------------------------------------
-  tar_target(wells, fmt_wells_db(wells_raw)),
-  tar_target(ow_index, fmt_ow_index(wells)),
-  tar_target(aquifers, fmt_aquifers(aquifers_raw, wells, hc)),
+  # Clean data -------------------------------------------
+  tar_target(licences,    fmt_licences(licences_file)),
+  tar_target(subtypes,    fmt_subtypes(subtypes_file)),
+  tar_target(stress,      fmt_stress(stress_file)),
 
-  tar_target(wl, fmt_water_levels(ow, ow_index)),
-  tar_target(wd, fmt_wd(aquifer_map)),
+  tar_target(wd,          fmt_water_districts(bcmaps::water_districts(), aquifer_map)),
+  tar_target(regions,     fmt_regions(bcmaps::nr_regions(), aquifer_map)),
 
-  tar_target(aquifers_final,
-             left_join(aquifers, wd, by = "aquifer_id"))
+  tar_target(wells,       fmt_wells(wells_file, aq_ids, omit_ow)),
+  tar_target(ow_index,    fmt_ow_index(wells)),
 
+  tar_target(wl,          fmt_water_levels(ow_file, ow_index)),
+  tar_target(gwl_trends,  fmt_gwl(gwl_trends_file, ow_index)),
+  tar_target(gwl_monthly, fmt_gwl(gwl_monthly_file, ow_index)),
+  tar_target(ppt_normals, fmt_ppt_normals(ppt_normals_raw)),
+  tar_target(ems,         fmt_ems(ow_index, omit_ems, update = ems_updated)),
+
+  tar_target(
+    aquifers,
+    fmt_aquifers(aquifers_file, aq_ids, wells, regions, licences, subtypes, stress)),
 )
