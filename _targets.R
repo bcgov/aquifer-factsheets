@@ -6,6 +6,8 @@
 # Load packages required to define the pipeline:
 library(targets)
 library(tarchetypes)
+library(future)
+library(future.callr)
 
 #   library(httr)
 #   library(knitr)
@@ -22,10 +24,8 @@ tar_option_set(
   format = "fst"
 )
 
-# tar_make_clustermq() configuration (okay to leave alone):
-options(clustermq.scheduler = "multicore")
-
 # tar_make_future() configuration (okay to leave alone):
+plan(callr)
 
 # Run the R scripts in the R/ folder with your custom functions:
 tar_source()
@@ -151,6 +151,48 @@ list(
 
 
   # Create plots --------------------------------------------
+
+  ## Boxpots -----------
+  # - Group by aquifer_id (one plot per aquifer)
   tar_group_by(wells_by_aquifer, wells, aquifer_id),
-  tar_target(bx_yield, plot_bx_yield(wells_by_aquifer), pattern = map(wells_by_aquifer))
+  tar_target(bx_well_yield,
+             plot_bx_well_yield(wells_by_aquifer),
+             pattern = map(wells_by_aquifer)),
+  tar_target(bx_well_depth,
+             plot_bx_well_depth(wells_by_aquifer),
+             pattern = map(wells_by_aquifer)),
+  tar_target(bx_water_depth,
+             plot_bx_water_depth(wells_by_aquifer),
+             pattern = map(wells_by_aquifer)),
+
+  tar_target(bx_empty, plot_bx_empty()), # Create "No Data" plots
+
+  ## Water-level / Precipitation Plots -------------
+  # - Only keep ow in wl, ensure all ow in wl are in ppt_normals
+  # - Group by ow (one plot per observation well)
+  tar_target(ppt_normals_complete,
+             semi_join(ppt_normals, wl, by = "ow") |> complete(ow = unique(wl$ow))),
+  tar_group_by(wl_by_ow, wl, ow),
+  tar_group_by(ppt_by_ow, ppt_normals_complete, ow),
+  tar_target(pl_wl_ppt,
+             plot_wl_ppt(wl_by_ow, ppt_by_ow),
+             pattern = map(wl_by_ow, ppt_by_ow)),
+
+  # Ground water levels ----------------
+  # - Only keep ow in both gwls because if none we don't plot anyway
+  # - Group by ow (one plot per observation well)
+  tar_target(gwl_monthly_complete, semi_join(gwl_monthly, gwl_trends, by = "ow")),
+  tar_target(gwl_trends_complete, semi_join(gwl_trends, gwl_monthly, by = "ow")),
+  tar_group_by(gwl_by_ow, gwl_monthly_complete, ow),
+  tar_group_by(gwl_trends_by_ow, gwl_trends_complete, ow),
+  tar_target(pl_gwl,
+             plot_gwl(gwl_by_ow, gwl_trends_by_ow),
+             pattern = map(gwl_by_ow, gwl_trends_by_ow)),
+
+  # Piperplots -----------------
+  # - Group by StationID (one plot per observation well, called StationID in EMS)
+  tar_group_by(ems_by_ow, ems, StationID),
+  tar_target(pl_piper,
+             plot_piper(ems_by_ow),
+             pattern = map(ems_by_ow))
 )

@@ -26,9 +26,18 @@ targets::tar_meta(fields = warnings, complete_only = TRUE)
 
 
 # Nitty gritty troubleshooting ----------------------------------------------
-targets::tar_source()
+library(targets)
+library(tidyverse)
+tar_source()
 
-targets::tar_read(ems_4afc36e3)
+tar_read(gwl_monthly)
+
+# Some piperplots from last year not current = Wells because inactive
+e <- tar_read(ems)
+ow <- tar_read(ow_index)
+
+filter(ow, ow == 228)
+filter(ow, ow == 380)
 
 fmt_wd(targets::tar_read(aquifer_map))
 
