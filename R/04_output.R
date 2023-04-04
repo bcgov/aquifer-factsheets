@@ -190,143 +190,6 @@ plot_bx_water_depth <- function(w) {
 
   }
 }
-#' # Combo Water level / Precip ----------------------------------------------
-
-plot_wl_ppt <- function(a, wl_month) {
-
-  aq_wl_month <- filter(wl_month, aquifer_id == a)
-
-  for(o in unique(aq_wl_month$ow)) {
-
-    wl_month_sub <- filter(aq_wl_month, ow == o) %>%
-      mutate_at(vars(median_median, percentile_25, percentile_75, percentile_10,
-                     percentile_90, min_monthly_wl, max_monthly_wl), ~. * -1)
-    ppt_sub <- filter(ppt,
-                      aquifer_id == a,
-                      ow == o) %>%
-      mutate(precipitation = case_when(precipitation == "snow" ~
-                                         "Total snowfall\n(rainfall equivalent)",
-                                       precipitation == "rain" ~
-                                         "Total rainfall (mm)"))
-
-    climate_title <- tools::toTitleCase(as.character(ppt_sub$climate_name[1]))
-
-    # Only continue if we have sufficient data for precipitation
-    if(nrow(ppt_sub) > 0) {
-
-      # Calculate the scaling to get the water level data on the same plot,
-      # but scaled differently
-      # - proportion is approximately 70% upper, 30% lower
-      # - bandwidth is how spread appart the data WILL be
-      # - position is where we want it to be
-      # - max_range is the spread of the data to start with
-      # - mult is the multiplier to get the data spread even farther to match
-      #   the bandwidth (needs to be negative to flip the figure)
-      # - shift is the value to move the data by to get it at the right place
-
-      ppt_overall <- group_by(ppt_sub, month_abb) %>%
-        summarize(total = sum(ppt_mm, na.rm = TRUE), .groups = "drop")
-
-      proportion <- 0.7
-
-      wl_shift <- wl_month_sub %>%
-        summarize(bandwidth = max(ppt_overall$total, na.rm = TRUE) *
-                    (proportion / (1 - proportion)),
-                  position = max(ppt_overall$total, na.rm = TRUE) * 1.15,
-                  max_range = max(min(max_monthly_wl, na.rm = TRUE) -
-                                    max(min_monthly_wl, na.rm = TRUE)),
-                  mult = -(bandwidth/max_range),
-                  shift = -min(max_monthly_wl * mult) + position,
-                  .groups = "drop")
-
-      # Breaks and labels for ppt axis
-      breaks_ppt <- get_breaks(0, max(ppt_overall$total, na.rm = TRUE), length.out = 5)
-
-      # Keep copy of original data for breaks later
-      wl_month_sub_orig <- wl_month_sub
-
-      wl_month_sub <- wl_month_sub %>%
-        cbind(wl_shift) %>%
-        mutate(median_median = median_median * mult + shift,
-               percentile_10 = percentile_10 * mult + shift,
-               percentile_90 = percentile_90 * mult + shift,
-               percentile_25 = percentile_25 * mult + shift,
-               percentile_75 = percentile_75 * mult + shift,
-               min_monthly_wl = min_monthly_wl * mult + shift,
-               max_monthly_wl = max_monthly_wl * mult + shift)
-
-      # Get number of years so we can warn if less than 10
-      num_yrs <- wl_month_sub$num_yrs[1]
-
-      # Complex title
-      # - includes unicode (\u00B9 and \u00B2) to create superscripts 1 and 2
-      # - \n creates new line between the two titles
-      # - Includes number of years, date range, and the climate station
-      # - Exact text also changes depending on how many years
-      wl_title <- case_when(num_yrs < 5 ~ "No Monthly Water Level Summary (only ",
-                            num_yrs < 10 ~ "Preliminary Monthly Water Level Summary (",
-                            TRUE ~ "Full Monthly Water Level Summary (") %>%
-        paste0(., num_yrs, " years of data; ",
-               wl_month_sub$min_yr[1], "-", wl_month_sub$max_yr[1], ")") %>%
-        paste0("\u00B9 ", ., "\n",
-               "\u00B2 Climate Normals Based on ",
-               climate_title,
-               " Environment Canada Weather Station (1981-2010)")
-
-      wl_month_sub <- filter(wl_month_sub, num_yrs >= 5)
-
-      # Add precipitation
-      g <- ggplot() +
-        aq_theme +
-        theme(legend.title = element_blank(),
-              plot.title = element_text(size = 10)) +
-        geom_bar(data = ppt_sub,
-                 aes(x = month_abb, y = ppt_mm, fill = precipitation),
-                 stat = "identity", position = position_stack(reverse = TRUE),
-                 color = "black")
-
-      # Add Water level if sufficient data
-      if(nrow(wl_month_sub) > 0) {
-
-        # Breaks for water-level axis
-        b <- get_breaks(max(wl_month_sub_orig$min_monthly_wl, na.rm = TRUE),
-                        min(wl_month_sub_orig$max_monthly_wl, na.rm = TRUE),
-                        length.out = 10)
-
-        breaks_wl <- data.frame(breaks = b) %>%
-          mutate(gridlines = breaks * wl_shift$mult[1] + wl_shift$shift[1]) %>%
-          filter(gridlines > (max(breaks_ppt) * 1.2))
-
-        dec_points <- str_length(str_extract(breaks_wl$breaks, "[^.]*$"))
-        g <- g +
-          # Add secondary axis
-          scale_y_continuous(breaks = breaks_ppt, expand = c(0.02, 0),
-                             sec.axis = sec_axis(~ ((. - wl_shift$shift[1]) / (wl_shift$mult[1])),
-                                                 name = "Depth to Groundwater (m below ground surface)",
-                                                 breaks = breaks_wl$breaks,
-                                                 labels = format(-breaks_wl$breaks,
-                                                                 nsmall = dec_points))) +
-          # Artificially add in grid lines
-          geom_hline(aes(yintercept = breaks_wl$gridlines),
-                     colour = aq_theme$panel.grid.major$colour) +
-          # Add data
-          geom_ribbon(data = wl_month_sub, aes(x = as.numeric(month_abb),
-                                               ymin = percentile_10,
-                                               ymax = percentile_90,
-                                               fill = "10-90th Percentile"),
-                      alpha = 0.8) +
-          geom_ribbon(data = wl_month_sub, aes(x = as.numeric(month_abb),
-                                               ymin = percentile_25,
-                                               ymax = percentile_75,
-                                               fill = "25-75th Percentile"),
-                      alpha = 0.8) +
-          geom_line(data = wl_month_sub, aes(x = as.numeric(month_abb),
-                                             y = median_median, colour = "Median")) +
-          geom_point(data = wl_month_sub, aes(x = as.numeric(month_abb),
-                                              y = min_monthly_wl, colour = "Extreme Maximum")) +
-          geom_point(data = wl_month_sub, aes(x = as.numeric(month_abb),
-                                              y = max_monthly_wl, colour = "Extreme Minimum"))
-      }
 
 
 plot_bx_empty <- function() {
@@ -346,35 +209,184 @@ plot_bx_empty <- function() {
     width = bx_width, height = bx_height, dpi = dpi)
 }
 
+
+
+
+
+# Combo Water level / Precip ----------------------------------------------
+
+plot_wl_ppt <- function(wl, ppt) {
+
+  a <- wl$aquifer_id[1]
+  o <- wl$ow[1]
+
+  wl <- mutate(
+    wl, across(
+      .cols = c("median_median", "percentile_25", "percentile_75", "percentile_10",
+                "percentile_90", "min_monthly_wl", "max_monthly_wl"),
+      ~.x * -1))
+
+  ppt <- mutate(
+    ppt,
+    precipitation = case_when(
+      precipitation == "snow" ~ "Total snowfall\n(rainfall equivalent)",
+      precipitation == "rain" ~ "Total rainfall (mm)"))
+
+  climate_title <- tools::toTitleCase(as.character(ppt$climate_name[1]))
+
+
+  # Only continue if we have sufficient data for precipitation
+  if(any(!is.na(ppt$ppt_mm))) {
+
+    # Calculate the scaling to get the water level data on the same plot,
+    # but scaled differently
+    # - proportion (p) is approximately 70% upper, 30% lower
+    # - bandwidth is how spread apprt the data WILL be
+    # - position is where we want it to be
+    # - max_range is the spread of the data to start with
+    # - mult is the multiplier to get the data spread even farther to match
+    #   the bandwidth (needs to be negative to flip the figure)
+    # - shift is the value to move the data by to get it at the right place
+
+    ppt_overall <- group_by(ppt, month_abb) %>%
+      summarize(total = sum(ppt_mm, na.rm = TRUE), .groups = "drop")
+
+    p <- 0.7
+
+    wl_shift <- wl %>%
+      summarize(
+        bandwidth = max(ppt_overall$total, na.rm = TRUE) * (p / (1 - p)),
+        position = max(ppt_overall$total, na.rm = TRUE) * 1.15,
+        max_range = max(min(max_monthly_wl, na.rm = TRUE) - max(min_monthly_wl, na.rm = TRUE)),
+        mult = -(bandwidth/max_range),
+        shift = -min(max_monthly_wl * mult) + position,
+        .groups = "drop")
+
+    # Breaks and labels for ppt axis
+    breaks_ppt <- get_breaks(0, max(ppt_overall$total, na.rm = TRUE), length.out = 5)
+
+    # Keep copy of original data for breaks later
+    wl_orig <- wl
+
+    wl <- wl %>%
+      cbind(wl_shift) %>%
+      mutate(median_median = median_median * mult + shift,
+             percentile_10 = percentile_10 * mult + shift,
+             percentile_90 = percentile_90 * mult + shift,
+             percentile_25 = percentile_25 * mult + shift,
+             percentile_75 = percentile_75 * mult + shift,
+             min_monthly_wl = min_monthly_wl * mult + shift,
+             max_monthly_wl = max_monthly_wl * mult + shift)
+
+    # Get number of years so we can warn if less than 10
+    num_yrs <- wl$num_yrs[1]
+
+    # Complex title
+    # - includes unicode (\u00B9 and \u00B2) to create superscripts 1 and 2
+    # - \n creates new line between the two titles
+    # - Includes number of years, date range, and the climate station
+    # - Exact text also changes depending on how many years
+    wl_title <- case_when(
+      num_yrs < 5 ~ "No Monthly Water Level Summary (only ",
+      num_yrs < 10 ~ "Preliminary Monthly Water Level Summary (",
+      TRUE ~ "Full Monthly Water Level Summary (") %>%
+      paste0(num_yrs, " years of data; ", wl$min_yr[1], "-", wl$max_yr[1], ")") %>%
+      paste0("\u00B9 ", ., "\n",
+             "\u00B2 Climate Normals Based on ",
+             climate_title,
+             " Environment Canada Weather Station (1981-2010)")
+
+    wl <- filter(wl, num_yrs >= 5)
+
+    # Add precipitation
+    g <- ggplot() +
+      aq_theme() +
+      theme(legend.title = element_blank(),
+            plot.title = element_text(size = 10)) +
+      geom_bar(data = ppt,
+               aes(x = month_abb, y = ppt_mm, fill = precipitation),
+               stat = "identity", position = position_stack(reverse = TRUE),
+               color = "black")
+
+    # Add Water level if sufficient data
+    if(nrow(wl) > 0) {
+
+      # Breaks for water-level axis
+      b <- get_breaks(max(wl_orig$min_monthly_wl, na.rm = TRUE),
+                      min(wl_orig$max_monthly_wl, na.rm = TRUE),
+                      length.out = 10)
+
+      breaks_wl <- data.frame(breaks = b) %>%
+        mutate(gridlines = breaks * wl_shift$mult[1] + wl_shift$shift[1]) %>%
+        filter(gridlines > (max(breaks_ppt) * 1.2))
+
+      dec_points <- str_length(str_extract(breaks_wl$breaks, "[^.]*$"))
+
       g <- g +
-        # Scales and Labels
-        # These add specific colours to the lables assigned to the aes above
-        scale_colour_manual(values = c("Extreme Maximum" = "slategray3",
-                                       "Median" = "black",
-                                       "Extreme Minimum" = "bisque3")) +
-        scale_fill_manual(values = c("10-90th Percentile" = "lightskyblue2",
-                                     "25-75th Percentile" = "steelblue1",
-                                     "Total rainfall (mm)" = "lightcyan3",
-                                     "Total snowfall\n(rainfall equivalent)" = "white")) +
-        # Remove point from median line
-        guides(colour = guide_legend(order = 1,
-                                     override.aes = list(shape = c(19, NA, 19))),
-               fill = guide_legend(order = 2)) +
-        labs(x = "Month",
-             y = paste0("Monthly Precipitation (mm) at\n", climate_title),
-             title = wl_title)
+        # Add secondary axis
+        scale_y_continuous(
+          breaks = breaks_ppt, expand = c(0.02, 0),
+          sec.axis = sec_axis(~ ((. - wl_shift$shift[1]) / (wl_shift$mult[1])),
+                              name = "Depth to Groundwater (m below ground surface)",
+                              breaks = breaks_wl$breaks,
+                              labels = format(-breaks_wl$breaks,
+                                              nsmall = dec_points))) +
+        # Artificially add in grid lines
+        geom_hline(aes(yintercept = breaks_wl$gridlines),
+                   colour = aq_theme()$panel.grid.major$colour) +
+        # Add data
+        geom_ribbon(data = wl, aes(x = as.numeric(month_abb),
+                                             ymin = percentile_10,
+                                             ymax = percentile_90,
+                                             fill = "10-90th Percentile"),
+                    alpha = 0.8) +
+        geom_ribbon(data = wl, aes(x = as.numeric(month_abb),
+                                             ymin = percentile_25,
+                                             ymax = percentile_75,
+                                             fill = "25-75th Percentile"),
+                    alpha = 0.8) +
+        geom_line(data = wl, aes(
+          x = as.numeric(month_abb),
+          y = median_median, colour = "Median")) +
+        geom_point(data = wl, aes(
+          x = as.numeric(month_abb),
+          y = min_monthly_wl, colour = "Extreme Maximum")) +
+        geom_point(data = wl, aes(
+          x = as.numeric(month_abb),
+          y = max_monthly_wl, colour = "Extreme Minimum"))
+    }
 
-      ggsave(filename = paste0("./out/gwl/combo_",
-                               sprintf("%04d", a),"_OW",
-                               sprintf("%04d", o),".png"),
-             plot = g,
-             height = combo_height, width = combo_width, dpi = dpi)
+    g <- g +
+      # Scales and Labels
+      # These add specific colours to the lables assigned to the aes above
+      scale_colour_manual(values = c("Extreme Maximum" = "slategray3",
+                                     "Median" = "black",
+                                     "Extreme Minimum" = "bisque3")) +
+      scale_fill_manual(values = c("10-90th Percentile" = "lightskyblue2",
+                                   "25-75th Percentile" = "steelblue1",
+                                   "Total rainfall (mm)" = "lightcyan3",
+                                   "Total snowfall\n(rainfall equivalent)" = "white")) +
+      # Remove point from median line
+      guides(colour = guide_legend(order = 1,
+                                   override.aes = list(shape = c(19, NA, 19))),
+             fill = guide_legend(order = 2)) +
+      labs(x = "Month",
+           y = paste0("Monthly Precipitation (mm) at\n", climate_title),
+           title = wl_title)
 
-    } else {
-      # Write an informative message to the console if there is no data for the ppt
-      # message("AQUIFER ID: ", a, " OBS WELL: ", o, ", Water level data, ",
-      #         "but no precipitation data\n(perhaps obs_wells_index is missing ",
-      #         "CLIMATE ID for this aquifer)")
+    ggsave(filename = paste0("./out/gwl_ppt/combo_",
+                             sprintf("%04d", a),"_OW",
+                             sprintf("%04d", o),".png"),
+           plot = g,
+           height = combo_height, width = combo_width, dpi = dpi)
+
+  } else {
+    # Write an informative message to the console if there is no data for the ppt
+    # message("AQUIFER ID: ", a, " OBS WELL: ", o, ", Water level data, ",
+    #         "but no precipitation data\n(perhaps obs_wells_index is missing ",
+    #         "CLIMATE ID for this aquifer)")
+  }
+}
     }
   }
 }

@@ -208,8 +208,9 @@ fmt_stress <- function(stress_file) {
 
 fmt_gwl <- function(gwl, ow_index) {
   gwl |>
-    aq_read() |>
-    inner_join(ow_index, by = c("well_num" = "ow"), suffix = c("_gwl", ""))
+    aq_read(clean = FALSE) |>
+    rename("ow" = "Well_Num") |>
+    inner_join(ow_index, by = "ow", suffix = c("_gwl", ""))
 }
 
 

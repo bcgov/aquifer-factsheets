@@ -14,13 +14,13 @@
 
 # Functions ----------------------------
 
-aq_read <- function(file, sheet = NULL) {
+aq_read <- function(file, sheet = NULL, clean = TRUE) {
   ext <- fs::path_ext(file)
   if(ext == "csv") d <- readr::read_csv(file, guess_max = 200000, show_col_types = FALSE)
   if(ext == "xlsx") d <- readxl::read_excel(file, sheet)
   if(ext == "fst") d <- fst::read_fst(file)
   if(ext == "rds") d <- readr::read_rds(file)
-  janitor::clean_names(d)
+  if(clean) janitor::clean_names(d) else d
 }
 
 aq_dl <- function(x, remove_sf = FALSE, update = TRUE) {
