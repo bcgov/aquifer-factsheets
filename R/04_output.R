@@ -40,205 +40,156 @@
 #'
 #' # Boxplots: Yield Boxplots ----------------------------------------------------------
 clean_files <- function(aquifers) {
-  #' # Remove old files (make sure no old files to interfere)
-  #' if(delete_old) file.remove(list.files("./out/boxplots/", pattern = "yield", full.name = TRUE))
+  # Remove old files (make sure no old files to interfere)
+  if(delete_old) file.remove(list.files("./out/boxplots/", full.name = TRUE))
 }
 
-#'
-#' # Note: "No data" boxplots must be created after at least one other boxplot WITH
-#' # data (otherwise you'll get an error)
 
-#a <- aquifer_id
+plot_no_data <- function(type = "none", x = 0, y = 5){
+
+  if(type == "none") {
+    t <- "No Data"
+  } else if(type == "insufficient") {
+    t <- "Insufficient data\navailable (n < 5)"
+  }
+
+  annotate("text", x = x, y = y, label = t, size = 3)
+}
+
+
+# Boxplots -------------------------------------------
+plot_bx_base <- function(n, type, yield = 100) {
+
+  max_lim <- case_when(n < 5 ~ 10,
+                       all(yield == 0) ~ 1,
+                       TRUE ~ as.numeric(NA))
+
+  w <- data.frame(well_yield = 1,
+                  well_depth = 1,
+                  water_depth = 1)
+
+  labs <- c(
+    "well_yield" = "High             Reported Well Yields (L/s)             Low",
+    "well_depth" = "Reported Well Depths Below Ground (m)",
+    "water_depth" = "Reported Static Water Depths Below Ground (m)")
+
+
+  g <- ggplot(data = w, aes(x = NA, y = .data[[type]])) +
+    aq_theme() +
+    bx_theme() +
+    theme(axis.title.x = element_text(vjust = 1)) +
+    scale_y_reverse(limits = c(max_lim, 0), expand = c(0.05, 0)) +
+    annotate(geom = "text", x = Inf, y = Inf, vjust = -0.5, hjust = 1.1,
+             label = paste0("n = ", n), size = ann_size) +
+    labs(x = "\n",
+         y = labs[[type]])
+  if(n < 5) g <- g + scale_x_continuous(breaks = c(-1:1))
+
+  g
+}
+
 
 # Create data frame with yields for particular aquifer
-plot_bx_yield <- function(w) {
+plot_bx_well_yield <- function(w) {
 
+  n <- unique(w$n_well_yield)
   w <- filter(w, well_yield != 0)
-  n <- unique(w$n_yield)
   a <- w$aquifer_id[1]
 
-  # DEAL WITH NO WELLS
-
   if(n > 0) {
-    Yield_base <- ggplot(data = w, aes(x = NA, y = well_yield)) +
-      aq_theme() +
-      bx_theme() +
-      theme(axis.title.x = element_text(vjust = 1)) +
-      ylab("High             Reported Well Yields (L/s)             Low")
 
-    max_lim <- if_else(all(w$well_yield == 0), 1, as.numeric(NA))
+    # Add current data
+    well_yield <- plot_bx_base(n, "well_yield", w$well_yield) %+% w
 
     if(n < 5) {
       # Insufficient data
-      Yield <- Yield_base +
-        annotate("text", x = 0, y = 5, label = "Insufficient data\navailable (n < 5)", size = 3) +
-        annotate(geom = "text", x = Inf, y = Inf, vjust = -0.5, hjust = 1.1,
-                 label = paste0("n = ", w), size = ann_size) +
-        xlab("\n") + # To match regular plots
-        scale_y_reverse(limits = c(10, 0)) +
-        scale_x_continuous(breaks = c(-1, 0, 1))
+      well_yield <- well_yield + plot_no_data("insufficient")
+
     } else {
       # Sufficient data
       prod <- median(w$well_yield, na.rm = TRUE)
-      xlab <- paste0("Median well yield:\n", round(prod, 2), " L/s")
-
-      prod_labs <- max(w$well_yield, na.rm = TRUE)
-      prod_labs <- c("Low Productivity",
-                     case_when(prod_labs > 3 ~ "High Productivity",
-                               prod_labs >= 0.3 ~ "Medium Productivity",
-                               prod_labs < 0.3 ~ ""))
 
       # Boxplot for Yield
-      Yield <- Yield_base +
-        annotation_custom(y_gradient(), xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf) +
+      well_yield <- well_yield +
         geom_boxplot(color = "navy", fill = "lightsteelblue3",
                      width = 0.5, na.rm = TRUE) +
-        annotate(geom = "text", x = Inf, y = Inf, vjust = -0.5, hjust = 1.1,
-                 label = paste0("n = ", n), size = ann_size) +
-        xlab(xlab) +
-        scale_y_reverse(limits = c(max_lim, 0), expand = c(0.05, 0))
+        annotation_custom(
+          y_gradient(), xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf) +
+        labs(x = paste0("Median well yield:\n", round(prod, 2), " L/s"))
+
+      # Move gradient to back
+      well_yield$layers <- append(well_yield$layers[[length(well_yield$layers)]],
+                                  well_yield$layers[-length(well_yield$layers)])
     }
 
-    ggsave(paste0("yield_", sprintf("%04d", a), ".jpg"),
-           plot = Yield, path = "out/boxplots/",
+    ggsave(paste0("well_yield_", sprintf("%04d", a), ".jpg"),
+           plot = well_yield, path = "out/boxplots/",
            width = bx_width, height = bx_height, dpi = dpi)
   }
 }
 
-#'
-#' # Create empty boxplot
-#' Yield_NA <- Yield_base +
-#'   annotate("text", x = 0, y = 5, label = "No Data", size = 3) +
-#'   annotate(geom = "text", x = Inf, y = Inf, vjust = -0.5, hjust = 1.1,
-#'            label = "n = 0", size = ann_size) +
-#'   xlab("\n") + # To match regular plots
-#'   scale_y_reverse(limits = c(10, 0)) +
-#'   scale_x_continuous(breaks = c(-1, 0, 1))
-#'
-#' ggsave("yield_NA.jpg", plot = Yield_NA, path = "out/boxplots/",
-#'        width = bx_width, height = bx_height, dpi = dpi)
-#'
-#'
+plot_bx_well_depth <- function(w) {
 
-#' # Note: "No data" boxplots must be created after at least one other boxplot WITH
-#' # data (otherwise you'll get an error)
-
-#a <- aquifer_id
-
-plot_bx_well_depth <- function(wells, a) {
-
-  # Create data frame with yields for particular aquifer
-  w <- filter(wells_db, aquifer_id == a)
+  n <- unique(w$n_well_depth)
+  a <- w$aquifer_id[1]
 
   if(n > 0) {
 
-    #Boxplot for Depth Drilled
-    depthdrilled_base <- ggplot(data = w, aes(x = NA, y = finished_well_depth_m)) +
-      aq_theme +
-      bx_theme +
-      ylab("Reported Well Depths Below Ground (m)")
+    # Add current data
+    well_depth <- plot_bx_base(n, "well_depth") %+% w
 
     if(n < 5) {
       # Insufficient data
-      depthdrilled <- depthdrilled_base +
-        annotate("text", x = 1, y = 5, label = "Insufficient data\navailable (n < 5)", size = 3) +
-        annotate(geom = "text", x = Inf, y = Inf, vjust = -0.5, hjust = 1.1,
-                 label = paste0("n = ", n), size = ann_size) +
-        xlab("\n") + # To match regular plots+
-        scale_y_reverse(limits = c(10, 0)) +
-        scale_x_continuous(breaks = c(-1, 0, 1))
+      well_depth <- well_depth + plot_no_data("insufficient")
 
     } else {
-      #Sufficient data
-      prod <- round(median(w$finished_well_depth_m, na.rm = TRUE), 2)
-      xlab <- paste0("Median well depth:\n", prod, " m")
+      # Sufficient data
+      prod <- round(median(w$well_depth, na.rm = TRUE), 2)
 
-      depthdrilled <- depthdrilled_base +
-        geom_boxplot(color="darkgreen", fill="darkolivegreen1", width = 0.5, na.rm = TRUE) +
-        annotate(geom = "text", x = Inf, y = Inf, vjust = -0.5, hjust = 1.1,
-                 label = paste0("n = ", w$n_well_depth[1]), size = ann_size) +
-        scale_y_reverse(limits = c(NA, 0)) +
-        xlab(xlab)
+      well_depth <- well_depth +
+        geom_boxplot(color="darkgreen", fill="darkolivegreen1", width = 0.5,
+                     na.rm = TRUE) +
+        labs(x = paste0("Median well depth:\n", prod, " m"))
     }
 
     ggsave(paste0("well_depth_", sprintf("%04d", a), ".jpg"),
-           plot = depthdrilled, path = "out/boxplots/",
+           plot = well_depth, path = "out/boxplots/",
            width = bx_width, height = bx_height, dpi = dpi)
   }
 }
-#'
-#' # Create empty boxplot
-#' depthdrilled_NA <- depthdrilled_base +
-#'   annotate("text", x = 1, y = 5, label = "No Data", size = 3) +
-#'   annotate(geom = "text", x = Inf, y = Inf, vjust = -0.5, hjust = 1.1,
-#'            label = "n = 0", size = ann_size) +
-#'   xlab("\n") + # To match regular plots +
-#'   scale_y_reverse(limits = c(10, 0)) +
-#'   scale_x_continuous(breaks = c(-1, 0, 1))
-#'
-#' ggsave("well_depth_NA.jpg", plot = depthdrilled_NA, path = "out/boxplots/",
-#'        width = bx_width, height = bx_height, dpi = dpi)
-#'
-#'
-#'
 
-plot_bx__water_depth <- function(w) {
 
-#' # Note: "No data" boxplots must be created after at least one other boxplot WITH
-#' # data (otherwise you'll get an error)
+plot_bx_water_depth <- function(w) {
+
+  n <- unique(w$n_water_depth)
+  a <- w$aquifer_id[1]
 
   # Only plot if data
   if(n > 0) {
-    # Boxplot for waterdepth
-    waterdepth_base <- ggplot(data = w, aes(x = NA, y = static_water_level_m)) +
-      aq_theme +
-      bx_theme +
-      ylab("Reported Static Water Depths Below Ground (m)")
+
+    # Add current data
+    water_depth <- plot_bx_base(n, "water_depth") %+% w
 
     if(n < 5) {
-      # Not enough data
-      waterdepth <- waterdepth_base +
-        annotate("text", x = 1, y = 5, label = "Insufficient data\navailable (n < 5)", size = 3) +
-        annotate(geom = "text", x = Inf, y = Inf, vjust = -0.5, hjust = 1.1,
-                 label = paste0("n = ", w$n_yield), size = ann_size) +
-        xlab("\n") + # To match regular plots+
-        scale_y_reverse(limits = c(10, 0)) +
-        scale_x_continuous(breaks = c(-1, 0, 1))
+      # Insufficient data
+      water_depth <- water_depth + plot_no_data("insufficient")
 
     } else {
-      # Enough data
-      prod <- round(median(w$static_water_level_m, na.rm = TRUE), 2)
-      xlab <- paste0("Median water depth:\n", prod, " m")
+      # Sufficient data
+      prod <- round(median(w$water_depth, na.rm = TRUE), 2)
 
-      waterdepth <- waterdepth_base +
-        geom_boxplot(color = "brown", fill = "navajowhite", width = 0.5, na.rm = TRUE) +
-        annotate(geom = "text", x = Inf, y = Inf, vjust = -0.5, hjust = 1.1,
-                 label = paste0("n = ", w$n_water_depth[1]), size = ann_size) +
-        scale_y_reverse(limits = c(NA, 0)) +
-        xlab(xlab)
+      water_depth <- water_depth +
+        geom_boxplot(color = "brown", fill = "navajowhite", width = 0.5,
+                     na.rm = TRUE) +
+        labs(x = paste0("Median water depth:\n", prod, " m"))
     }
 
     ggsave(paste0("water_depth_", sprintf("%04d", a), ".jpg"),
-           plot = waterdepth, path = "out/boxplots/",
+           plot = water_depth, path = "out/boxplots/",
            width = bx_width, height = bx_height, dpi = dpi)
 
   }
 }
-#'
-#' # Create empty boxplot
-#' waterdepth_NA <- waterdepth_base +
-#'   annotate("text", x = 1, y = 5, label = "No Data", size = 3) +
-#'   annotate(geom = "text", x = Inf, y = Inf, vjust = -0.5, hjust = 1.1,
-#'            label = "n = 0", size = ann_size) +
-#'   xlab("\n") + # To match regular plots +
-#'   scale_y_reverse(limits = c(10, 0)) +
-#'   scale_x_continuous(breaks = c(-1, 0, 1))
-#'
-#' ggsave("water_depth_NA.jpg", plot = waterdepth_NA, path = "out/boxplots/",
-#'        width = bx_width, height = bx_height, dpi = dpi)
-#'
-#'
-#'
 #' # Combo Water level / Precip ----------------------------------------------
 
 plot_wl_ppt <- function(a, wl_month) {
@@ -376,6 +327,24 @@ plot_wl_ppt <- function(a, wl_month) {
           geom_point(data = wl_month_sub, aes(x = as.numeric(month_abb),
                                               y = max_monthly_wl, colour = "Extreme Minimum"))
       }
+
+
+plot_bx_empty <- function() {
+  ggsave(
+    "well_yield_NA.jpg", plot = plot_bx_base(0, "well_yield") + plot_no_data(type = "none"),
+    path = "out/boxplots/",
+    width = bx_width, height = bx_height, dpi = dpi)
+
+  ggsave(
+    "well_depth_NA.jpg", plot = plot_bx_base(0, "well_depth") + plot_no_data(type = "none"),
+    path = "out/boxplots/",
+    width = bx_width, height = bx_height, dpi = dpi)
+
+  ggsave(
+    "water_depth_NA.jpg", plot = plot_bx_base(0, "water_depth") + plot_no_data(type = "none"),
+    path = "out/boxplots/",
+    width = bx_width, height = bx_height, dpi = dpi)
+}
 
       g <- g +
         # Scales and Labels

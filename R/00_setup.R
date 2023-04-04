@@ -61,7 +61,10 @@ ann_size <- 2.75  # Annotation sizes for samples sizes in boxplots
 
 # General factsheet plot theme
 aq_theme <- function() {
-  theme_bw() +
+  update_geom_defaults("text", list(family = "Helvetica"))
+  update_geom_defaults("label", list(family = "Helvetica"))
+
+  theme_bw(base_family = "Helvetica") +
     theme(axis.title.y.left = element_text(margin = unit(c(0, 2, 0, 0), "mm")),
           axis.title.y.right = element_text(margin = unit(c(0, 0, 0, 2), "mm")),
           panel.grid.major = element_line(colour = "grey90"),
@@ -74,7 +77,8 @@ bx_theme <- function() {
     plot.margin = unit(c(1, 3, 1, 3), "mm"),
     axis.title.y = element_text(margin = unit(c(0, 0, 0, 0), "mm")),
     axis.text.x = element_blank(),
-    axis.title.x = element_text(margin = unit(c(2, 0, 0, 0), "mm"), size = 9),
+    axis.title.x = element_text(margin = unit(c(2, 0, 0, 0), "mm"), size = 9,
+                                vjust = 1),
     panel.grid.major = element_line(colour = "grey75"),
     panel.grid.minor = element_line(colour = "grey75"))
 }

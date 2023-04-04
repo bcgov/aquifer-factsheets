@@ -88,8 +88,8 @@ fmt_wells <- function(wells_file, aq_ids, omit_ow) {
            "well_yield_unit_code",
            "ow" = "observation_well_number",
            "ow_status" = "obs_well_status_code",
-           "static_water_level" = "static_water_level_ft_btoc",
-           "finished_well_depth" = "finished_well_depth_ft_bgl",
+           "water_depth" = "static_water_level_ft_btoc",
+           "well_depth" = "finished_well_depth_ft_bgl",
            "latitude" = "latitude_decdeg",
            "longitude" = "longitude_decdeg",
            "licenced_status_code",
@@ -104,14 +104,13 @@ fmt_wells <- function(wells_file, aq_ids, omit_ow) {
     # - Converting Yield from GPM to L/s and Feet to Metres
     mutate(well_yield = well_yield * 0.06309,
            well_yield_unit_code = "L/s",
-           finished_well_depth_m = finished_well_depth * 0.3048,
-           static_water_level_m = static_water_level * 0.3048) |>
+           well_depth = well_depth * 0.3048,
+           water_depth = water_depth * 0.3048) |>
     group_by(aquifer_id) |>
-    mutate(n_yield = sum(!is.na(well_yield) & well_yield != 0),
-           n_well_depth = sum(!is.na(finished_well_depth_m)),
-           n_water_depth = sum(!is.na(static_water_level_m))) |>
+    mutate(n_well_yield = sum(!is.na(well_yield) & well_yield != 0),
+           n_well_depth = sum(!is.na(well_depth)),
+           n_water_depth = sum(!is.na(water_depth))) |>
     ungroup() |>
-    select(-finished_well_depth, -static_water_level) |>
 
     # Omit wells
     # - incorrectly placed in aquifer (etc.)
