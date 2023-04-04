@@ -425,55 +425,43 @@ plot_gwl <- function(gwl, gwl_trends) {
   }
 }
 
+
+# Piper plots -----------------------------------------------------------------
+
+# - Create all plots, but note in piper plot text if any shouldn't be used.
+
+plot_piper <- function(ems) {
+
+  a <- ems$aquifer_id[1]
+  o <- ems$StationID[1]
+
+  ems <- ems |>
+    mutate(n = n_distinct(ems_id)) |>
+    assert(in_set(1), n) # Check that we don't have multiple ems ids per well
+
+  # Note: By default piper_plot() uses only valid (abs(charge_balance) <=10) data
+  if(nrow(ems) >= 1) {
+    # Make plot
+    f <- paste0("./out/piperplots/piperplot_",
+                sprintf("%04d", as.numeric(a)), "_OW",
+                sprintf("%04d", as.numeric(o)), ".png")
+
+    # Only if it would plot...
+    if(!is.null(piper_plot(ems, legend = FALSE, plot_data = TRUE))) {
+      pp <- image_graph(width = 2000, height = 2100, res = dpi)
+      piper_plot(ems, legend = FALSE)
+      dev.off()
+
+      # print(p)  # For troubleshooting
+
+      # Trim plot and add in small border
+      pp2 <- image_trim(pp) |>
+        image_border(color = "white")
+
+      # print(p2)  # For troubleshooting
+
+      # Save plot
+      image_write(pp2, path = f)
     }
   }
 }
-#'
-#'
-#' # Piper plots -----------------------------------------------------------------
-#'
-#' #' - Create all plots, but note in piper plot text if any shouldn't be used.
-#'
-#' # Remove old files (make sure no old files to interfere)
-#' if(delete_old) file.remove(list.files("./out/piperplots/", full.name = TRUE))
-#'
-#' p <- progress::progress_bar$new(format = "  Piperplots [:bar] :percent eta: :eta",
-#'                                 total = length(aquifers))
-#' for (a in aquifers) {
-#'   p$tick()
-#'
-#'   d <- filter(ems, aquifer_id == a)
-#'
-#'   for(o in unique(d$StationID)) {
-#'
-#'     d2 <- filter(d, StationID == o) %>%
-#'       mutate(n = n_distinct(ems_id)) %>%
-#'       assert(in_set(1), n) # Check that we don't have multiple ems ids per well
-#'
-#'     # Note: By default piper_plot() uses only valid (abs(charge_balance) <=10) data
-#'     if(nrow(d2) >= 1) {
-#'       # Make plot
-#'       f <- paste0("./out/piperplots/piperplot_",
-#'                   sprintf("%04d", as.numeric(a)), "_OW",
-#'                   sprintf("%04d", as.numeric(o)), ".png")
-#'
-#'       # Only if it would plot...
-#'       if(!is.null(piper_plot(d2, legend = FALSE, plot_data = TRUE))) {
-#'         pp <- image_graph(width = 2000,
-#'                           height = 2100, res = dpi)
-#'         piper_plot(d2, legend = FALSE)
-#'         dev.off()
-#'
-#'         #print(p)
-#'
-#'         # Trim plot and add in small border
-#'         pp2 <- image_trim(pp) %>%
-#'           image_border(color = "white")
-#'         #print(p2)
-#'
-#'         # Save plot
-#'         image_write(pp2, path = f)
-#'       }
-#'     }
-#'   }
-#' }
