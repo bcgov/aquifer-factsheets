@@ -310,8 +310,8 @@ fmt_water_levels <- function(ow_file, ow_index) {
     mutate(month_abb = month(month, label = TRUE))
 
   # Summarize years to see max, min and number of years of data
-  wl_summary <- wl_all %>%
-    group_by(ow) %>%
+  wl_summary <- wl_all |>
+    group_by(ow) |>
     summarize(min_yr = min(year),
               max_yr = max(year),
               num_yrs = max_yr - min_yr,
@@ -320,9 +320,9 @@ fmt_water_levels <- function(ow_file, ow_index) {
   # TODO: Require obs_wells_index_climate for names?
 
   wl_month %>%
-    left_join(wl_month_extremes, by = c("ow", "month")) %>%
-    left_join(wl_summary, by = "ow")# %>%
-    #left_join(ow_index, by = "ow")
+    left_join(wl_month_extremes, by = c("ow", "month")) |>
+    left_join(wl_summary, by = "ow") |>
+    left_join(select(ow_index, ow, aquifer_id), by = "ow")
 }
 
 fmt_ems <- function(ow_index, omit_ems, update = TRUE) {
