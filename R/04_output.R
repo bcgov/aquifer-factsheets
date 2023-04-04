@@ -387,54 +387,47 @@ plot_wl_ppt <- function(wl, ppt) {
     #         "CLIMATE ID for this aquifer)")
   }
 }
+
+
+# Groundwater level trend plot --------------------------------------------
+
+plot_gwl <- function(gwl, gwl_trends) {
+
+  a <- gwl$aquifer_id[1]
+  o <- gwl$ow[1]
+
+  gwl <- rename(gwl, "Well_Num" = "ow")
+  gwl_trends <- rename(gwl_trends, "Well_Num" = "ow")
+
+  # Skip plot if < 5 years of data
+  if(gwl_trends$nYears >= 5) {
+
+    g <- gwl_area_plot(data = gwl,
+                       trend = gwl_trends$trend_line_slope,
+                       intercept = gwl_trends$trend_line_int,
+                       trend_category = gwl_trends$state,
+                       sig = gwl_trends$sig,
+                       showInterpolated = TRUE, save = FALSE,
+                       mkperiod = "annual", show_stable_line = FALSE) +
+      labs(title = NULL) +
+      theme(legend.position = "right", legend.box = "vertical",
+            legend.margin = margin(
+              0, # Add extra spacing if no interpolated values in legend
+              if_else(any(gwl$nReadings == 0), 5.5, 45),
+              0, 5.5),
+            legend.spacing = unit(0, units = "mm"))
+
+    ggsave(plot = g,
+           filename = paste0("./out/gwl_trends/trends_",
+                             sprintf("%04d", as.numeric(a)),"_OW",
+                             sprintf("%04d", as.numeric(o)),".png"),
+           height = trend_height, width = trend_width, dpi = dpi)
+  }
+}
+
     }
   }
 }
-#'
-#'
-#' # Groundwater level trend plot --------------------------------------------
-#'
-#' # Remove old files (make sure no old files to interfere)
-#' if(delete_old) file.remove(list.files("./out/trends/", full.name = TRUE))
-#'
-#' p <- progress::progress_bar$new(format = "  Groundwater Level Trend Plots [:bar] :percent eta: :eta",
-#'                                 total = length(aquifers))
-#' for (a in aquifers) {
-#'   p$tick()
-#'
-#'   d <- filter(ground_water, aquifer_id == a)
-#'
-#'   for(o in unique(d$ow)) {
-#'     #message(a, "-", o)
-#'     plotdata <- filter(ground_water, aquifer_id == a, ow == o) %>%
-#'       mutate(Well_Num = ow)
-#'
-#'     well.attr <- filter(ground_water_trends, aquifer_id == a, ow == o) %>%
-#'       mutate(Well_Num = ow)
-#'
-#'     # Skip plot if < 5 years of data
-#'     if(nrow(well.attr) == 0 || well.attr$nYears < 5) next
-#'
-#'     g <- gwl_area_plot(data = plotdata, trend = well.attr$trend_line_slope,
-#'                        intercept = well.attr$trend_line_int,
-#'                        trend_category = well.attr$state, sig = well.attr$sig,
-#'                        showInterpolated = TRUE, save = FALSE,
-#'                        mkperiod = "annual", show_stable_line = FALSE) +
-#'       labs(title = NULL) +
-#'       theme(legend.position = "right", legend.box = "vertical",
-#'             legend.margin = margin(0,
-#'                                    # Add extra spacing if no interpolated values in legend
-#'                                    if_else(any(plotdata$nReadings == 0), 5.5, 45),
-#'                                    0, 5.5),
-#'             legend.spacing = unit(0, units = "mm"))
-#'
-#'     ggsave(plot = g,
-#'            filename = paste0("./out/trends/trends_",
-#'                              sprintf("%04d", as.numeric(a)),"_OW",
-#'                              sprintf("%04d", as.numeric(o)),".png"),
-#'            height = trend_height, width = trend_width, dpi = dpi)
-#'   }
-#' }
 #'
 #'
 #' # Piper plots -----------------------------------------------------------------
