@@ -41,7 +41,7 @@
 #' # Boxplots: Yield Boxplots ----------------------------------------------------------
 clean_files <- function(aquifers) {
   # Remove old files (make sure no old files to interfere)
-  if(delete_old) file.remove(list.files("./out/boxplots/", full.name = TRUE))
+  if(delete_old) file.remove(list.files(f("boxplots"), full.name = TRUE))
 }
 
 
@@ -90,7 +90,8 @@ plot_bx_base <- function(n, type, yield = 100) {
 
 
 # Create data frame with yields for particular aquifer
-plot_bx_well_yield <- function(w) {
+# - Create the plot, save as png, return filename
+plot_bx_well_yield <- function(w, bx_empty) {
 
   n <- unique(w$n_well_yield)
   w <- filter(w, well_yield != 0)
@@ -122,13 +123,16 @@ plot_bx_well_yield <- function(w) {
                                   well_yield$layers[-length(well_yield$layers)])
     }
 
-    ggsave(paste0("well_yield_", sprintf("%04d", a), ".jpg"),
-           plot = well_yield, path = "out/boxplots/",
+    f <- f("boxplots", f = paste0("well_yield_", sprintf("%04d", a), ".jpg"))
+    ggsave(f,
+           plot = well_yield,
            width = bx_width, height = bx_height, dpi = dpi)
-  }
+  } else f <- str_subset(bx_empty, "well_yield")
+  f
 }
 
-plot_bx_well_depth <- function(w) {
+# - Create the plot, save as png, return filename
+plot_bx_well_depth <- function(w, bx_empty) {
 
   n <- unique(w$n_well_depth)
   a <- w$aquifer_id[1]
@@ -152,14 +156,16 @@ plot_bx_well_depth <- function(w) {
         labs(x = paste0("Median well depth:\n", prod, " m"))
     }
 
-    ggsave(paste0("well_depth_", sprintf("%04d", a), ".jpg"),
-           plot = well_depth, path = "out/boxplots/",
+    f <- f("boxplots", f = paste0("well_depth_", sprintf("%04d", a), ".jpg"))
+    ggsave(f,
+           plot = well_depth,
            width = bx_width, height = bx_height, dpi = dpi)
-  }
+  } else f <- str_subset(bx_empty, "well_depth")
+  f
 }
 
-
-plot_bx_water_depth <- function(w) {
+# - Create the plot, save as png, return filename
+plot_bx_water_depth <- function(w, bx_empty) {
 
   n <- unique(w$n_water_depth)
   a <- w$aquifer_id[1]
@@ -184,29 +190,34 @@ plot_bx_water_depth <- function(w) {
         labs(x = paste0("Median water depth:\n", prod, " m"))
     }
 
-    ggsave(paste0("water_depth_", sprintf("%04d", a), ".jpg"),
-           plot = water_depth, path = "out/boxplots/",
+    f <- f("boxplots", f = paste0("water_depth_", sprintf("%04d", a), ".jpg"))
+
+    ggsave(filename = f,
+           plot = water_depth,
            width = bx_width, height = bx_height, dpi = dpi)
 
-  }
+  } else f <- str_subset(bx_empty, "water_depth")
+
+  f
 }
 
-
+# - Create missing data plots, save as png, return filename as list to be used
+#   in plot_bx_XXX() when not enough data
 plot_bx_empty <- function() {
   ggsave(
-    "well_yield_NA.jpg", plot = plot_bx_base(0, "well_yield") + plot_no_data(type = "none"),
-    path = "out/boxplots/",
+    f("boxplots", f = "well_yield_NA.jpg"), plot = plot_bx_base(0, "well_yield") + plot_no_data(type = "none"),
     width = bx_width, height = bx_height, dpi = dpi)
 
   ggsave(
-    "well_depth_NA.jpg", plot = plot_bx_base(0, "well_depth") + plot_no_data(type = "none"),
-    path = "out/boxplots/",
+    f("boxplots", f = "well_depth_NA.jpg"), plot = plot_bx_base(0, "well_depth") + plot_no_data(type = "none"),
     width = bx_width, height = bx_height, dpi = dpi)
 
   ggsave(
-    "water_depth_NA.jpg", plot = plot_bx_base(0, "water_depth") + plot_no_data(type = "none"),
-    path = "out/boxplots/",
+    f("boxplots", f = "water_depth_NA.jpg"), plot = plot_bx_base(0, "water_depth") + plot_no_data(type = "none"),
     width = bx_width, height = bx_height, dpi = dpi)
+
+  f("boxplots", f = c("well_yield_NA.jpg", "well_depth_NA.jpg", "water_depth_NA.jpg")) |>
+    stats::setNames(c("well_yield", "well_depth", "water_depth"))
 }
 
 
@@ -374,23 +385,27 @@ plot_wl_ppt <- function(wl, ppt) {
            y = paste0("Monthly Precipitation (mm) at\n", climate_title),
            title = wl_title)
 
-    ggsave(filename = paste0("./out/gwl_ppt/combo_",
-                             sprintf("%04d", a),"_OW",
-                             sprintf("%04d", o),".png"),
+    f <- paste0(f("gwl_ppt"), "/gwl_ppt_",
+                sprintf("%04d", a),"_OW",
+                sprintf("%04d", o),".png")
+
+    ggsave(filename = f,
            plot = g,
            height = combo_height, width = combo_width, dpi = dpi)
 
   } else {
+    f <- f("in_na", f = "figure_missing_gwl_ppt.png")
     # Write an informative message to the console if there is no data for the ppt
     # message("AQUIFER ID: ", a, " OBS WELL: ", o, ", Water level data, ",
     #         "but no precipitation data\n(perhaps obs_wells_index is missing ",
     #         "CLIMATE ID for this aquifer)")
   }
+  f
 }
 
 
 # Groundwater level trend plot --------------------------------------------
-
+# - Create the plot, save as png, return filename
 plot_gwl <- function(gwl, gwl_trends) {
 
   a <- gwl$aquifer_id[1]
@@ -417,23 +432,29 @@ plot_gwl <- function(gwl, gwl_trends) {
               0, 5.5),
             legend.spacing = unit(0, units = "mm"))
 
+    f <- paste0(f("gwl_trends"), "/gwl_trends_",
+                sprintf("%04d", as.numeric(a)),"_OW",
+                sprintf("%04d", as.numeric(o)),".png")
+
     ggsave(plot = g,
-           filename = paste0("./out/gwl_trends/trends_",
-                             sprintf("%04d", as.numeric(a)),"_OW",
-                             sprintf("%04d", as.numeric(o)),".png"),
+           filename = f,
            height = trend_height, width = trend_width, dpi = dpi)
-  }
+  } else f <- f("in_na", f = "figure_missing_gwl_trends.png")
+  f
 }
 
 
 # Piper plots -----------------------------------------------------------------
-
+# - Create the plot, save as png, return filename
 # - Create all plots, but note in piper plot text if any shouldn't be used.
 
-plot_piper <- function(ems) {
+plot_piper <- function(ems, debug = FALSE) {
 
   a <- ems$aquifer_id[1]
   o <- ems$StationID[1]
+  f <- f("in_na", f = "figure_missing_piperplots.png")
+
+  if(debug) message("   AQ: ", a, "; OW: ", o)
 
   ems <- ems |>
     mutate(n = n_distinct(ems_id)) |>
@@ -441,12 +462,9 @@ plot_piper <- function(ems) {
 
   # Note: By default piper_plot() uses only valid (abs(charge_balance) <=10) data
   if(nrow(ems) >= 1) {
-    # Make plot
-    f <- paste0("./out/piperplots/piperplot_",
-                sprintf("%04d", as.numeric(a)), "_OW",
-                sprintf("%04d", as.numeric(o)), ".png")
-
-    # Only if it would plot...
+    # Make plot - Only if it would plot...
+    t <- try(piper_plot(ems, legend = FALSE), silent = TRUE)
+    if(inherits(t, "try-error")) browser()
     if(!is.null(piper_plot(ems, legend = FALSE, plot_data = TRUE))) {
       pp <- image_graph(width = 2000, height = 2100, res = dpi)
       piper_plot(ems, legend = FALSE)
@@ -460,8 +478,13 @@ plot_piper <- function(ems) {
 
       # print(p2)  # For troubleshooting
 
+      f <- paste0(f("piperplots"), "/piperplots_",
+                  sprintf("%04d", as.numeric(a)), "_OW",
+                  sprintf("%04d", as.numeric(o)), ".png")
+
       # Save plot
       image_write(pp2, path = f)
     }
   }
+  f
 }

@@ -23,21 +23,18 @@ aq_read <- function(file, sheet = NULL, clean = TRUE) {
   if(clean) janitor::clean_names(d) else d
 }
 
-aq_dl <- function(x, remove_sf = FALSE, update = TRUE) {
+aq_dl <- function(x, remove_sf = FALSE) {
 
-  if(update || !file_exists(x$path)) {
+  # Download URL
+  if("url" %in% names(x)) GET(x$url, write_disk(x$path, overwrite = TRUE))
 
-    # Download URL
-    if("url" %in% names(x)) GET(x$url, write_disk(x$path, overwrite = TRUE))
-
-    # Download BC Data record
-    if("record" %in% names(x)) {
-      d <- bcdc_get_data(x$record, x$resource)
-      if(remove_sf) d <- st_drop_geometry(d)
-      if(inherits(d, "sf")) write_rds(d, x$path) else write_fst(d, x$path)
-    }
-
+  # Download BC Data record
+  if("record" %in% names(x)) {
+    d <- bcdc_get_data(x$record, x$resource)
+    if(remove_sf) d <- st_drop_geometry(d)
+    if(inherits(d, "sf")) write_rds(d, x$path) else write_fst(d, x$path)
   }
+
   x$path
 }
 
@@ -72,6 +69,16 @@ aq_hc <- function() {
           "UNK", "Unknown")
 }
 
+f <- function(name, type = NULL, f = NULL) {
+  d <- dirs[stringr::str_subset(names(dirs), name)]
+  if(!is.null(type)) d <- stringr::str_subset(d, type)
+  if(!is.null(f)) d <- fs::path(d, f)
+  d
+}
+
+
+
+
 
 min_na <- function(x) {
   if(!all(is.na(x))) min(x, na.rm = TRUE) else NA_real_
@@ -82,46 +89,7 @@ max_na <- function(x) {
 }
 
 
-factsheet <- function(aq_num, pages = 3, draft = FALSE,
-                      data_folder = NULL, out_folder = "./factsheets/",
-                      template_path = NULL,
-                      keep_tex = FALSE) {
 
-  if(is.null(data_folder)) data_folder <- getwd()
-  if(is.null(template_path)) template_path <- file.path(getwd(), "./templates/factsheet_template.Rmd")
-
-  if(tolower(tools::file_ext(template_path)) != "rmd") stop("template_path must point to an .Rmd file")
-
-  aquifers <- suppressMessages(read_csv("./out/aquifer_table.csv"))
-
-  p <- progress::progress_bar$new(format = "  Creating factsheets [:bar] :percent eta: :eta",
-                                  total = length(aq_num), clear = FALSE)
-  for(a in aq_num) {
-    out_file <- paste0("AQ_", sprintf("%05d", a), "_Aquifer_Factsheet_",
-                       Sys.Date()) # Get aq_num with leading zeros
-    if(draft) out_file <- paste0(out_file, "_DRAFT.pdf") else out_file <- paste0(out_file, ".pdf")
-
-    if(a %in% aquifers$aquifer_id) {
-      rmarkdown::render(template_path,
-                        params = list(aq_num = a,
-                                      pages = pages,
-                                      draft = draft),
-                        output_options = list(keep_tex = keep_tex),
-                        output_file = out_file,
-                        output_dir = out_folder, clean = TRUE, quiet = TRUE)
-    } else {
-      message("\nSkipping aquifer ", a, " (not in data, probably no longer valid)")
-    }
-      p$tick()
-  }
-}
-
-draft_tag <- function() {
-  cat("\\begin{tikzpicture}",
-      "\\node[at = (current page.center), opacity = 0.2, font=\\fontsize{240}{164}\\selectfont, rotate = 45] {DRAFT};",
-      "\\end{tikzpicture}"
-  )
-}
 
 get_breaks <- function(min, max, length.out) {
 
@@ -138,19 +106,12 @@ get_breaks <- function(min, max, length.out) {
   seq(min, max, by = by)
 }
 
-fix_names <- function(dir = "./figures", type, filename, ext, digits = 4) {
+fix_names <- function(dir_maps = f("maps"), filename, ext, digits = 4) {
 
-  f <- list.files(file.path(dir, type))
+  f <- list.files(file.path(dir_maps))
 
-  if(type == "maps") {
-    d <- paste0("_[0-9]{", digits, "}")
-    d_nice <- paste0(rep("0", digits), collapse = "")
-  }
-  if(type == "piperplots" | type == "piperplots_trimmed") {
-    d <- paste0("_[0-9]{", digits, "}_OW[0-9]{", digits, "}")
-    d_nice <- paste0(paste0(rep("0", digits), collapse = ""),
-                     "_OW", paste0(rep("0", digits), collapse = ""))
-  }
+  d <- paste0("_[0-9]{", digits, "}")
+  d_nice <- paste0(rep("0", digits), collapse = "")
 
   mismatch <- f[!str_detect(f, paste0(filename, d, ".", ext))]
   mismatch <- mismatch[mismatch != "Thumbs.db"]
@@ -205,48 +166,44 @@ round_any <- function(x, accuracy, f = round){
   f(x / accuracy) * accuracy
 }
 
-check_piper_plots_gwells <- function(dir = "./out/piperplots") {
-  if(file.exists("data_dl/well.csv")) {
-    p <- tibble(file = list.files(dir)) %>%
-      mutate(ow = str_extract(file, "OW[0-9]{4}"),
-             ow = as.numeric(str_extract(ow, "[0-9]{4}")),
-             aquifer_id = str_extract(file, "_[0-9]{4}_"),
-             aquifer_id = as.numeric(str_extract(aquifer_id, "[0-9]{4}")))
+check_piper_plots_gwells <- function(dir_piper = f("piper")) {
+  p <- tibble(file = list.files(dir_piper)) %>%
+    mutate(ow = str_extract(file, "OW[0-9]{4}"),
+           ow = as.numeric(str_extract(ow, "[0-9]{4}")),
+           aquifer_id = str_extract(file, "_[0-9]{4}_"),
+           aquifer_id = as.numeric(str_extract(aquifer_id, "[0-9]{4}")))
 
-    g <- read_csv("data_dl/well.csv", guess_max = Inf, col_types = cols(),
-                  n_max = 1000000000) %>%
-      select(aquifer_id, ow = observation_well_number) %>%
-      filter(!is.na(ow)) %>%
-      mutate(ow = as.numeric(ow))
+  g <- read_csv(f("out_data", f = "well.csv"), guess_max = Inf, col_types = cols(),
+                n_max = 1000000000) %>%
+    select(aquifer_id, ow = observation_well_number) %>%
+    filter(!is.na(ow)) %>%
+    mutate(ow = as.numeric(ow))
 
-    compare <- full_join(p, g, by = "ow", suffix = c("_piper", "_gwells")) %>%
-      filter(aquifer_id_piper != aquifer_id_gwells)
+  compare <- full_join(p, g, by = "ow", suffix = c("_piper", "_gwells")) %>%
+    filter(aquifer_id_piper != aquifer_id_gwells)
 
-    if(nrow(compare) > 0) {
-      message("Mismatch between Piperplot Aquifers and GWELLS Aquifers, see:\n ",
-              "'out/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv'")
-      write_csv(compare, paste0("./out/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv"))
-    } else {
-      message("No mismatches between Piperplots and GWELLS")
-    }
-    return(TRUE)
+  if(nrow(compare) > 0) {
+    message("Mismatch between Piperplot Aquifers and GWELLS Aquifers, see:\n '",
+            f("output"), "/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv'")
+    write_csv(compare, paste0(f("output"), "/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv"))
   } else {
-    return(FALSE)
+    message("No mismatches between Piperplots and GWELLS")
   }
+  TRUE
 }
 
-check_piper_plots_text <- function(dir = "./out/piperplots",
-                                   text_file = "./data/piper_text.xlsx",
-                                   maps = "./figures/maps/") {
+check_piper_plots_text <- function(dir_piper = f("piper"),
+                                   file_piper = f("in_data", f = "piper_text.xlsx"),
+                                   dir_maps = f("maps")) {
 
   # Check piperplots against pipertext
-  p <- tibble(file = list.files(dir, pattern = "piperplot")) %>%
+  p <- tibble(file = list.files(dir_piper, pattern = "piperplot")) %>%
     mutate(file2 = str_remove_all(file, "(piperplot_)|(.png)"),
            aquifer_id = as.numeric(str_extract(file2, "^[0-9]{4}")),
            obs_well = as.numeric(str_extract(file2, "[0-9]{4}$")),
            plot = TRUE)
 
-  p_text <- read_excel(text_file)
+  p_text <- read_excel(file_piper)
 
   # All text
   all_text <- full_join(p_text,
@@ -254,7 +211,7 @@ check_piper_plots_text <- function(dir = "./out/piperplots",
                         by = c("aquifer_id", "obs_well")) %>%
     mutate(plot = replace_na(plot, FALSE))
 
-  map_aquifers <- list.files(maps) %>%
+  map_aquifers <- list.files(dir_maps) %>%
     str_extract("[0-9]{4}") %>%
     as.numeric()
 
@@ -271,7 +228,8 @@ check_piper_plots_text <- function(dir = "./out/piperplots",
     filter(aquifer_id_gwells != aquifer_id_text)
 
   # Get water type where there is no text
-  ems <- read_csv("out/ems.csv", show_col_types = FALSE, guess_max = Inf) %>%
+  # TODO: Where does ems.csv come from?
+  ems <- read_csv(f("out_data", f = "ems.csv"), show_col_types = FALSE, guess_max = Inf) %>%
     group_by(obs_well = StationID) %>%
     select(ems_id = SampleID, obs_well, water_type) %>%
     mutate(ems_id = str_remove(ems_id, "-[0-9]+$")) %>%
@@ -297,30 +255,29 @@ check_piper_plots_text <- function(dir = "./out/piperplots",
     select(aquifer_id, obs_well, ems_id, water_type)
 
   # Backup log files
-  logs <- list.files("./out/", pattern = "LOG_PIPER_", full.names = TRUE)
-  file.copy(logs, "./out/archive/", overwrite = TRUE)
+  logs <- list.files(f("outputs"), pattern = "LOG_PIPER_", full.names = TRUE)
+  file.copy(logs, f("out_archive"), overwrite = TRUE)
   file.remove(logs)
 
   # Save new log files
   if(nrow(no_fig) > 0) {
-    f <- paste0("./out/LOG_PIPER_MISSING_FIG_", Sys.Date(), ".csv")
+    f <- paste0(f("outputs"), "/LOG_PIPER_MISSING_FIG_", Sys.Date(), ".csv")
     write_csv(no_fig, f)
     message("\nSome piperplots listed in ", text_file, " do not have ",
-            "corresponding figures in ", dir, "...\n",
+            "corresponding figures in ", dir_piper, "...\n",
             "Details saved to ", f)
   }
 
   if(nrow(no_text) > 0) {
-    f <- paste0("./out/LOG_PIPER_MISSING_TEXT_", Sys.Date(), ".csv")
+    f <- paste0(f("outputs"), "/LOG_PIPER_MISSING_TEXT_", Sys.Date(), ".csv")
     write_csv(no_text, f)
-    message("\nSome piperplots with figures in ", dir, " do not have ",
+    message("\nSome piperplots with figures in ", dir_piper, " do not have ",
             "corresponding text in ", text_file, "...\n",
             "Details saved to ", f)
-    #write_csv(all_text, paste0("./out/piper_plot_text_",  Sys.Date(), ".csv"))
   }
 
   if(nrow(wrong_id) > 0) {
-    f <- paste0("./out/LOG_PIPER_TEXT_AQUIFER_ID_", Sys.Date(), ".csv")
+    f <- paste0(f("outputs"), "/LOG_PIPER_TEXT_AQUIFER_ID_", Sys.Date(), ".csv")
     write_csv(wrong_id, f)
     message("\nSome piperplots with listed in ", text_file, " do not ",
             "correspond to the same Aquifer ID as in GWELLS...\n",
@@ -329,12 +286,12 @@ check_piper_plots_text <- function(dir = "./out/piperplots",
 
 }
 
-check_piper_plots <- function(dir = "./out/piperplots",
-                              text_file = "./data/piper_text.xlsx",
+check_piper_plots <- function(dir_piper = f("piper"),
+                              file_piper = f("in_data", "piper_text.xlsx"),
                               which = c("text")) {
 
-  if("gwells" %in% which) check_piper_plots_gwells(dir)
-  if("text" %in% which) check_piper_plots_text(dir, text_file)
+  if("gwells" %in% which) check_piper_plots_gwells(dir_piper)
+  if("text" %in% which) check_piper_plots_text(dir_piper, file_piper)
 }
 
 

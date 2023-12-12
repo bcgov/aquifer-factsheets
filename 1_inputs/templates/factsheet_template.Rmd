@@ -1,0 +1,83 @@
+---
+output: 
+  pdf_document:
+   fig_caption: false
+   includes: 
+     in_header: factsheet_template_header.tex
+geometry: margin=0.75cm
+fontsize: 11pt  
+classoption: table
+df_print: kable
+params: 
+  aq: NULL
+  ow: NULL
+  table: NULL
+  figs_p1: NULL
+  figs_p2: NULL
+  figs_p3: NULL
+  draft: FALSE
+  pages: 3
+---
+
+
+```{r, include = FALSE}
+library(here)
+cat(here::here())
+# Set some knitr options 
+# - We never want to show code, so echo = FALSE
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r data}
+# Regarding document type
+p1 <- "factsheet_template_p1.Rmd"
+p2 <- "factsheet_template_p2.Rmd"
+p3 <- "factsheet_template_p3.Rmd"
+
+aq <- params$aq  # Page 1 details and table
+ow <- params$ow  # Page 2 details
+table <- params$table
+figs_p1 <- params$figs_p1
+figs_p2 <- params$figs_p2
+figs_p3 <- params$figs_p3
+```
+
+```{r setup, include = FALSE}
+logo <- here(f("in_figures", f = "BCID_H_cmyk_rev.pdf"))
+companion_link <- paste0("https://www2.gov.bc.ca/assets/gov/environment/", # Link to companion document
+                         "air-land-water/water/water-wells/",
+                         "aquifer_factsheet_-_companion_document.pdf")
+```
+  
+  
+```{r create_page1, results = "asis"}
+cat(knitr::knit_child(p1))
+```
+
+
+```{r create_page2s, eval = nrow(figs_p2) > 0 & params$pages >= 2, results = "asis", message = FALSE}
+# Get obs wells from figure names
+
+for (o in seq_len(nrow(ow))) {
+  # Page details
+  o <- ow[o, ]
+  f2 <- dplyr::filter(figs_p2, .data$ow == o$ow)
+
+  # Create page  
+  cat("\\newpage")
+  cat(knitr::knit_child(p2))
+}
+```
+
+  
+```{r create_page3, eval = nrow(figs_p3) > 0 & params$pages >= 3, results = "asis", message = FALSE}
+
+for(i in seq(1, nrow(figs_p3), 2)) {
+  # Page Details
+  f <- dplyr::slice(figs_p3, i:(i+1))
+  
+  # Create page
+  cat("\\newpage")
+  cat(knitr::knit_child(p3))
+}
+```

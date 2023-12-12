@@ -147,6 +147,13 @@ Note that this does not mean that every anion and cation is presentT, but that
 even in their absence there is an acceptable charge balance. 
 
 
-
+## Troubleshooting
+- Sometimes you may need to have a larger temp director when downloading/unzipping
+ the EMS data. You can change where R creates the temp folder by 
+ specifying `TMPDIR=/TEMP/FOLDER/PATH` in your .Renviron, but make sure the 
+ folder exists!
+ 
+- `R non-conforming drawing primitive definition` and `cache resources exhausted ... error/cache.c/OpenPixelCache/4095` are potential errors related to piper plots
+  - Try [increasing the amount of disk space available to the program](https://stackoverflow.com/a/53699200)
 
 

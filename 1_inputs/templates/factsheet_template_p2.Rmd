@@ -7,22 +7,6 @@ letter paper is 215.9 by 279.4 mm
 26.94 / 3 = 8.98 
 -->
 
-```{r}
-
-if(length(p_text) == 0) {
-  p_text <- "No summary at this point" 
-}
-
-p_text <- str_replace_all(p_text, c(#"Ca-" = "Ca\\\\textsuperscript{-}",
-                                            #"Mg-" = "Mg\\\\textsuperscript{-}",
-                                            #"SO4-" = "SO\\\\textsubscript{4}\\\\textsuperscript{-}",
-                                            #"SO4" = "SO\\\\textsubscript{4}",
-                                            #"HCO3" = "HCO\\\\textsubscript{3}",
-                                            "\\&" = "\\\\&",
-                                            "\\#" = "\\\\#"))
-
-```
-
 \begin{tikzpicture}
 
   `r # Define coordinates`
@@ -50,14 +34,14 @@ p_text <- str_replace_all(p_text, c(#"Ca-" = "Ca\\\\textsuperscript{-}",
   
   `r  # Top blue bar with title`
   \fill[blue] ([xshift = -0.05cm]tl) rectangle ([yshift = -0.6cm, xshift = 0.05cm]tr);
-  \node[below right = 0.6cm and 0.6cm of current page.north west, white, font = \large\bf] (map_link) {\link[lightgrey]{`r paste0("https://governmentofbc.maps.arcgis.com/apps/webappviewer/index.html?id=b53cb0bf3f6848e79d66ffd09b74f00d&find=OBS\\%20WELL\\%20", sprintf("%03d", ow))`}{(Interactive map)}};
-  \node[below = 0.6cm of current page.north, white, font = \large\bf] (num) {Observation Well \#`r ow` (\link[lightgrey]{`r paste0("https://apps.nrs.gov.bc.ca/gwells/well/", wells$well_tag_number[wells$ow == ow])`}{Well record})};
-  \node[below left = 0.65cm and 0.55cm of current page.north east, white, font = \bf] (num) {Aquifer \#`r aq_num`};
+  \node[below right = 0.6cm and 0.6cm of current page.north west, white, font = \large\bf] (map_link) {\link[lightgrey]{`r o$map_link`}{(Interactive map)}};
+  \node[below = 0.6cm of current page.north, white, font = \large\bf] (num) {Observation Well \#`r o$ow` (\link[lightgrey]{`r o$well_record`}{Well record})};
+  \node[below left = 0.65cm and 0.55cm of current page.north east, white, font = \bf] (num) {Aquifer \#`r o$aquifer_id`};
 
   `r # Figures (width = 0.94\paperwidth`
-  \node[below = 0.85cm of line0, anchor = north] (ground) {\includegraphics[height = 0.29\paperheight]{`r f$combo`}};
-  \node[below = 0.85cm of line1, anchor = north] (trend) {\includegraphics[height = 0.29\paperheight]{`r f$trend`}};
-  \node[below right = 0.55cm and 1cm of line2l, anchor = north west] (piper) {\includegraphics[height = 0.29\paperheight]{`r f$piper`}};
+  \node[below = 0.85cm of line0, anchor = north] (ground) {\includegraphics[height = 0.29\paperheight]{`r here(f2$gwl_ppt)`}};
+  \node[below = 0.85cm of line1, anchor = north] (trend) {\includegraphics[height = 0.29\paperheight]{`r here(f2$gwl_trends)`}};
+  \node[below right = 0.55cm and 1cm of line2l, anchor = north west] (piper) {\includegraphics[height = 0.29\paperheight]{`r here(f2$piperplots)`}};
   
   `r # Headings`
   \node[below right = 0.75cm and 0.2cm of line0l, anchor = south west, font = \Large\bf]{Monthly Groundwater Level\textsuperscript{1} with Precipitation from Climate Normals\textsuperscript{2}};
@@ -65,7 +49,7 @@ p_text <- str_replace_all(p_text, c(#"Ca-" = "Ca\\\\textsuperscript{-}",
   \node[below right = 0.75cm and 0.2cm of line2l, anchor = south west, font = \Large\bf]{Piper Plot};
   
   `r # Piper Text`
-  \node[below left = 0.5cm and 0.5cm of line2r, anchor = north east, align = left, text width = 10cm, font = \small\bf] (pipertext){`r p_text`};
+  \node[below left = 0.5cm and 0.5cm of line2r, anchor = north east, align = left, text width = 10cm, font = \small\bf] (pipertext){`r o$piper_text`};
   
   `r # Piper Text 2`
   %\node[above left = 0.2cm and 0.5cm of br, align = left, text width = 10cm, font = \footnotesize] (pipertext2){A piper diagram is a graphical representation of the chemistry of a water sample. The cations (calcium, magnesium and sodium plus potassium) and anions (sulfate, chloride and carbonate plus hydrogen carbonate) are shown on separate ternary plots and then projected onto the diamond. Water samples shown on the Piperplot can be grouped into hydrochemical facies which provides  insight into the flow path and chemical alteration of a sample.};

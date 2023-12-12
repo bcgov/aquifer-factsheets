@@ -8,20 +8,32 @@
 # First time, make sure you have the stations cache directory setup
 # stations_dl(quiet = TRUE)
 
+# For updating ems, sometimes need more space for temp folder than is available
+# If so, temporarily change the location of the temp folder by adding:
+#
+# TMPDIR=/TEMP/FOLDER/PATH
+#
+# to the .Renviron, then MAKE SURE IT EXISTS! and restart R
+#
+# usethis::edit_r_environ()
+# tempdir() # check
 
 targets::tar_make(reporter = "verbose_positives")
-# targets::tar_make_clustermq(workers = 2) # nolint
 
-targets::tar_make_future(workers = 10,
-                         reporter = "verbose_positives")
+targets::tar_make_future(workers = 8, reporter = "verbose_positives")
+
+# Housekeeping - remove old, unused target objects
+tar_prune()
+
 
 # Troubleshooting
 # - add `browser()` to function then run:
 targets::tar_make(callr_function = NULL, reporter = "verbose_positives")
 
-# Find warnings in specific targets
-targets::tar_meta(fields = warnings, complete_only = TRUE)
 
+# Find warnings/errors in specific targets
+targets::tar_meta(fields = warnings, complete_only = TRUE)
+targets::tar_meta(fields = errors, complete_only = TRUE)
 
 
 

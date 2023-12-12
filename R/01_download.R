@@ -14,7 +14,7 @@
 
 # Download Remote Data --------------------------------------------------------
 
-aq_urls <- function(update = TRUE, dir = "data_dl") {
+aq_urls <- function(update = TRUE, dir = f("out_data")) {
   p <- fs::path(dir, "u_dl.rds")
 
   if(update || !file.exists(p)) {
@@ -71,7 +71,7 @@ aq_urls <- function(update = TRUE, dir = "data_dl") {
   u
 }
 
-aq_urls_bcdata <- function(update = TRUE, dir = "data_dl") {
+aq_urls_bcdata <- function(update = TRUE, dir = f("out_data")) {
   p <- fs::path(dir, "u_bc.rds")
 
   if(update || !file.exists(p)) {
@@ -109,16 +109,12 @@ aq_urls_bcdata <- function(update = TRUE, dir = "data_dl") {
 #' well). Returns `TRUE` which passed to `fmt_ems()`'s `update` argument. This
 #' ensures that `dl_ems()` runs before `fmt_ems()`.
 #'
-#' @param update Force an update (targets cannot detect when this is out of date)
-#'
 #' @examples
-dl_ems <- function(update = TRUE) {
+dl_ems <- function() {
 
-  update_2yr <- update ||
-    rems::get_cache_date(which = "2yr") < Sys.Date() - lubridate::years(1)
+  update_2yr <- rems::get_cache_date(which = "2yr") < Sys.Date() - lubridate::years(1)
 
-  update_hist <- update ||
-    rems::get_cache_date(which = "historic") < Sys.Date() - lubridate::years(1)
+  update_hist <- rems::get_cache_date(which = "historic") < Sys.Date() - lubridate::years(1)
 
   rems::download_historic_data(ask = FALSE, dont_update = !update_hist)
   rems::get_ems_data(ask = FALSE, dont_update = !update_2yr)
@@ -127,7 +123,41 @@ dl_ems <- function(update = TRUE) {
 }
 
 
-#' Download precipitation normals
+# Get an updated stations list
+dl_ppt_stations <- function(normals_yrs = "1981-2010") {
+  # Update stations list
+  weathercan::stations_dl(quiet = TRUE)
+  TRUE
+}
+
+
+id_ppt_stations <- function(ow_index) {
+  # For each well get 5 closest stations within 150km (not all will have data)
+  ow_index |>
+    select(aquifer_id, ow, latitude, longitude) |>
+    # Round lat/lon because some OW are off by tiny amounts between observations
+    # and we don't care (stations only has 2 decimal places)
+    mutate(latitude = round(latitude, 4),
+           longitude = round(longitude, 4)) |>
+    distinct() |>
+    mutate(
+      stations = map2(
+        latitude, longitude,
+        \(x, y) {
+          weathercan::stations_search(coords = c(x, y), dist = 150,
+                                      normals_years = normals_yrs) |>
+            select(station_name, climate_id, lat_climate = lat,
+                   lon_climate = lon, elev_climate = elev,
+                   distance) |>
+            mutate(climate_id = as.character(climate_id),
+                   n = 1:n()) |>
+            slice(1:5)
+        })) |>
+    unnest(stations)
+
+}
+
+#' Download precipitation normals for a specific station
 #'
 #' Using `wells` data, finds a list of nearby stations. Gets the nearest
 #' station within 150km with normals precipitation data and downloads it.
@@ -136,39 +166,10 @@ dl_ems <- function(update = TRUE) {
 #' @param normals_yrs Which set of normals should be downloaded?
 #' @param update Force an update (targets cannot detect when this is out of date)
 
-dl_ppt_normals <- function(ow_index, normals_yrs = "1981-2010", update = TRUE) {
-
-  # Update stations list
-  weathercan::stations_dl(quiet = TRUE)
-
-  # Get 5 closest stations within 150km (not all will have data)
-  locs <- ow_index %>%
-    select(aquifer_id, ow, latitude, longitude) %>%
-    # Round lat/lon because some OW are off by tiny amounts between observations
-    # and we don't care (stations only has 2 decimal places)
-    mutate(latitude = round(latitude, 4),
-           longitude = round(longitude, 4)) %>%
-    distinct() %>%
-    mutate(
-      stations = map2(
-        latitude, longitude,
-        ~weathercan::stations_search(coords = c(.x, .y), dist = 150,
-                                     normals_years = normals_yrs) %>%
-          select(station_name, climate_id, lat_climate = lat,
-                 lon_climate = lon, elev_climate = elev,
-                 distance) %>%
-          mutate(climate_id = as.character(climate_id),
-                 n = 1:n()) %>%
-          slice(1:5))) %>%
-    unnest(stations)
-
+dl_ppt_normals <- function(climate_id, normals_yrs = "1981-2010") {
   # Download the climate normals for all these stations
-  locs %>%
-    pull(climate_id) %>%
-    unique() %>%
-    weathercan::normals_dl() |>
+  # (need data to assess quality of missing observations etc. in 03_clean.R)
+  weathercan::normals_dl(climate_id) |>
     select(-"frost") |>
-    unnest("normals") |>
-    left_join(select(locs, "climate_id", "ow", "aquifer_id", "distance"),
-              by = "climate_id")
+    unnest("normals")
 }

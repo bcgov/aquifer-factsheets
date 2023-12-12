@@ -20,27 +20,26 @@
 
 #   source("00_functions.R")
 # })
+dirs <- c(
+  fs::dir_create(c("1_inputs", "2_outputs", "3_factsheets")),
+  fs::dir_create("1_inputs", c("archive", "data", "figures", "templates")),
+  fs::dir_create("1_inputs", "figures", c("na", "maps", "extra")),
+  fs::dir_create("2_outputs", c("archive", "data_dl", "figures")),
+  fs::dir_create("2_outputs", "figures",
+                 c("boxplots", "gwl_ppt", "gwl_trends", "piperplots"))
+)
+
+dirs <- paste0(stringr::str_extract(dirs, "(?<=(1|2)_)in|out|factsheets"), "_",
+               stringr::str_extract(
+                 dirs, paste0("archive|data_dl|data|templates|maps|extra|boxplots|",
+                              "na|gwl_ppt|gwl_trends|piperplots|(figures$)|(puts$)"))) |>
+  stringr::str_remove("_NA$|(_(?=puts))") |>
+  setNames(dirs, nm = _)
 
 
-prep_dir <- function() {
-  ## Create project directories
-  if (!dir.exists("tmp")) dir.create("tmp")
-  if (!dir.exists("data")) dir.create("data")
-  if (!dir.exists("data_dl")) dir.create("data_dl")
-  if (!dir.exists("out")) dir.create("out")
-  if (!dir.exists("out/boxplots")) dir.create("out/boxplots")
-  if (!dir.exists("out/gwl_ppt")) dir.create("out/wl_ppt")
-  if (!dir.exists("out/gwl_trends")) dir.create("out/trends")
-  if (!dir.exists("out/piperplots")) dir.create("out/piperplots")
-  if (!dir.exists("out/archive")) dir.create("out/archive")
-  if (!dir.exists("factsheets")) dir.create("factsheets")
-  if (!dir.exists("figures")) dir.create("figures")
-  if (!dir.exists("figures/maps")) dir.create("figures/maps")
-  if (!dir.exists("figures/extra")) dir.create("figures/extra")
-  if (!dir.exists("figures/na")) dir.create("figures/na")
-}
 
-#' # Figure defaults ---------------------------------------------------------
+
+# Figure defaults ---------------------------------------------------------
 bx_height <- 5.4
 bx_width <- 1.8
 
@@ -87,3 +86,5 @@ y_gradient <- function() {
                    width = unit(1, "npc"),
                    height = unit(1, "npc"), interpolate = TRUE)
 }
+
+

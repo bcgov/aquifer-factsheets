@@ -15,24 +15,7 @@ This code below uses inline R input to be dynamic AND for comments
 -->
 
 ```{r Aquifer Summary Table, results = 'asis', out.width = "35%", message = FALSE}
-# Here we create the table in latex code using the kable function.
-# We save the latex table as 't' and place it in the tikzpicture later (see below)
 
-# Remove the headings
-aquifer_table <- as.matrix(aquifer)
-colnames(aquifer_table) <- NULL
-
-# Create the table and edit
-t <- kable(aquifer_table, format = "latex", escape = FALSE, booktabs = TRUE, linesep = "") %>%
-  kable_styling(full_width = FALSE, latex_options = "striped",
-                position = "left", font_size = 9, stripe_color = "tablegrey") %>%
-  add_header_above(c("Aquifer Details" = 2), bold = TRUE) %>%
-  column_spec(1, width = "3.4cm") %>%
-  column_spec(2, width = "4.2cm") %>%
-  add_footnote(label = "* min - max", escape = FALSE, notation = "none") %>%
-  add_footnote(label = "For Hydraulic Connection see \\link{https://a100.gov.bc.ca/pub/acat/documents/r50832/HydraulicConnectMW3_1474311684426_4310694949.pdf}{guidance document}", escape = FALSE, notation = "none")
-
-t <- stringr::str_replace(t, "max\\}\\\\\\\\", "max\\}\\\\\\\\\\[-0.3em\\]")
 
 ```
 
@@ -44,22 +27,22 @@ t <- stringr::str_replace(t, "max\\}\\\\\\\\", "max\\}\\\\\\\\\\[-0.3em\\]")
   \node[below right = 0.2cm and 0.5cm of current page.north west]{\includegraphics[width = 4.25cm]{`r logo`}};
 
   `r  # Title and Aquifer number`
-  \node[below = 0.5cm of current page.north, white, font = \Huge\bf] (num) {`r aq_title`};
-  \node[below = 0.15cm of num, white, font = \Large\bf] {`r title`};
+  \node[below = 0.5cm of current page.north, white, font = \Huge\bf] (num) {`r aq$title`};
+  \node[below = 0.15cm of num, white, font = \Large\bf] {`r aq$subtitle`};
 
   `r # Map figure`
-  \node[below = 2.6cm of current page.north] (map) {\includegraphics{`r figures_p1$map`}};
+  \node[below = 2.6cm of current page.north] (map) {\includegraphics{`r here(figs_p1$maps)`}};
   
   `r # Boxplots`
-  \node[below = 0.25cm of map.south east, anchor = north east] (third) {\includegraphics[width = 0.175\paperwidth]{`r figures_p1$well_depth`}};
-  \node[left = 0cm of third.north west, anchor = north east] (second) {\includegraphics[width = 0.175\paperwidth]{`r figures_p1$water_depth`}};
-  \node[left = 0cm of second.north west, anchor = north east] (first) {\includegraphics[width = 0.175\paperwidth]{`r figures_p1$well_yield`}};
+  \node[below = 0.25cm of map.south east, anchor = north east] (third) {\includegraphics[width = 0.175\paperwidth]{`r here(figs_p1$well_depth)`}};
+  \node[left = 0cm of third.north west, anchor = north east] (second) {\includegraphics[width = 0.175\paperwidth]{`r here(figs_p1$water_depth)`}};
+  \node[left = 0cm of second.north west, anchor = north east] (first) {\includegraphics[width = 0.175\paperwidth]{`r here(figs_p1$well_yield)`}};
 
   `r # Aquifer Description`
-  \node[below = 0.35cm of map.south west, anchor = north west, align = left, text width = 8cm] (desc) {`r desc`};
+  \node[below = 0.35cm of map.south west, anchor = north west, align = left, text width = 8cm] (desc) {`r aq$desc`};
 
   `r # Aquifer Table`
-  \node[below left = 0.3cm and 0.1cm of desc.south west, anchor = north west]{\renewcommand{\arraystretch}{1.25} `r t`};
+  \node[below left = 0.3cm and 0.1cm of desc.south west, anchor = north west]{\renewcommand{\arraystretch}{1.25} `r table`};
 
   `r # Add legal disclaimer to bottom`
   \node[above right = 0.97cm and 0.8cm of current page.south west, align = left, text width = 20cm, font = \scriptsize] {\textbf{Disclaimer:} Use of information from Aquifer factsheets (accessed by BC government website) is subject to limitation of liability provisions (further described on that website).  That information is provided by the BC government as a public service on an “as is” basis, without warranty of any kind, whether express or implied, and its use is at your own risk.  Under no circumstances will the BC government, or its staff, agents and contractors, be responsible or liable to any person or business entity, for any direct, indirect, special, incidental, consequential or any other loss or damages to any person or business entity based on this factsheet or any use of information from it.};
