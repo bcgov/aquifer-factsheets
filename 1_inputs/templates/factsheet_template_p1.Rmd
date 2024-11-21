@@ -31,12 +31,12 @@ This code below uses inline R input to be dynamic AND for comments
   \node[below = 0.15cm of num, white, font = \Large\bf] {`r aq$subtitle`};
 
   `r # Map figure`
-  \node[below = 2.6cm of current page.north] (map) {\includegraphics{`r here(figs_p1$maps)`}};
+  \node[below = 2.6cm of current page.north] (map) {\includegraphics{`r here(figs_p1$p1_maps)`}};
   
   `r # Boxplots`
-  \node[below = 0.25cm of map.south east, anchor = north east] (third) {\includegraphics[width = 0.175\paperwidth]{`r here(figs_p1$well_depth)`}};
-  \node[left = 0cm of third.north west, anchor = north east] (second) {\includegraphics[width = 0.175\paperwidth]{`r here(figs_p1$water_depth)`}};
-  \node[left = 0cm of second.north west, anchor = north east] (first) {\includegraphics[width = 0.175\paperwidth]{`r here(figs_p1$well_yield)`}};
+  \node[below = 0.25cm of map.south east, anchor = north east] (third) {\includegraphics[width = 0.175\paperwidth]{`r here(figs_p1$p1_well_depth)`}};
+  \node[left = 0cm of third.north west, anchor = north east] (second) {\includegraphics[width = 0.175\paperwidth]{`r here(figs_p1$p1_water_depth)`}};
+  \node[left = 0cm of second.north west, anchor = north east] (first) {\includegraphics[width = 0.175\paperwidth]{`r here(figs_p1$p1_well_yield)`}};
 
   `r # Aquifer Description`
   \node[below = 0.35cm of map.south west, anchor = north west, align = left, text width = 8cm] (desc) {`r aq$desc`};
@@ -75,6 +75,6 @@ This code below uses inline R input to be dynamic AND for comments
 
 <!-- Add draft watermark -->
 ```{r, results = "asis"}
-  if(params$draft) draft_tag()
+  if(params$draft) fs_draft_tag()
 ```
 

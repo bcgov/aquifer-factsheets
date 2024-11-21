@@ -43,7 +43,7 @@ figs_p3 <- params$figs_p3
 ```
 
 ```{r setup, include = FALSE}
-logo <- here(f("in_figures", f = "BCID_H_cmyk_rev.pdf"))
+logo <- here(fs::path(f["inputs_figures"], "BCID_H_cmyk_rev.pdf"))
 companion_link <- paste0("https://www2.gov.bc.ca/assets/gov/environment/", # Link to companion document
                          "air-land-water/water/water-wells/",
                          "aquifer_factsheet_-_companion_document.pdf")
@@ -58,10 +58,9 @@ cat(knitr::knit_child(p1))
 ```{r create_page2s, eval = nrow(figs_p2) > 0 & params$pages >= 2, results = "asis", message = FALSE}
 # Get obs wells from figure names
 
-for (o in seq_len(nrow(ow))) {
+for (o in figs_p2$ow) {
   # Page details
-  o <- ow[o, ]
-  f2 <- dplyr::filter(figs_p2, .data$ow == o$ow)
+  f2 <- dplyr::filter(figs_p2, .data$ow == o)
 
   # Create page  
   cat("\\newpage")
@@ -72,9 +71,9 @@ for (o in seq_len(nrow(ow))) {
   
 ```{r create_page3, eval = nrow(figs_p3) > 0 & params$pages >= 3, results = "asis", message = FALSE}
 
-for(i in seq(1, nrow(figs_p3), 2)) {
+for(i in unique(figs_p3$p3_n)) {
   # Page Details
-  f <- dplyr::slice(figs_p3, i:(i+1))
+  f <- dplyr::filter(figs_p3, p3_n == i)
   
   # Create page
   cat("\\newpage")
