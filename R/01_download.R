@@ -14,7 +14,7 @@
 
 # Download Remote Data --------------------------------------------------------
 
-aq_urls <- function(update = TRUE, dir = f("out_data")) {
+aq_urls <- function(update = TRUE, dir = f["outputs_data_dl"]) {
   p <- fs::path(dir, "u_dl.rds")
 
   if(update || !file.exists(p)) {
@@ -71,7 +71,7 @@ aq_urls <- function(update = TRUE, dir = f("out_data")) {
   u
 }
 
-aq_urls_bcdata <- function(update = TRUE, dir = f("out_data")) {
+aq_urls_bcdata <- function(update = TRUE, dir = f["outputs_data_dl"]) {
   p <- fs::path(dir, "u_bc.rds")
 
   if(update || !file.exists(p)) {

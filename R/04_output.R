@@ -41,7 +41,7 @@
 #' # Boxplots: Yield Boxplots ----------------------------------------------------------
 clean_files <- function(aquifers) {
   # Remove old files (make sure no old files to interfere)
-  if(delete_old) file.remove(list.files(f("boxplots"), full.name = TRUE))
+  if(delete_old) file.remove(list.files(f["outputs_boxplots"], full.name = TRUE))
 }
 
 
@@ -123,7 +123,7 @@ plot_bx_well_yield <- function(w, bx_empty) {
                                   well_yield$layers[-length(well_yield$layers)])
     }
 
-    f <- f("boxplots", f = paste0("well_yield_", sprintf("%04d", a), ".jpg"))
+    f <- fs::path(f["outputs_boxplots"], paste0("well_yield_", sprintf("%04d", a), ".jpg"))
     ggsave(f,
            plot = well_yield,
            width = bx_width, height = bx_height, dpi = dpi)
@@ -156,7 +156,7 @@ plot_bx_well_depth <- function(w, bx_empty) {
         labs(x = paste0("Median well depth:\n", prod, " m"))
     }
 
-    f <- f("boxplots", f = paste0("well_depth_", sprintf("%04d", a), ".jpg"))
+    f <- fs::path(f["outputs_boxplots"], paste0("well_depth_", sprintf("%04d", a), ".jpg"))
     ggsave(f,
            plot = well_depth,
            width = bx_width, height = bx_height, dpi = dpi)
@@ -190,7 +190,7 @@ plot_bx_water_depth <- function(w, bx_empty) {
         labs(x = paste0("Median water depth:\n", prod, " m"))
     }
 
-    f <- f("boxplots", f = paste0("water_depth_", sprintf("%04d", a), ".jpg"))
+    f <- fs::path(f["outputs_boxplots"], paste0("water_depth_", sprintf("%04d", a), ".jpg"))
 
     ggsave(filename = f,
            plot = water_depth,
@@ -205,18 +205,18 @@ plot_bx_water_depth <- function(w, bx_empty) {
 #   in plot_bx_XXX() when not enough data
 plot_bx_empty <- function() {
   ggsave(
-    f("boxplots", f = "well_yield_NA.jpg"), plot = plot_bx_base(0, "well_yield") + plot_no_data(type = "none"),
+    fs::path(f["outputs_boxplots"], "well_yield_NA.jpg"), plot = plot_bx_base(0, "well_yield") + plot_no_data(type = "none"),
     width = bx_width, height = bx_height, dpi = dpi)
 
   ggsave(
-    f("boxplots", f = "well_depth_NA.jpg"), plot = plot_bx_base(0, "well_depth") + plot_no_data(type = "none"),
+    fs::path(f["outputs_boxplots"], "well_depth_NA.jpg"), plot = plot_bx_base(0, "well_depth") + plot_no_data(type = "none"),
     width = bx_width, height = bx_height, dpi = dpi)
 
   ggsave(
-    f("boxplots", f = "water_depth_NA.jpg"), plot = plot_bx_base(0, "water_depth") + plot_no_data(type = "none"),
+    fs::path(f["outputs_boxplots"], "water_depth_NA.jpg"), plot = plot_bx_base(0, "water_depth") + plot_no_data(type = "none"),
     width = bx_width, height = bx_height, dpi = dpi)
 
-  f("boxplots", f = c("well_yield_NA.jpg", "well_depth_NA.jpg", "water_depth_NA.jpg")) |>
+  fs::path(f["outputs_boxplots"], c("well_yield_NA.jpg", "well_depth_NA.jpg", "water_depth_NA.jpg")) |>
     stats::setNames(c("well_yield", "well_depth", "water_depth"))
 }
 
@@ -385,62 +385,56 @@ plot_wl_ppt <- function(wl, ppt) {
            y = paste0("Monthly Precipitation (mm) at\n", climate_title),
            title = wl_title)
 
-    f <- paste0(f("gwl_ppt"), "/gwl_ppt_",
-                sprintf("%04d", a),"_OW",
-                sprintf("%04d", o),".png")
+    path_out <- paste0(f["outputs_gwl_ppt"], "/gwl_ppt_",
+                       sprintf("%04d", a),"_OW",
+                       sprintf("%04d", o),".png")
 
-    ggsave(filename = f,
+    ggsave(filename = path_out,
            plot = g,
            height = combo_height, width = combo_width, dpi = dpi)
 
   } else {
-    f <- f("in_na", f = "figure_missing_gwl_ppt.png")
+    path_out <- f["inputs_na_gwl_ppt"]
     # Write an informative message to the console if there is no data for the ppt
     # message("AQUIFER ID: ", a, " OBS WELL: ", o, ", Water level data, ",
     #         "but no precipitation data\n(perhaps obs_wells_index is missing ",
     #         "CLIMATE ID for this aquifer)")
   }
-  f
+  path_out
 }
 
 
 # Groundwater level trend plot --------------------------------------------
 # - Create the plot, save as png, return filename
-plot_gwl <- function(gwl, gwl_trends) {
+plot_gwl_trends <- function(gwl, gwl_trends) {
 
   a <- gwl$aquifer_id[1]
   o <- gwl$ow[1]
 
+  # Required by bcgroundwater
   gwl <- rename(gwl, "Well_Num" = "ow")
   gwl_trends <- rename(gwl_trends, "Well_Num" = "ow")
 
   # Skip plot if < 5 years of data
-  if(gwl_trends$nYears >= 5) {
+  if(!is.na(gwl_trends$nYears) && gwl_trends$nYears >= 5) {
 
-    g <- gwl_area_plot(data = gwl,
+    g <- gwl_area_plot_customized(df = gwl,
                        trend = gwl_trends$trend_line_slope,
                        intercept = gwl_trends$trend_line_int,
                        trend_category = gwl_trends$state,
                        sig = gwl_trends$sig,
                        showInterpolated = TRUE, save = FALSE,
-                       mkperiod = "annual", show_stable_line = FALSE) +
-      labs(title = NULL) +
-      theme(legend.position = "right", legend.box = "vertical",
-            legend.margin = margin(
-              0, # Add extra spacing if no interpolated values in legend
-              if_else(any(gwl$nReadings == 0), 5.5, 45),
-              0, 5.5),
-            legend.spacing = unit(0, units = "mm"))
+                       mkperiod = "annual", show_stable_line = FALSE)
 
-    f <- paste0(f("gwl_trends"), "/gwl_trends_",
-                sprintf("%04d", as.numeric(a)),"_OW",
-                sprintf("%04d", as.numeric(o)),".png")
+    path_out <- paste0(f["outputs_gwl_trends"], "/gwl_trends_",
+                       sprintf("%04d", as.numeric(a)),"_OW",
+                       sprintf("%04d", as.numeric(o)),".png")
 
     ggsave(plot = g,
-           filename = f,
+           filename = path_out,
            height = trend_height, width = trend_width, dpi = dpi)
-  } else f <- f("in_na", f = "figure_missing_gwl_trends.png")
-  f
+  } else path_out <- f["inputs_na_gwl_trends"]
+  path_out
 }
 
 

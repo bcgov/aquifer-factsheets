@@ -5,7 +5,7 @@ factsheet <- function(aq, ow, figs_p1, figs_p2, figs_p3, pages = 3, draft = FALS
 
   # Checks
   if(is.null(data_folder)) data_folder <- getwd()
-  if(is.null(template_path)) template_path <- f("template", f = "factsheet_template.Rmd")
+  if(is.null(template_path)) template_path <- f["template_factsheet"]
   if(tolower(tools::file_ext(template_path)) != "rmd") stop("template_path must point to an .Rmd file")
 
   # File name
@@ -189,7 +189,7 @@ fs_aq_details <- function(aquifers, obs_wells) {
 fs_ow_details <- function(ow) {
 
   # Get Piper text for each obs well and add link
-  piper_text <- readxl::read_excel(f("in_data", f = "piper_text.xlsx"), sheet = 1) |>
+  piper_text <- readxl::read_excel(f["inputs_piperplots_text"], sheet = 1) |>
     rename_all(tolower) |>
     select("ow" = "obs_well", "piper_text" = "hydrogeochemistry", "ems_id") |>
     filter(piper_text != "Do not publish") |> # Omit bad plots
@@ -323,12 +323,12 @@ fig_extra <- function() {
            ow_ch = sprintf("%04d", ow)) |>
     expand_grid(type = c("gwl_ppt", "gwl_trends", "piperplot")) |>
     mutate(fig = paste0(type, "_", aq_num_ch, "_OW", ow_ch, ".png"),
-           fig = map2_chr(type, fig,  \(x, y) f(x, f = y)),
+           fig = map2_chr(type, fig,  \(x, y) fs::path(f[paste0("output_", x)], y)),
            exists = file.exists(fig),
            # Don't publish piper plots without a blurb
            exists = if_else(type == "piper" & !as.numeric(.data$ow) %in% .env$piper_text$obs_well,
                             FALSE, exists),
-           fig = replace(fig, !exists, f("in_na", f = paste0("figure_missing_", type[!exists], ".png")))) |>
+           fig = replace(fig, !exists, fs::path(f["inputs_na"], paste0("figure_missing_", type[!exists], ".png")))) |>
     mutate(missing = sum(!exists), .by = "ow") |>
     pivot_wider(names_from = type, values_from = fig) |>
     select(-"aq_num_ch", -"ow_ch")

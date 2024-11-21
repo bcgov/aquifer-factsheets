@@ -20,23 +20,49 @@
 
 #   source("00_functions.R")
 # })
-dirs <- c(
-  fs::dir_create(c("1_inputs", "2_outputs", "3_factsheets")),
-  fs::dir_create("1_inputs", c("archive", "data", "figures", "templates")),
-  fs::dir_create("1_inputs", "figures", c("na", "maps", "extra")),
-  fs::dir_create("2_outputs", c("archive", "data_dl", "figures")),
-  fs::dir_create("2_outputs", "figures",
-                 c("boxplots", "gwl_ppt", "gwl_trends", "piperplots"))
-)
 
-dirs <- paste0(stringr::str_extract(dirs, "(?<=(1|2)_)in|out|factsheets"), "_",
-               stringr::str_extract(
-                 dirs, paste0("archive|data_dl|data|templates|maps|extra|boxplots|",
-                              "na|gwl_ppt|gwl_trends|piperplots|(figures$)|(puts$)"))) |>
-  stringr::str_remove("_NA$|(_(?=puts))") |>
-  setNames(dirs, nm = _)
+# Setup the file locations
+f <- c(
+  "inputs" =               "1_inputs/",
+  "inputs_archive" =       "1_inputs/archive/",
 
+  "inputs_piperplots_text"="1_inputs/piper_text.xlsx",
+  "inputs_extra" =         "1_inputs/extra/",
+  "inputs_extra_docx" =    "1_inputs/extra/docx/",
 
+  "inputs_figures" =       "1_inputs/figures/",
+  "inputs_maps" =          "1_inputs/figures/maps/",
+
+  "inputs_na_gwl_ppt" =    "1_inputs/figures/na/figure_missing_gwl_ppt.png",
+  "inputs_na_gwl_trends" = "1_inputs/figures/na/figure_missing_gwl_trends.png",
+  "inputs_na_piperplots" = "1_inputs/figures/na/figure_missing_piperplots.png",
+
+  "inputs_templates" =     "1_inputs/templates/",
+  "template_factsheet" =   "1_inputs/templates/factsheet_template.Rmd",
+
+  "outputs" =              "2_outputs/",
+  "outputs_archive" =      "2_outputs/archive/",
+  "outputs_data_dl" =      "2_outputs/data_dl/",
+  "outputs_wells"   =      "2_outputs/wells/",
+  "outputs_final"  =       "2_outputs/final/",
+
+  "outputs_extra_txt" =    "2_outputs/extra/txt/",
+  "outputs_extra" =        "2_outputs/extra/",
+
+  "outputs_figures" =      "2_outputs/figures/",
+  "outputs_boxplots" =     "2_outputs/figures/boxplots/",
+  "outputs_gwl_ppt" =      "2_outputs/figures/gwl_ppt/",
+  "outputs_gwl_trends" =   "2_outputs/figures/gwl_trends/",
+  "outputs_piperplots" =   "2_outputs/figures/piperplots/",
+
+  "factsheets" =           "3_factsheets/",
+  "logs" =                 "4_logs/"
+  )
+
+# Create folders if they do not already exist
+f |>
+  stringr::str_subset("\\.(.)+$", negate = TRUE) |>
+  fs::dir_create()
 
 
 # Figure defaults ---------------------------------------------------------

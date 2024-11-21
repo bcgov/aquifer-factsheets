@@ -149,7 +149,7 @@ list(
 
   # Extract zip files
   tar_target(gwells_files,
-             aq_unzip(gwells_zip, f("out_data"), files = c("well.csv")), #"lithology.csv")),
+             aq_unzip(gwells_zip, f["outputs_data_dl"], files = c("well.csv")), #"lithology.csv")),
              format = "file"),
   #tar_target(wells_file, gwells_files[["well.csv"]], format = "file"),
 
