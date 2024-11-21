@@ -9,14 +9,20 @@ library(tarchetypes)
 library(future)
 library(future.callr)
 
+draft <- TRUE
+
 # Set target options:
 tar_option_set(
-  packages = c("tibble", "readr", "readxl", "fst", "fs",
+  packages = c("arrow", "tibble", "readr", "readxl", "fst", "fs",
                "dplyr", "tidyr", "purrr", "stringr", "lubridate", "ggplot2",
                "sf", "assertr", "magick", "scales",  "httr",
-               "bcgroundwater", "bcdata", "rems2aquachem",
-               "weathercan", "smwrBase", "smwrGraphs"),
-  format = "fst"  # Need to use RDS when non-dataframes
+               "bcgroundwater", "bcdata", "bcgwcat",
+               "weathercan", "smwrBase", "smwrGraphs", "pandoc",
+               "lutz"),
+  format = "fst",  # Need to use RDS when non-dataframes
+  ## For debugging a specific target
+  #debug = "pl_gwl_ppt_21bc70738765bf57",
+  #cue = tar_cue(mode = "never"),
 )
 
 # tar_make_future() configuration (okay to leave alone):
@@ -33,41 +39,37 @@ tar_source()
 update_time <- as.difftime(2, unit = "weeks") # Will update every 2 weeks
 
 # First URLs from where to download (because tar_download needs urls declared at the start)
-update <- FALSE  # only update if things seem to have changed
+update <- FALSE  # only update URLs if things seem to have changed
 u_dl <- aq_urls(update)
 u_bc <- aq_urls_bcdata(update)
 
 # Normals to use
 # TODO: Update to the next set?
+#   - 1991-2020 are expected to be completed summer 2024 https://climate.weather.gc.ca/climate_normals/faq_e.html
 normals_yrs <- "1981-2010" # Available: https://climate.weather.gc.ca/climate_normals/index_e.html
 
 # Wells / Aquifers to omit
 omit_ow <- 433        # Not in Aquifer 217, but below
 omit_ems <- "E290173" # Manually measured well
 
-# Aquifer ids subset
-sub_aq <- c()
-
 # Freeze the run (i.e. no updating)
 #tar_options_set(cue = tar_cue(mode = "never"))
 
 
-# See run.R for runs and troubleshooting
+options(timeout = max(300, getOption("timeout"))) # because some of the downloads are long!
 
+# See run.R for runs and troubleshooting
 
 # Targets -------------------------
 list(
 
   # Specify aquifers
+  tar_target(aq_maps, f["inputs_maps"], format = "file"),  # Track file changes
   tar_target(
     aq_ids, {
       fix_names(filename = "Aquifer_Map", ext = "pdf") # Check/fix map names
-      as.numeric(str_extract(list.files(f("maps")), "[0-9]{4}"))  #ALL Aquifers
+      as.numeric(str_extract(list.files(aq_maps), "[0-9]{4}"))  #ALL Aquifers
     }, format = "rds"),
-
-  # Subset for targeted factsheet re-runs
-  tar_target(aq_ids_sub,
-             if(length(sub_aq) > 0) aq_ids[aq_ids %in% sub_aq] else aq_ids),
 
   # Downloads - Alternate methods -------------------------------------
   # ONLY UPDATE if older than `update_time`
@@ -96,9 +98,9 @@ list(
     priority = 1, # So updated before the rest run
     age = update_time),
 
-  tar_age( # IDentify stations near the active OWs
+  tar_age( # Identify stations near the active OWs
     ppt_stations_index,
-    id_ppt_stations(filter(ow_index, ow_status == "Active")),
+    id_ppt_stations(ow_index_active),
     age = update_time),
 
   tar_target( # Get only unique climate_ids
@@ -120,7 +122,8 @@ list(
   tar_download(
     ow_file,
     urls = u_dl[["ow"]]$url,
-    path = u_dl[["ow"]]$path),
+    path = u_dl[["ow"]]$path,
+    method = "libcurl"),
 
   tar_download(
     gwells_zip,
@@ -147,6 +150,11 @@ list(
     urls = u_dl[["gwl_monthly"]]$url,
     paths = u_dl[["gwl_monthly"]]$path),
 
+  tar_download(
+    gwl_meta_file,
+    urls = u_dl[["gwl_meta"]]$url,
+    paths = u_dl[["gwl_meta"]]$path),
+
   # Extract zip files
   tar_target(gwells_files,
              aq_unzip(gwells_zip, f["outputs_data_dl"], files = c("well.csv")), #"lithology.csv")),
@@ -158,6 +166,10 @@ list(
              aq_read(aquifer_map_file) |> st_set_agr("constant"),
              format = "rds"),
 
+  # Index for Extra Page 3 content
+  tar_files(extra_files, fs::dir_ls(f["inputs_extra"])),  # Track file changes
+  tar_target(extra_index_file, fmt_extra_page_index(extra_files)), # Create index file
+
   # Clean data -------------------------------------------
   tar_target(licences,    fmt_licences(licences_file)),
   tar_target(subtypes,    fmt_subtypes(subtypes_file)),
@@ -166,16 +178,17 @@ list(
   tar_target(wd,          fmt_water_districts(bcmaps::water_districts(), aquifer_map)),
   tar_target(regions,     fmt_regions(bcmaps::nr_regions(), aquifer_map)),
 
-  tar_target(wells,       fmt_wells(gwells_files, aq_ids, omit_ow), cue = tar_cue(mode = "never")),
+  tar_target(wells,       fmt_wells(gwells_files, aq_ids, omit_ow)),
   tar_target(ow_index,    fmt_ow_index(wells)),
+  tar_target(ow_index_active,    filter(ow_index, ow_status == "Active")),
 
-  tar_target(wl,          fmt_water_levels(ow_file, ow_index)),
-  tar_target(ems,         fmt_ems(ow_index, omit_ems, update = ems_updated)),
+  tar_target(wl,          fmt_water_levels(ow_file, ow_index_active)),
+  tar_target(ems,         fmt_ems(ow_index_active, omit_ems, update = ems_updated)),
 
   # Only keep ow in both gwls because if none we don't plot anyway
-  tar_target(gwl_trends_pre,  fmt_gwl(gwl_trends_file, ow_index)),
+  tar_target(gwl_trends_pre,  fmt_gwl_trends(gwl_trends_file, gwl_meta_file, ow_index_active)),
   tar_target(gwl_monthly,
-             fmt_gwl(gwl_monthly_file, ow_index) |>
+             fmt_gwl_monthly(gwl_monthly_file, ow_index_active) |>
                semi_join(gwl_trends_pre, by = "ow")),
   tar_target(gwl_trends, semi_join(gwl_trends_pre, gwl_monthly, by = "ow")),
 
@@ -189,84 +202,112 @@ list(
     aquifers,
     fmt_aquifers(aquifers_file, aq_ids, wells, regions, licences, subtypes, stress, wd)),
 
-  tar_target(aq_ids_final, aquifers[["aquifer_id"]], format = "rds"),
+  # Batch work  ---------------------------------------------
+
+  # Get batches of 10 aquifers at a time for more efficient dynamic branching
+  # tar_target(aq_batch, {
+  #   batches <- ntile(aq_ids, n = floor(length(aq_ids)/10))
+  #   map(unique(batches), \(x) aq_ids[batches == x])
+  # }, format = "rds"),
+
+  # Create separate well targets to avoid re-running all boxplots if one row changes
+  #tar_target(wells_indiv, filter(wells, aquifer_id %in% aq_batch[[1]]), pattern = map(aq_batch)),
 
   # Create plots --------------------------------------------
 
   ## Boxpots -----------
 
   # - Create "No Data" plots
-  tar_target(bx_empty, plot_bx_empty(), format = "file"),
+  tar_file(bx_empty, plot_bx_empty()),
 
-  # - Group by aquifer_id (one plot per aquifer)
-  tar_group_by(wells_by_aquifer, wells, aquifer_id),
-  tar_target(bx_well_yield,
-             plot_bx_well_yield(wells_by_aquifer, bx_empty),
-             pattern = map(wells_by_aquifer), format = "file"),
-  tar_target(bx_well_depth,
-             plot_bx_well_depth(wells_by_aquifer, bx_empty),
-             pattern = map(wells_by_aquifer), format = "file"),
-  tar_target(bx_water_depth,
-             plot_bx_water_depth(wells_by_aquifer, bx_empty),
-             pattern = map(wells_by_aquifer), format = "file"),
+  tar_group_by(wells_batch, aq_group(wells), aq_group),
+
+  # - Run per well file (saved by aquifer_id - one plot per aquifer)
+  # TODO: combine these into one target
+  tar_file(boxplots, {
+    map(unique(wells_batch$aquifer_id), \(aq) {
+      data <- filter(wells_batch, aquifer_id == aq)
+      c(plot_bx_well_yield(data, bx_empty),
+        plot_bx_well_depth(data, bx_empty),
+        plot_bx_water_depth(data, bx_empty))
+    }) |> unlist()
+  }, pattern = map(wells_batch)),
 
   ## Water-level / Precipitation Plots -------------
-  # - Group by OW (one plot per observation well)
-  tar_group_by(wl_by_ow, wl, ow),
-  tar_group_by(ppt_by_ow, ppt_normals, ow),
-  tar_target(pl_wl_ppt,
-             plot_wl_ppt(wl_by_ow, ppt_by_ow),
-             pattern = map(wl_by_ow, ppt_by_ow),
-             format = "file", priority = 0),
+  # - Group by AQ batch but run for each OW (one plot per observation well)
+  tar_group_by(wl_batch, aq_group(wl), aq_group),
+  tar_group_by(ppt_batch, aq_group(ppt_normals), aq_group),
+  tar_file(pl_gwl_ppt, {
+    map(unique(c(wl_batch$ow, ppt_batch$ow)), \(o) {
+      plot_gwl_ppt(filter(wl_batch, ow == o),
+                   filter(ppt_batch, ow == o))
+    }) |> unlist()
+  }, pattern = map(wl_batch, ppt_batch), priority = 0),
 
   # Ground water levels ----------------
-  # - Group by ow (one plot per observation well)
-  tar_group_by(gwl_by_ow, gwl_monthly, ow),
-  tar_group_by(gwl_trends_by_ow, gwl_trends, ow),
-  tar_target(pl_gwl,
-             plot_gwl(gwl_by_ow, gwl_trends_by_ow),
-             pattern = map(gwl_by_ow, gwl_trends_by_ow),
-             format = "file", priority = 0),
+  # - Group by AQ batch but run for each OW (one plot per observation well)
+  tar_group_by(gwl_batch, aq_group(gwl_monthly), aq_group),
+  tar_group_by(gwl_trends_batch, aq_group(gwl_trends), aq_group),
+  tar_file(pl_gwl_trends, {
+    map(unique(c(gwl_batch$ow, gwl_trends_batch$ow)), \(o) {
+      plot_gwl_trends(filter(gwl_batch, ow == o),
+                      filter(gwl_trends_batch, ow == o))
+    }) |> unlist()
+  }, pattern = map(gwl_batch, gwl_trends_batch), priority = 0),
 
   # Piperplots -----------------
-  # - Group by StationID (one plot per observation well, called StationID in EMS)
-  tar_group_by(ems_by_ow, ems, StationID),
-  tar_target(pl_piper,
-             plot_piper(ems_by_ow),
-             pattern = map(ems_by_ow),
-             format = "file", priority = 0),
-
-  # Lists of plots ---------------------
-  # Files for Extra
-  tar_file(extra_images_file, f("extra", f = "extra_page_images.csv")),
-  tar_file(extra_index_file, f("extra", f = "extra_page_index.xlsx")),
-
-  # Plots
-  tar_target(figs_p1, fs_figs_p1(aq_ids_final, bx_water_depth, bx_well_depth, bx_well_yield)),
-  tar_target(figs_p2, fs_figs_p2(aq_ids_final, pl_wl_ppt, pl_gwl, pl_piper)),
-  tar_target(figs_p3, fs_figs_p3(aq_ids_final, extra_images_file, extra_index_file),
-             priority = 1),
-
-  # TODO: Checks for missing pipertext, why IDs in maps but not elsewhere,
-  # Or elsewhere but not in maps, etc.
+  # - Group by AQ batch but run for each StationID (one plot per observation well, called StationID in EMS)
+  tar_group_by(ems_batch, aq_group(ems), aq_group),
+  tar_file(pl_piperplot, {
+    map(unique(ems_batch$StationID), \(o) {
+      plot_piper(filter(ems_batch, StationID == o))
+    }) |> unlist()
+  }, pattern = map(ems_batch), priority = 0),
 
   # Factsheets -------------------
 
-  # Prep aquifer and obs well details overall (must have same aquifer_ids)
-  tar_target(fs_aquifers, fs_aq_details(aquifers, ow_index)),
-  tar_target(fs_ow, fs_ow_details(ow_index) |> complete(aquifer_id = aq_ids_final)),
+  # Prep details for factsheets (must have same aquifer_ids / aq_groups)
 
-  # - Group by aquifer id (one factsheet per aquifer)
-  tar_group_by(aq_by_aquifer, fs_aquifers, aquifer_id),
-  tar_group_by(ow_by_aquifer, fs_ow, aquifer_id),
-  tar_group_by(figs_p1_by_aquifer, figs_p1, aquifer_id),
-  tar_group_by(figs_p2_by_aquifer, figs_p2, aquifer_id),
-  tar_group_by(figs_p3_by_aquifer, figs_p3, aquifer_id),
+  tar_group_by(p1, fs_aq_details(aquifers, ow_index), aq_group),
+  tar_group_by(figs_p1, fs_figs_p1(p1, boxplots), aq_group),
+  tar_group_by(figs_p2,
+               fs_figs_p2(p1, pl_gwl_ppt, pl_gwl_trends, pl_piperplot, ow = ow_index),
+               aq_group, format = "rds"), # List columns
+  tar_group_by(figs_p3,
+               fs_figs_p3(p1, extra_index_file, extra_files),
+               aq_group, format = "rds"), # List columns
 
-  tar_target(
-    factsheets,
-    factsheet(aq_by_aquifer, ow_by_aquifer,
-              figs_p1_by_aquifer, figs_p2_by_aquifer, figs_p3_by_aquifer),
-    pattern = map(aq_by_aquifer, ow_by_aquifer, figs_p1_by_aquifer, figs_p2_by_aquifer, figs_p3_by_aquifer))
 
+  # Template files
+  tar_file(factsheet_templates, dir_ls(f["inputs_templates"])),
+
+  # Batch the aquifer data
+  tar_file(factsheets, {
+    map(unique(p1$aquifer_id), \(aq) {
+
+      # List all created figures to force invalidation if they change
+      boxplots
+      pl_gwl_ppt
+      pl_gwl_trends
+      pl_piperplot
+
+      factsheet(aq = filter(p1, aquifer_id == aq),
+                figs_p1 = filter(figs_p1, aquifer_id == aq),
+                figs_p2 = filter(figs_p2, aquifer_id == aq),
+                figs_p3 = filter(figs_p3, aquifer_id == aq),
+                templates = factsheet_templates,
+                draft = draft)
+    }) |> unlist()
+  }, pattern = map(p1, figs_p1, figs_p2, figs_p3),
+  deployment = "main" # Don't use parallel, sometimes can get a bit weird on names vs. contents
+  ),
+
+  # Problems --------------------
+  # TODO: Checks for missing pipertext, why IDs in maps but not elsewhere,
+  # Or elsewhere but not in maps, etc.
+  # Log all the things that need to be fixed
+  tar_file(problems, log_problems(aq_ids, pl_piperplot, figs_p2, extra_index_file, factsheets)),
+
+  # Reports --------------------------------
+  tar_file(report, report_stats(p1, figs_p2, figs_p3))
 )
