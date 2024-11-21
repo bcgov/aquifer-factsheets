@@ -71,11 +71,15 @@ aq_hc <- function() {
           "UNK", "Unknown")
 }
 
+aq_group <- function(df) {
+  mutate(df, aq_group = floor(aquifer_id/10) + 1)
+}
+
 f <- function(name, type = NULL, f = NULL) {
   d <- dirs[stringr::str_subset(names(dirs), name)]
   if(!is.null(type)) d <- stringr::str_subset(d, type)
   if(!is.null(f)) d <- fs::path(d, f)
-  d
+  unique(d)
 }
 
 

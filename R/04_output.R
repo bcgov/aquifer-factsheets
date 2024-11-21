@@ -1,44 +1,18 @@
-#' # Copyright 2020 Province of British Columbia
-#' #
-#' # Licensed under the Apache License, Version 2.0 (the "License"); you may not
-#' # use this file except in compliance with the License. You may obtain a copy of
-#' # the License at
-#' #
-#' # http://www.apache.org/licenses/LICENSE-2.0
-#' #
-#' # Unless required by applicable law or agreed to in writing, software
-#' # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#' # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#' # License for the specific language governing permissions and limitations under
-#' # the License.
-#'
-#' #
-#' # Create Plots and Figures
-#' #
-#'
-#' # Setup -------------------------------------------------------------------
-#'
+# Copyright 2020 Province of British Columbia
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
-#'
-#'
-#' # Load functions, packages and data
-#' source("00_setup.R")
-#' load("tmp/aquifer_factsheet_clean_data.RData")
-#'
 
-#'
-#' # Retired aquifers ----------------
-#'
-#' # Remove retired aquifers with message
-#' if(any(aquifers %in% aquifer_db$aquifer_id[aquifer_db$retired])) {
-#'   a <- aquifers[aquifers %in% aquifer_db$aquifer_id[aquifer_db$retired]]
-#'   message("Retired aquifers removed from run: ", paste0(a, collapse = ", "))
-#'   aquifers <- aquifers[!aquifers %in% a]
-#' }
-#'
-#'
-#'
-#' # Boxplots: Yield Boxplots ----------------------------------------------------------
 clean_files <- function(aquifers) {
   # Remove old files (make sure no old files to interfere)
   if(delete_old) file.remove(list.files(f["outputs_boxplots"], full.name = TRUE))
@@ -386,10 +360,6 @@ plot_gwl_ppt <- function(wl, ppt) {
                                    "25-75th Percentile" = "steelblue1",
                                    "Total rainfall (mm)" = "lightcyan3",
                                    "Total snowfall\n(rainfall equivalent)" = "white")) +
-      # Remove point from median line
-      guides(colour = guide_legend(order = 1,
-                                   override.aes = list(shape = c(19, NA, 19))),
-             fill = guide_legend(order = 2)) +
       labs(x = "Month",
            y = paste0("Monthly Precipitation (mm) at\n", climate_title),
            title = wl_title)
@@ -455,7 +425,7 @@ plot_piper <- function(ems, debug = FALSE) {
 
   a <- ems$aquifer_id[1]
   o <- ems$StationID[1]
-  f <- f("in_na", f = "figure_missing_piperplots.png")
+  path_out <- f["inputs_na_piperplots"]
 
   if(debug) message("   AQ: ", a, "; OW: ", o)
 
@@ -465,9 +435,12 @@ plot_piper <- function(ems, debug = FALSE) {
 
   # Note: By default piper_plot() uses only valid (abs(charge_balance) <=10) data
   if(nrow(ems) >= 1) {
-    # Make plot - Only if it would plot...
-    t <- try(piper_plot(ems, legend = FALSE), silent = TRUE)
-    if(inherits(t, "try-error")) browser()
+
+    if(debug) {
+      # Make plot - Only if it would plot...
+      t <- try(piper_plot(ems, legend = FALSE), silent = TRUE)
+      if(inherits(t, "try-error")) browser()
+    }
     if(!is.null(piper_plot(ems, legend = FALSE, plot_data = TRUE))) {
       pp <- image_graph(width = 2000, height = 2100, res = dpi)
       piper_plot(ems, legend = FALSE)
@@ -481,13 +454,13 @@ plot_piper <- function(ems, debug = FALSE) {
 
       # print(p2)  # For troubleshooting
 
-      f <- paste0(f("piperplots"), "/piperplots_",
-                  sprintf("%04d", as.numeric(a)), "_OW",
-                  sprintf("%04d", as.numeric(o)), ".png")
+      path_out <- paste0(f["outputs_piperplots"], "/piperplots_",
+                         sprintf("%04d", as.numeric(a)), "_OW",
+                         sprintf("%04d", as.numeric(o)), ".png")
 
       # Save plot
-      image_write(pp2, path = f)
+      image_write(pp2, path = path_out)
     }
   }
-  f
+  path_out
 }
