@@ -120,43 +120,53 @@ fix_names <- function(dir_maps = f["inputs_maps"], filename, ext, digits = 4) {
 
   if(length(mismatch) > 0) {
 
-    w <- paste0(type, " should have file names of ", filename, "_",
+    w <- paste0("Maps should have file names of ", filename, "_",
                 d_nice, ".", ext, ", but...")
-    mismatch <- tibble(orig = mismatch,
-                       new = mismatch)
+    mismatch <- dplyr::tibble(orig = mismatch,
+                              new = mismatch)
 
     # wrong extension?
-    if(any(!str_detect(mismatch$new, paste0(ext, "$")))) {
+    if(any(!stringr::str_detect(mismatch$new, paste0(ext, "$")))) {
       w <- paste0(w, "\n", " - some do not have the correct extension")
     }
 
     # lower/uppercase issues
-    if(any(!str_detect(mismatch$new, filename) &
-           str_detect(mismatch$new, regex(filename, ignore_case = TRUE)))) {
+    if(any(!stringr::str_detect(mismatch$new, filename) &
+           stringr::str_detect(mismatch$new, stringr::regex(filename, ignore_case = TRUE)))) {
       w <- paste0(w, "\n", " - some have incorrect upper/lower case letters. Fixing...")
-      mismatch <- mutate(mismatch,
-                         new = str_replace(new, regex(filename, ignore_case = TRUE), filename))
+      mismatch <- dplyr::mutate(mismatch,
+                         new = stringr::str_replace(new, stringr::regex(filename, ignore_case = TRUE), filename))
     }
 
     # wrong name?
-    if(any(!str_detect(mismatch$new, filename))) {
+    if(any(!stringr::str_detect(mismatch$new, filename))) {
       w <- paste0(w, "\n", " - some have an incorrect filename (even after fixing lower/upper case letters).")
     }
 
     # wrong number of digits
-    if(!any(str_detect(mismatch$new, d))) {
+    if(!all(stringr::str_detect(mismatch$new, d))) {
       w <- paste0(w, "\n", " - some have the wrong number of digits. Fixing...")
 
-      mismatch <- mutate(mismatch,
-                         id = str_extract_all(new, paste0("[0-9]{1,", digits, "}")),
-                         id = map(id, ~sprintf("%04d", as.numeric(.))),
-                         id = map_chr(id, ~paste0(., collapse = "_OW")),
-                         new = paste0(filename, "_", id, ".", ext))
+      mismatch <- dplyr::mutate(
+        mismatch,
+        id = stringr::str_extract_all(new, d),
+        id = purrr::map(id, ~unique(sprintf("%04d", as.numeric(.)))),
+        #id = purrr::map_chr(id, ~paste0(., collapse = "_OW")),
+        new = paste0(filename, "_", id, ".", ext))
     }
+
+    if(any(!stringr::str_detect(mismatch$new, paste0(filename, d, ".pdf")))) {
+      stop("Cannot fix some Map names:\n - ",
+           paste0(mismatch$orig[!stringr::str_detect(
+             mismatch$new,
+             paste0(filename, d, ".pdf"))], collapse = "\n - "),
+           call. = FALSE)
+    }
+
     message(w)
-    if(nrow(mismatch <- filter(mismatch, orig != new)) > 0) {
-      file.rename(from = file.path(dir, type, mismatch$orig),
-                  to = file.path(dir, type, mismatch$new))
+    if(nrow(mismatch <- dplyr::filter(mismatch, orig != new)) > 0) {
+      file.rename(from = file.path(dir_maps, mismatch$orig),
+                  to = file.path(dir_maps, mismatch$new))
       message(paste0(paste0("Renaming ", mismatch$orig, " to ", mismatch$new), collapse = "\n"))
     }
   }
