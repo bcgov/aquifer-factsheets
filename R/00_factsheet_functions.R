@@ -1,5 +1,7 @@
-factsheet <- function(aq, ow, figs_p1, figs_p2, figs_p3, pages = 3, draft = FALSE,
-                      data_folder = NULL, out_folder = f("factsheets"),
+factsheet <- function(aq, figs_p1, figs_p2, figs_p3,
+                      pages = 3, draft = FALSE,
+                      data_folder = NULL, out_folder = f["factsheets"],
+                      templates = NULL, # Only to trigger target rerun if they change
                       template_path = NULL,
                       keep_tex = FALSE) {
 
@@ -8,6 +10,12 @@ factsheet <- function(aq, ow, figs_p1, figs_p2, figs_p3, pages = 3, draft = FALS
   if(is.null(template_path)) template_path <- f["template_factsheet"]
   if(tolower(tools::file_ext(template_path)) != "rmd") stop("template_path must point to an .Rmd file")
 
+  # Omit empty pages
+  figs_p2 <- unnest(figs_p2, "p2") |>
+    filter(if_any(c("p2_gwl_ppt", "p2_gwl_trends", "p2_piperplots"), \(x) !is.na(x)))
+  figs_p3 <- unnest(figs_p3, "p3") |>
+    drop_na("p3_image")
+
   # File name
   out_file <- paste0("AQ_", sprintf("%05d", aq$aquifer_id), "_Aquifer_Factsheet_",
                      Sys.Date()) # Get aquifer_id with leading zeros
@@ -15,38 +23,47 @@ factsheet <- function(aq, ow, figs_p1, figs_p2, figs_p3, pages = 3, draft = FALS
 
   # Page 1
   table <- fs_aq_table(aq)        # Prep Table
-  aq <- fs_aq_check_map_link(aq)  # Check mapping link
+  aq <- fs_aq_check_map_link(aq)  # Check mapping link - KEEP here
   # TODO: Write to log if broken link?
 
-  # Page 2
-  figs_p2 <- dplyr::semi_join(figs_p2, tidyr::drop_na(ow, piper_text),
-                              by = c("aquifer_id", "ow")) # Don't publish piper plots without a blurb
-
   # Create factsheet
-  rmarkdown::render(template_path,
-                    params = list(aq = aq,
-                                  ow = ow,
-                                  figs_p1 = figs_p1,
-                                  figs_p2 = figs_p2,
-                                  figs_p3 = figs_p3,
-                                  table = table,
-                                  pages = pages,
-                                  draft = draft),
-                    output_options = list(keep_tex = keep_tex),
-                    output_file = out_file,
-                    output_dir = out_folder, clean = TRUE, quiet = TRUE)
-}
+  fs_render <- function() {
+    rmarkdown::render(template_path,
+                      params = list(aq = aq,
+                                    figs_p1 = figs_p1,
+                                    figs_p2 = figs_p2,
+                                    figs_p3 = figs_p3,
+                                    table = table,
+                                    pages = pages,
+                                    draft = draft),
+                      output_options = list(keep_tex = keep_tex),
+                      output_file = out_file,
+                      output_dir = out_folder, clean = TRUE, quiet = TRUE)
+  }
 
+  t <- try(fs_render(), silent = TRUE)
+  if(inherits(t, "try-error")) {
+    message("Re-trying render...")
+    t <- try(fs_render(), silent = TRUE)
+  }
+  if(inherits(t, "try-error")) {
+    message("Re-trying render second time...")
+    fs_render()
+  }
+
+  path(out_folder, out_file)
+}
 
 # Page 1 Aquifer description table
 fs_aq_table <- function(aq) {
 
   # Transform for factsheet
   t <- aq |>
+    dplyr::select(-dplyr::any_of(c("aq_group", "tar_group"))) |>
     dplyr::select(-"aquifer_id", -"title", -"subtitle", -"desc", -"map_report_link") |>
-    dplyr::mutate(dplyr::across(dplyr::contains("min-max"), \(x) tidyr::replace_na(x, "no data available"))) |>
-    dplyr::mutate(dplyr::across(dplyr::everything(), \(x) as.character(tidyr::replace_na(x, "Unknown")))) |>
-    tidyr::pivot_longer(cols = dplyr::everything(), names_to = "Name", values_to = "Data")
+    dplyr::mutate(dplyr::across(dplyr::contains("min-max"), \(x) replace_na(x, "no data available"))) |>
+    dplyr::mutate(dplyr::across(dplyr::everything(), \(x) as.character(replace_na(x, "Unknown")))) |>
+    pivot_longer(cols = dplyr::everything(), names_to = "Name", values_to = "Data")
 
   # Here we create the table in latex code using the kable function.
   # This is added to page 1 as the 'table' in a tikzpicture
@@ -69,7 +86,7 @@ fs_aq_table <- function(aq) {
 }
 
 # Get details for Page 1
-# NOTE: We don't check for the existance of the map report here, because would
+# NOTE: We don't check for the existence of the map report here, because would
 #   need to be re-checked if any details changed, instead we check as needed
 #   in factsheet()
 fs_aq_details <- function(aquifers, obs_wells) {
@@ -114,6 +131,7 @@ fs_aq_details <- function(aquifers, obs_wells) {
         subtitle == "" | subtitle == sprintf("%04d", aquifer_id) |
           subtitle == aquifer_id | is.na(subtitle),
         "", subtitle),
+      subtitle = str_replace_all(subtitle, "\\#", "\\\\#"),
 
       # AQ Link - Link to factsheet pdf
       # TODO: Check, should this be used somewhere?
@@ -133,7 +151,7 @@ fs_aq_details <- function(aquifers, obs_wells) {
       ~stringr::str_replace_all(., c("\\&" = "\\\\&", "\\#" = "\\\\#")))) |>
 
     dplyr::mutate(
-      ow = tidyr::replace_na(ow, "None"),
+      ow = replace_na(ow, "None"),
       size_km2 = dplyr::if_else(size_km2 != "Unknown",
                                 paste(size_km2, "km\\textsuperscript{2}"),
                                 as.character(size_km2)),
@@ -183,7 +201,8 @@ fs_aq_details <- function(aquifers, obs_wells) {
         "Aquifer Classification")
 
   dplyr::select(aq, "aquifer_id", "title", "subtitle", "desc", "map_report_link") |>
-    dplyr::left_join(aq_tbl, by = "aquifer_id")
+    dplyr::left_join(aq_tbl, by = "aquifer_id") |>
+    aq_group()
 }
 
 fs_ow_details <- function(ow) {
@@ -191,26 +210,27 @@ fs_ow_details <- function(ow) {
   # Get Piper text for each obs well and add link
   piper_text <- readxl::read_excel(f["inputs_piperplots_text"], sheet = 1) |>
     rename_all(tolower) |>
-    select("ow" = "obs_well", "piper_text" = "hydrogeochemistry", "ems_id") |>
-    filter(piper_text != "Do not publish") |> # Omit bad plots
+    select("ow" = "obs_well", "ow_piper_text" = "hydrogeochemistry", "ems_id") |>
+    filter(ow_piper_text != "Do not publish") |> # Omit bad plots
     mutate(
-      piper_text = paste0(
-        piper_text,
+      ow_piper_text = paste0(
+        ow_piper_text,
         " \\link{https://a100.gov.bc.ca/pub/ems/mainmenu.do?",
         "userAction=monitoringLocationsCriteria&bean.p_mon_locn_id=", ems_id,
         "}{For EMS water chemistry data, see EMS ID ", ems_id, "}."),
-      piper_text = str_replace_all(piper_text, c("\\&" = "\\\\&", "\\#" = "\\\\#"))) |>
-    complete(ow = .env$ow$ow, fill = list(piper_text = "No summary at this point")) |>
+      ow_piper_text = str_replace_all(ow_piper_text, c("\\&" = "\\\\&", "\\#" = "\\\\#"))) |>
+    complete(ow = .env$ow$ow, fill = list(ow_piper_text = "No summary at this point")) |>
     select(-"ems_id")
 
   ow |>
     filter(ow_status == "Active") |>
+    select("aquifer_id", "ow", "ow_well_tag_number" = "well_tag_number") |>
     left_join(piper_text, by = "ow") |>
     mutate(
-      map_link = paste0("https://governmentofbc.maps.arcgis.com/apps/webappviewer/",
+      ow_map_link = paste0("https://governmentofbc.maps.arcgis.com/apps/webappviewer/",
                         "index.html?id=b53cb0bf3f6848e79d66ffd09b74f00d&find=OBS\\%20WELL\\%20",
                         sprintf("%03d", ow)),
-      well_record = paste0("https://apps.nrs.gov.bc.ca/gwells/well/", well_tag_number))
+      ow_well_record = paste0("https://apps.nrs.gov.bc.ca/gwells/well/", ow_well_tag_number))
 }
 
 
@@ -249,32 +269,38 @@ fs_aq_check_map_link <- function(aq) {
   aq
 }
 
-fs_figs_p1 <- function(aq_ids, ...) {
-  tibble(files = unlist(list(...))) |>
+fs_figs_p1 <- function(aq_ids, boxplots) {
+  tibble(files = unlist(boxplots)) |>
     mutate(type = stringr::str_extract(files, "water_depth|well_depth|well_yield"),
            aquifer_id = as.numeric(stringr::str_extract(files, "\\d{4}"))) |>
-    tidyr::drop_na() |>
-    tidyr::pivot_wider(names_from = type, values_from = files) |>
+    drop_na() |>
+    pivot_wider(names_from = type, values_from = files) |>
+    right_join(select(aq_ids, "aquifer_id", "aq_group"), by = "aquifer_id") |>
     mutate(across(
-      -"aquifer_id",
-      \(x) if_else(is.na(x), f("boxplots", f = paste0(cur_column(), "_NA.jpg")), x))) |>
-    complete(aquifer_id = aq_ids) |>
-    filter(aquifer_id %in% aq_ids) |>
-    mutate(maps = f("maps", f = paste0("Aquifer_Map_", sprintf("%04d", aquifer_id), ".pdf")))
+      -c("aquifer_id", "aq_group"),
+      \(x) if_else(is.na(x), fs::path(f["outputs_boxplots"], paste0(cur_column(), "_NA.jpg")), x))) |>
+    rename_with(\(x) paste0("p1_", x), -c("aquifer_id", "aq_group")) |>
+    mutate(p1_maps = fs::path(f["inputs_maps"], paste0("Aquifer_Map_", sprintf("%04d", aquifer_id), ".pdf")))
 }
 
-fs_figs_p2 <- function(aq_ids, ...) {
+fs_figs_p2 <- function(aq_ids, ..., ow) {
   tibble(files = unlist(list(...))) |>
     mutate(type = stringr::str_extract(files, "gwl_ppt|gwl_trends|piperplots"),
            aquifer_id = as.numeric(stringr::str_extract(files, "\\d{4}(?=_)")),
            ow = as.numeric(stringr::str_extract(files, "\\d{4}(?=\\.)"))) |>
-    tidyr::drop_na() |>
-    tidyr::pivot_wider(names_from = type, values_from = files) |>
-    mutate(across(
-      -c("aquifer_id", "ow"),
-      \(x) if_else(is.na(x), f("in_na", f = paste0("figure_missing_", cur_column(), ".png")), x))) |>
-    complete(aquifer_id = aq_ids) |>
-    filter(aquifer_id %in% aq_ids)
+    drop_na() |>
+    pivot_wider(names_from = type, values_from = files) |>
+    # Fill in missing plots
+    mutate(
+      gwl_ppt = if_else(is.na(gwl_ppt), f["inputs_na_gwl_ppt"], gwl_ppt),
+      gwl_trends = if_else(is.na(gwl_trends), f["inputs_na_gwl_trends"], gwl_trends),
+      piperplots = if_else(is.na(piperplots), f["inputs_na_piperplots"], piperplots),
+      ) |>
+    rename_with(\(x) paste0("p2_", x), -c("aquifer_id", "ow")) |>
+    left_join(fs_ow_details(ow), by = c("aquifer_id", "ow")) |>
+    right_join(select(aq_ids, "aquifer_id", "aq_group"), by = "aquifer_id") |>
+    mutate(ow_piper_text = replace_na(ow_piper_text, "")) |>
+    nest("p2" = -c("aquifer_id", "aq_group"))
 }
 
 
