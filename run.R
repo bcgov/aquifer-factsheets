@@ -43,8 +43,8 @@ targets::tar_prune()
 
 # Recompile the companion document
 # rmarkdown::render("1_inputs/templates/factsheet_methods.Rmd",
+#                   output_file = "Aquifer Factsheet - Companion Document.pdf",
 #                   output_dir = "3_factsheets/")
-
 
 
 # Troubleshooting ------------------------

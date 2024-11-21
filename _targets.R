@@ -244,7 +244,7 @@ list(
     }) |> unlist()
   }, pattern = map(wl_batch, ppt_batch), priority = 0),
 
-  # Ground water levels ----------------
+  ## Ground water levels ----------------
   # - Group by AQ batch but run for each OW (one plot per observation well)
   tar_group_by(gwl_batch, aq_group(gwl_monthly), aq_group),
   tar_group_by(gwl_trends_batch, aq_group(gwl_trends), aq_group),
@@ -255,7 +255,7 @@ list(
     }) |> unlist()
   }, pattern = map(gwl_batch, gwl_trends_batch), priority = 0),
 
-  # Piperplots -----------------
+  ## Piperplots -----------------
   # - Group by AQ batch but run for each StationID (one plot per observation well, called StationID in EMS)
   tar_group_by(ems_batch, aq_group(ems), aq_group),
   tar_file(pl_piperplot, {
