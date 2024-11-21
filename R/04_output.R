@@ -226,8 +226,7 @@ plot_bx_empty <- function() {
 
 # Combo Water level / Precip ----------------------------------------------
 
-plot_wl_ppt <- function(wl, ppt) {
-
+plot_gwl_ppt <- function(wl, ppt) {
   a <- wl$aquifer_id[1]
   o <- wl$ow[1]
 
@@ -301,11 +300,15 @@ plot_wl_ppt <- function(wl, ppt) {
       num_yrs < 5 ~ "No Monthly Water Level Summary (only ",
       num_yrs < 10 ~ "Preliminary Monthly Water Level Summary (",
       TRUE ~ "Full Monthly Water Level Summary (") %>%
-      paste0(num_yrs, " years of data; ", wl$min_yr[1], "-", wl$max_yr[1], ")") %>%
-      paste0("\u00B9 ", ., "\n",
-             "\u00B2 Climate Normals Based on ",
-             climate_title,
-             " Environment Canada Weather Station (1981-2010)")
+      paste0(num_yrs, " years of data; ", wl$min_yr[1], "-", wl$max_yr[1], ")")
+
+    if(num_yrs == 0) wl_title <- paste0("No Monthly Water Level Summary (< 1 year of data; ",
+                                        wl$min_yr[1])
+
+    wl_title <- paste0("\u00B9 ", wl_title, "\n",
+                       "\u00B2 Climate Normals Based on ",
+                       climate_title,
+                       " Environment Canada Weather Station (1981-2010)")
 
     wl <- filter(wl, num_yrs >= 5)
 
@@ -331,12 +334,16 @@ plot_wl_ppt <- function(wl, ppt) {
         mutate(gridlines = breaks * wl_shift$mult[1] + wl_shift$shift[1]) %>%
         filter(gridlines > (max(breaks_ppt) * 1.2))
 
-      dec_points <- str_length(str_extract(breaks_wl$breaks, "[^.]*$"))
+      # Get the number of decimals in the scale
+      dec_points <- str_length(str_extract(breaks_wl$breaks, "(?<=\\.)\\d*$"))
+      dec_points <- dec_points[!is.na(dec_points)]
+      if(length(dec_points) == 0) dec_points <- 0
 
       g <- g +
         # Add secondary axis
         scale_y_continuous(
           breaks = breaks_ppt, expand = c(0.02, 0),
+          labels = scales::label_number(accuracy = 0.01),
           sec.axis = sec_axis(~ ((. - wl_shift$shift[1]) / (wl_shift$mult[1])),
                               name = "Depth to Groundwater (m below ground surface)",
                               breaks = breaks_wl$breaks,
@@ -364,15 +371,17 @@ plot_wl_ppt <- function(wl, ppt) {
           y = min_monthly_wl, colour = "Extreme Maximum")) +
         geom_point(data = wl, aes(
           x = as.numeric(month_abb),
-          y = max_monthly_wl, colour = "Extreme Minimum"))
+          y = max_monthly_wl, colour = "Extreme Minimum")) +
+        # Scales and Labels
+        # These add specific colours to the lables assigned to the aes above
+        scale_colour_manual(values = c("Extreme Maximum" = "slategray3",
+                                       "Median" = "black",
+                                       "Extreme Minimum" = "bisque3"))
     }
 
     g <- g +
       # Scales and Labels
       # These add specific colours to the lables assigned to the aes above
-      scale_colour_manual(values = c("Extreme Maximum" = "slategray3",
-                                     "Median" = "black",
-                                     "Extreme Minimum" = "bisque3")) +
       scale_fill_manual(values = c("10-90th Percentile" = "lightskyblue2",
                                    "25-75th Percentile" = "steelblue1",
                                    "Total rainfall (mm)" = "lightcyan3",

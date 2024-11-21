@@ -50,16 +50,24 @@ aq_urls <- function(update = TRUE, dir = f["outputs_data_dl"]) {
       # bcdata::bcdc_tidy_resources("a74f1b97-17f7-499b-84e7-6455e169e425")
       "gwl_trends",
       aq_bcdata_url("a74f1b97-17f7-499b-84e7-6455e169e425",
-                    "Groundwater Observation Well Water-Level Trends"),
+                    "Complete Trending Results"),
       "gwl_trends.csv",
 
       # Groundwater level monthly
       # bcdata::bcdc_search("long term groundwater")
-      # bcdata::bcdc_tidy_resources("84c06668-8a1e-4629-90a3-051bba903f22")
+      # bcdata::bcdc_tidy_resources("a74f1b97-17f7-499b-84e7-6455e169e425")
       "gwl_monthly",
-      aq_bcdata_url("84c06668-8a1e-4629-90a3-051bba903f22",
-                    "GWL_monthly.csv"),
-      "gwl_monthly.csv"
+      aq_bcdata_url("a74f1b97-17f7-499b-84e7-6455e169e425",
+                    "Monthly Median Groundwater Levels"),
+      "gwl_monthly.csv",
+
+      # Groundwater level meta
+      # bcdata::bcdc_search("long term groundwater")
+      # bcdata::bcdc_tidy_resources("a74f1b97-17f7-499b-84e7-6455e169e425")
+      "gwl_meta",
+      aq_bcdata_url("a74f1b97-17f7-499b-84e7-6455e169e425",
+                    "Annual Results"),
+      "gwl_meta.csv",
 
     ) |>
       dplyr::mutate(path = fs::path(.env$dir, .data$file))
@@ -104,20 +112,15 @@ aq_urls_bcdata <- function(update = TRUE, dir = f["outputs_data_dl"]) {
 
 #' Download EMS data bases
 #'
-#' Checks and updates/downloads EMS databases if `update = TRUE` **or** if the
-#' local data base is more than a year out-of-date (includes missing db as
-#' well). Returns `TRUE` which passed to `fmt_ems()`'s `update` argument. This
-#' ensures that `dl_ems()` runs before `fmt_ems()`.
+#' Checks and updates/downloads EMS databases if triggered by age of the target.
+#' Updates the data and then returns `TRUE` which passed to `fmt_ems()`'s
+#' `update` argument. This ensures that `dl_ems()` runs before `fmt_ems()`.
 #'
 #' @examples
 dl_ems <- function() {
 
-  update_2yr <- rems::get_cache_date(which = "2yr") < Sys.Date() - lubridate::years(1)
-
-  update_hist <- rems::get_cache_date(which = "historic") < Sys.Date() - lubridate::years(1)
-
-  rems::download_historic_data(ask = FALSE, dont_update = !update_hist)
-  rems::get_ems_data(ask = FALSE, dont_update = !update_2yr)
+  rems::download_historic_data(ask = FALSE)
+  rems::get_ems_data(ask = FALSE)
 
   TRUE
 }

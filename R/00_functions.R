@@ -45,9 +45,11 @@ aq_unzip <- function(zip, path, files) {
 }
 
 aq_bcdata_url <- function(record, name) {
-  bcdata::bcdc_tidy_resources(record) |>
-    dplyr::filter(.data$name == .env$name) |>
+  rec <- bcdata::bcdc_tidy_resources(record) |>
+    dplyr::filter(stringr::str_detect(.data$name, .env$name)) |>
     dplyr::pull(.data$url)
+  if(length(rec) > 1) stop("Matched more than one record", call. = FALSE)
+  rec
 }
 
 aq_hc <- function() {
