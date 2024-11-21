@@ -64,6 +64,18 @@ f |>
   stringr::str_subset("\\.(.)+$", negate = TRUE) |>
   fs::dir_create()
 
+# Types of page 3 extra content -------------------------------------------
+# `type` is the key
+# `heading` is the Pretty heading it will get in the output
+# `order` is the order of pages if there are more than one (i.e. Cross-section preceeds Water Budget)
+# `match` is the characters to match in the file name... so they should be consistent
+e_types <- dplyr::tribble(
+  ~type, ~heading, ~order, ~match,
+  "cross_section", "Cross-Section", 1, "Cross Section",
+  "water_budget", "Water Budget", 2, "Water Budget",
+  "numerical_model", "Numerical Groundwater Flow Model", 3, "Numerical Model",
+  "water_quality", "Water Quality", 4, "Water Quality Info")
+
 
 # Figure defaults ---------------------------------------------------------
 bx_height <- 5.4

@@ -41,16 +41,19 @@ fmt_aquifers <- function(aquifers_file, aq_ids, wells,
            retired = str_detect(tolower(aquifer_name), "retired|merged"),
            retired = if_else(is.na(retired), FALSE, retired))
 
+  #aq_ids[!aq_ids %in% a$aquifer_id]
+
   # Add Wells
   # - Calculate and add hydraulic properties wells to Aquifer data
   # - Calculate and add reported number of wells to Aquifer data
-  a <- wells |>
+  w <- wells |>
     group_by(aquifer_id) |>
     summarize(across(
       .cols = c("conductivity", "transmissivity", "storativity"),
       .fns = list(min = min_na, max = max_na, n = ~sum(!is.na(.x)))),
-      reported_no_wells = n(), .groups = "drop") |>
-    left_join(a, ., by = "aquifer_id") |>
+      reported_no_wells = n(), .groups = "drop")
+
+  a <- left_join(a, w, by = "aquifer_id") |>
     # Fill NAs with zeros
     mutate(reported_no_wells = replace_na(reported_no_wells, 0))
 
@@ -74,6 +77,8 @@ fmt_aquifers <- function(aquifers_file, aq_ids, wells,
 
   # Add water districts
   a <- left_join(a, water_district, by = "aquifer_id")
+
+  #verify(a, length(aquifer_id) == length(.env$aq_ids))
 
   a
 }
@@ -119,7 +124,6 @@ fmt_wells <- function(wells_file, aq_ids, omit_ow) {
     # - incorrectly placed in aquifer (etc.)
     # - but keep wells missing observation well numbers (i.e. keep NAs in ow)
     filter(is.na(ow) | !ow %in% omit_ow)
-
 }
 
 fmt_ow_index <- function(wells) {
@@ -209,10 +213,23 @@ fmt_stress <- function(stress_file) {
            aquifer_pumping_stress_index = result)
 }
 
-fmt_gwl <- function(gwl, ow_index) {
-  gwl |>
+fmt_gwl_trends <- function(gwl_file, gwl_meta_file, ow_index) {
+  gwl_file |>
+    aq_read(clean = FALSE) |>
+    left_join(aq_read(gwl_meta_file, clean = FALSE) |>
+                select("Well_Num", "nYears"),
+              by = "Well_Num") |>
+    rename("ow" = "Well_Num") |>
+    mutate(ow = as.numeric(ow)) |>
+    filter(period == "Yearly", time_scale == "All") |>
+    inner_join(ow_index, by = "ow", suffix = c("_gwl", ""))
+}
+
+fmt_gwl_monthly <- function(gwl_file, ow_index) {
+  gwl_file |>
     aq_read(clean = FALSE) |>
     rename("ow" = "Well_Num") |>
+    mutate(ow = as.numeric(ow)) |>
     inner_join(ow_index, by = "ow", suffix = c("_gwl", ""))
 }
 
@@ -345,3 +362,142 @@ fmt_ems <- function(ow_index, omit_ems, update = TRUE) {
     left_join(ids, by = "ems_id") |>
     rename(StationID = ow)
 }
+
+fmt_extra_page_index <- function(extra_files) {
+  #pandoc_install()
+
+  # Checks
+  non_figs <- fs::dir_ls(f["inputs_extra"], regexp = "(PNG|png|jpg|jpeg|JPG|Thumbs\\.db)",
+                         type = "file", invert = TRUE)
+  non_docs <- fs::dir_ls(f["inputs_extra_docx"], glob = "*.docx", invert = TRUE)
+
+  if(length(non_figs) > 0 | length(non_docs) > 0) {
+    stop("Extra files have non-standard files included:\n - ",
+         paste0(c(non_figs, non_docs), collapse = "\n - "),
+         call. = FALSE)
+  }
+
+  # List images
+  e_img <- tibble(path_in = dir_ls(f["inputs_extra"], regexp = "\\.(png|PNG|jpg|JPG|jpeg)")) |>
+    mutate(
+      file_in = path_file(path_in),
+      file_out = str_remove(file_in, "-"),
+      file_out = str_squish(file_out),
+      file_out = str_replace_all(file_out, c("jpeg" = "jpg", "PNG" = "png", "JPG" = "jpg")),
+      aquifer_id = str_extract(file_out, "(?<=Aquifers? )\\d{1,4}"),
+      aquifer_id = as.numeric(aquifer_id),
+      type = str_extract(path_ext_remove(file_out), "(?<=Aquifers? \\d{1,4} )(.)*$"),
+      type = tools::toTitleCase(type),
+      path_out = path(f["outputs_extra"], file_out))
+
+  filter(e_img, file_in != file_out)
+
+  # Format blurbs and create index
+  e_docx <- tibble(path_in = dir_ls(f["inputs_extra_docx"], glob = "*.docx")) |>
+    mutate(
+      path_out = str_remove(path_in, "-"),
+      path_out = str_squish(path_out),
+      aquifer_id = str_extract(path_out, "(?<=Aquifers? )\\d{1,4}"),
+      aquifer_id = as.numeric(aquifer_id),
+      type = str_extract(path_ext_remove(path_out), "(?<=Aquifers? \\d{1,4} )(.)*$"),
+      type = tools::toTitleCase(type),
+      file_out = paste0("Aquifer ", aquifer_id, " ", type, ".txt"),
+      path_out = path(f["outputs_extra_txt"], file_out))
+
+  # Checks -----------------------------
+  # TODO: Check for duplicates
+  count(e_img, aquifer_id, type) |>
+    verify(all(n == 1), error_fun = \(errors, data = NULL) message("Duplicate Images!"))
+
+  count(e_docx, aquifer_id, type) |>
+    verify(all(n == 1), error_fun = \(errors, data = NULL) message("Duplicate Blurbs!"))
+
+  # Ensure there is a blurb for each image and vice versa
+  anti_join(e_docx, e_img, by = c("aquifer_id", "type")) |>
+    verify(length(aquifer_id) == 0, error_fun = \(errors, data = NULL) message("Missing Images for Blurbs!"))
+  anti_join(e_img, e_docx, by = c("aquifer_id", "type")) |>
+    verify(length(aquifer_id) == 0, error_fun = \(errors , data = NULL) message("Missing Blurbs for Images!"))
+
+  # Ensure each type is one of an existing type
+  anti_join(e_img, e_types, by = c("type" = "match")) |>
+    verify(length(aquifer_id) == 0, error_fun = \(errors, data = NULL) message("Unrecognized types in Extra Images!"))
+  anti_join(e_docx, e_types, by = c("type" = "match")) |>
+    verify(length(aquifer_id) == 0, error_fun = \(errors, data = NULL) message("Unrecognized types in Extra Blurbs!"))
+
+  # Check for problems
+  filter(e_docx, is.na(aquifer_id) | is.na(type))
+  unique(e_docx$type)
+
+  # Conversion -------------------------------
+
+  # Clean image file names into outputs
+  fs::file_copy(e_img$path_in, e_img$path_out, overwrite = TRUE)
+
+  # Convert docx to text
+  map2(e_docx$path_in, e_docx$path_out, \(x, y) pandoc_convert(x, out = y, from = "docx", to = "latex"))
+  #pandoc_convert(e_docx$e_in[3], out = e_docx$path_out[3], from = "docx", to = "latex")
+
+  # Custom formatting and fixes
+
+  walk(e_docx$path_out, \(x) {
+
+    txt <- readr::read_lines(x) |>
+      paste0(collapse = "\n") |>
+      # Convert all \href to \link (custom styled href)
+      str_replace_all("\\\\href", "\\\\link") |>
+
+      # Remove underlines
+      str_replace_all("\\\\ul\\{([^\\}]+)\\}", "\\1")
+
+    # Fix spelling
+    txt <- str_replace_all(txt, "Refernce", "Reference")
+
+    # Add spacing between text and reference
+    txt <- str_split_1(txt, "\\n")
+    n <- str_which(txt, "Reference")[1]
+    c(txt[1:(n-1)], "\\vspace{0.5cm}", txt[n:length(txt)]) |>
+      readr::write_lines(x)
+  })
+
+
+  # Post-conversion fixes ------------------------------------------------
+
+  # Check for funny references and fix
+
+  p <- select(e_docx, path_out) |>
+    mutate(txt = map(path_out, readr::read_lines),
+           problem = map_lgl(txt, \(x) any(str_detect(x, "\\\\section\\{")))) |>
+    filter(problem) |>
+    mutate(new = map(txt, \(x) {
+
+      n <- str_which(x, "hypertarget|texorpdfstring"):length(x)
+      pp <- x[n]
+      x <- x[-n]
+      x[length(x) + 1] <- pp |>
+        paste0(collapse = "") |>
+        str_remove_all("\\\\label\\{(.)+\\}") |>
+        str_remove("\\{Reference: [^\\}\\\\]+\\}") |>
+        str_remove_all("\\\\hypertarget\\{[^\\}]+\\}") |>
+        str_replace_all("\\\\section\\{(.*)\\}", "\\1") |>
+        str_replace_all("\\\\texorpdfstring\\{(.*)\\}", "\\1") |>
+        str_replace_all("\\\\ul\\{([^\\}]+)\\}", "\\1") |>
+        str_replace_all("\\:\\.", "\\:") |>
+        str_replace_all("^\\{% (.+)\\}", "\\1") |>
+        str_squish() |>
+        str_replace("^(Reference:?)(.+)$", "\\\\textbf\\{Reference:\\2\\}") |>
+        str_replace_all("\\}((\\.)|( c\\.))\\}", "\\}\\}") |>
+        str_remove_all(" (?=\\.)")
+      x
+    }))
+
+  walk2(p$new, p$path_out, \(x, y) readr::write_lines(x, y))
+
+  # Return index
+  select(e_docx, "aquifer_id", "type", "blurb" = "file_out") |>
+    full_join(rename(e_img, "image" = "file_out"), by = c("aquifer_id", "type")) |>
+    left_join(select(e_types, heading, order, match), by = c("type" = "match")) |>
+    mutate(txt = map_chr(blurb, \(x) {
+      if(file.exists(f <- fs::path(f["outputs_extra"], "txt", x))) read_file(f) else NA_character_
+    }))
+}
+

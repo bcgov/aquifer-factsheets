@@ -277,30 +277,21 @@ fs_figs_p2 <- function(aq_ids, ...) {
     filter(aquifer_id %in% aq_ids)
 }
 
-fs_figs_p3 <- function(aq_ids, images, index) {
 
-  txt <- tibble(path = list.files(f("extra"), ".txt", full.names = TRUE)) |>
-    mutate(name = str_extract(path, "[^/]+$"),
-           name = str_remove(name, "\\.[[:alpha:]]+$"),
-           text = map_chr(path, read_file),
-           text = str_trim(text)) |>
-    select("name", "text")
+#' Process and format figures for page 3 (extra)
+#'
+#' @param aq_ids Aquifer Ids to process
+#' @param index Index file (output of fmt_extra_page_index())
+#' @param extra_files List of blurb text files, only included to trigger a re-run
+#'  of this function as a target if any of the file contents change.
+#'
+#' @noRd
+fs_figs_p3 <- function(aq_ids, index, extra_files) {
 
-  # TODO: Calculate the dimensions for the iamge
-  #  add option in files to makes smaller if need more space for the text
-  #  clip extra white space
-
-  # Extra page three figures by Aquifer
-  read_csv(images, show_col_types = FALSE) |>
-    left_join(read_excel(index), by = "type") |>
+  figs_p3 <- index |>
     arrange(order, image) |>
-    distinct() |> #in case of duplicates
-    mutate(name = str_remove(image, "\\.[[:alpha:]]+$")) |>
-    left_join(txt, by = "name") |>
-    mutate(loc = f("in_extra", f = image)) |>
-    filter(aquifer_id %in% aq_ids,
-           fs::file_exists(loc)) |> # TODO: alert if in index but no file?
-    mutate(fill = replace_na(fill, 0.5),
+    mutate(loc = fs::path(f["outputs_extra"], image)) |>
+    mutate(fill = 0.5,
            fill = fill - 0.01,
            fill_text = 0.93 - fill,
            dim = map(loc, \(x) magick::image_info(magick::image_read(x))[c("width", "height")])) |>
@@ -309,40 +300,17 @@ fs_figs_p3 <- function(aq_ids, images, index) {
                                     paste0("height = ", fill, "\\paperheight"),
                                     paste0("width = ", fill, "\\paperwidth")),
            text_position = if_else(width > height,
-                                   paste0("height = ", fill_text, "\\paperheight"),
+                                   # Full width text for full width image
+                                   paste0("width = ", 0.93, "\\paperwidth"),
+                                   # Half width text for half width image
                                    paste0("width = ", fill_text, "\\paperwidth"))) |>
-    complete(aquifer_id = aq_ids)
+    mutate(page = if_else(width > height, 1, 0.5),
+           last_page = lag(page, default = 0.5),
+           n = 1:n(),
+           n = if_else(last_page == 0.5 & page == 0.5, n[lag(n, default = 1)], n),
+           .by = "aquifer_id") |>
+    rename_with(\(x) paste0("p3_", x), .cols = -"aquifer_id")
+
+  left_join(select(aq_ids, "aquifer_id", "aq_group"), figs_p3, by = "aquifer_id") |>
+    nest("p3" = -c("aquifer_id", "aq_group"))
 }
-
-
-fig_extra <- function() {
-  # Figures by aquifer by OW
-  p2 <- ow_index |>
-    select("aquifer_id", "ow") |>
-    mutate(aq_num_ch = sprintf("%04d", aquifer_id),
-           ow_ch = sprintf("%04d", ow)) |>
-    expand_grid(type = c("gwl_ppt", "gwl_trends", "piperplot")) |>
-    mutate(fig = paste0(type, "_", aq_num_ch, "_OW", ow_ch, ".png"),
-           fig = map2_chr(type, fig,  \(x, y) fs::path(f[paste0("output_", x)], y)),
-           exists = file.exists(fig),
-           # Don't publish piper plots without a blurb
-           exists = if_else(type == "piper" & !as.numeric(.data$ow) %in% .env$piper_text$obs_well,
-                            FALSE, exists),
-           fig = replace(fig, !exists, fs::path(f["inputs_na"], paste0("figure_missing_", type[!exists], ".png")))) |>
-    mutate(missing = sum(!exists), .by = "ow") |>
-    pivot_wider(names_from = type, values_from = fig) |>
-    select(-"aq_num_ch", -"ow_ch")
-
-
-  # Extra page three figures by Aquifer
-  p3 <- read_csv(f("in_extra", f = "extra_page_images.csv"), show_col_types = FALSE) |>
-    left_join(read_excel(f("in_extra", f = "extra_page_index.xlsx")), by = "type") |>
-    arrange(order, image) |>
-    distinct() |> #in case of duplicates
-    mutate(loc = f("in_extra", f = image))
-
-  left_join(p1, p2, by = "aquifer_id") |>
-    left_join(p3, by = "aquifer_id")
-}
-
-
