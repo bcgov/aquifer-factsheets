@@ -441,9 +441,10 @@ plot_piper <- function(ems, debug = FALSE) {
       t <- try(piper_plot(ems, legend = FALSE), silent = TRUE)
       if(inherits(t, "try-error")) browser()
     }
-    if(!is.null(piper_plot(ems, legend = FALSE, plot_data = TRUE))) {
+
+    if(!is.null(piper_plot(ems, legend = FALSE, plot_data = TRUE, omit_outliers = TRUE))) {
       pp <- image_graph(width = 2000, height = 2100, res = dpi)
-      piper_plot(ems, legend = FALSE)
+      piper_plot(ems, legend = FALSE, omit_outliers = TRUE, with_Alk = TRUE)
       dev.off()
 
       # print(p)  # For troubleshooting
