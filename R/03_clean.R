@@ -435,7 +435,7 @@ fmt_extra_page_index <- function(extra_files) {
 
   # Convert docx to text
   map2(e_docx$path_in, e_docx$path_out, \(x, y) pandoc_convert(x, out = y, from = "docx", to = "latex"))
-  #pandoc_convert(e_docx$e_in[3], out = e_docx$path_out[3], from = "docx", to = "latex")
+  #pandoc_convert(e_docx$path_in[2], out = e_docx$path_out[2], from = "docx", to = "latex")
 
   # Custom formatting and fixes
 

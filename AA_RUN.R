@@ -33,9 +33,15 @@
 
 # Run targets workflow ----------------------------------
 
+# Clean up for new year of runs
+# Remove all old figures so we don't keep ones belonging to old wells, etc.
+#unlink("2_outputs/figures/piperplots/", recursive = TRUE)
+
 # TODO: Make the link check in the factsheets have a longer timeout (or a retry)
 
 targets::tar_make_future(workers = 6, reporter = "verbose_positives")
+
+# MAKE SURE TO CREATE PIPER PLOT SHEET AFTER and check for updates
 
 # Housekeeping - remove old, unused target objects
 targets::tar_prune()
@@ -45,6 +51,16 @@ targets::tar_prune()
 # rmarkdown::render("1_inputs/templates/factsheet_methods.Rmd",
 #                   output_file = "Aquifer Factsheet - Companion Document.pdf",
 #                   output_dir = "3_factsheets/")
+
+
+# Checks and interactive wrap up -----------------------------
+targets::tar_source()
+f <- piper_plot_blurbs(year = 2024)
+
+# Copy piperplot zip to factsheets folder for sharing
+fs::file_move(paste0("2_outputs//new_piperplots_", Sys.Date(), ".zip"),
+              "~/pCloudDrive/aquifer_factsheets/")
+
 
 
 # Troubleshooting ------------------------
@@ -60,13 +76,13 @@ targets::tar_meta(fields = errors, complete_only = TRUE)
 # Use the `debug` and `cue` options in `_targets.R` under `tar_option_set()`
 # to step into the exact place with a problem
 
-
 targets::tar_invalidate("figs_p2")
 
+
+
+
 # Nitty gritty troubleshooting ----------------------------------------------
-library(targets)
-library(tidyverse)
-tar_source()
+targets::tar_load_globals()
 
 tar_read(gwl_monthly)
 

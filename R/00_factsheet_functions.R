@@ -1,9 +1,44 @@
+#' Create pdf factsheet
+#'
+#' @param aq Dataframe. Aquifer information for a single aquifer
+#' @param figs_p1 Dataframe. Page 1 figure information for a single aquifer.
+#' @param figs_p2 Dataframe. Page 2 figure information for a single aquifer.
+#' @param figs_p3 Dataframe. Page 3 figure information for a single aquifer.
+#' @param pages Numeric. How many page *types* to produce 1 = main, 2 = main +
+#'   obs wells, 3 = main + obs wells + extra content
+#' @param draft Logical. Whether to write DRAFT watermark on factsheets.
+#' @param data_folder Character. Optional data location (uses wd if not supplied)
+#' @param out_folder Character. Option location for factsheet pdfs.
+#' @param templates Character. List of template files. Only used in targets
+#'   workflow to trigger re-run if the templates change but nothing else.
+#' @param template_path Character. Path to template files. Uses default if not
+#'   supplied.
+#' @param keep_tex Logical. Whether or not to keep the intermediate tex file for
+#'   troubleshooting
+#'
+#' @returns
+#' @export
+#'
+#' @examplesIf interactive()
+#' # For troubleshooting or single runs
+#' targets::tar_load_globals()
+#' targets::tar_load(c(p1, starts_with("figs")))
+#'
+#' aq <- 1039
+#' factsheet(aq = filter(p1, aquifer_id == aq),
+#'           figs_p1 = filter(figs_p1, aquifer_id == aq),
+#'           figs_p2 = filter(figs_p2, aquifer_id == aq),
+#'           figs_p3 = filter(figs_p3, aquifer_id == aq),
+#'           draft = TRUE)
+#'
 factsheet <- function(aq, figs_p1, figs_p2, figs_p3,
                       pages = 3, draft = FALSE,
                       data_folder = NULL, out_folder = f["factsheets"],
                       templates = NULL, # Only to trigger target rerun if they change
                       template_path = NULL,
                       keep_tex = FALSE) {
+
+  templates
 
   # Checks
   if(is.null(data_folder)) data_folder <- getwd()

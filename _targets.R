@@ -36,7 +36,9 @@ tar_source()
 # When to trigger older downloads to update
 # Targets can't detect changes in some data sources, so specify when to update manually
 
-update_time <- as.difftime(2, unit = "weeks") # Will update every 2 weeks
+update_time <- as.difftime(0, unit = "weeks") # Force update
+#update_time <- as.difftime(2, unit = "weeks") # Will update every 2 weeks
+#update_time <- as.difftime(52, unit = "weeks") # Freeze updates for release
 
 # First URLs from where to download (because tar_download needs urls declared at the start)
 update <- FALSE  # only update URLs if things seem to have changed
@@ -276,7 +278,6 @@ list(
   tar_group_by(figs_p3,
                fs_figs_p3(p1, extra_index_file, extra_files),
                aq_group, format = "rds"), # List columns
-
 
   # Template files
   tar_file(factsheet_templates, dir_ls(f["inputs_templates"])),
