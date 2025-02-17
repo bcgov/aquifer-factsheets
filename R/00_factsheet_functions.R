@@ -24,13 +24,41 @@
 #' targets::tar_load_globals()
 #' targets::tar_load(c(p1, starts_with("figs")))
 #'
-#' aq <- 1039
+#' aq <- 501
 #' factsheet(aq = filter(p1, aquifer_id == aq),
 #'           figs_p1 = filter(figs_p1, aquifer_id == aq),
 #'           figs_p2 = filter(figs_p2, aquifer_id == aq),
 #'           figs_p3 = filter(figs_p3, aquifer_id == aq),
 #'           draft = TRUE)
 #'
+#' # For troubleshooting new extra pages
+#' targets::tar_load_globals()
+#' targets::tar_load(c(extra_files, p1, figs_p1, figs_p2))
+#'
+#' extra_index_file <- fmt_extra_page_index()               # Prep extra pages
+#' fs_figs_p2(p1, pl_gwl_ppt, pl_gwl_trends, pl_piperplot, ow = ow_index)
+#' figs_p3 <- fs_figs_p3(p1, extra_index_file, extra_files) # Get page info
+#'
+#' aq <- 199
+#' factsheet(aq = filter(p1, aquifer_id == aq),
+#'           figs_p1 = filter(figs_p1, aquifer_id == aq),
+#'           figs_p2 = filter(figs_p2, aquifer_id == aq),
+#'           figs_p3 = filter(figs_p3, aquifer_id == aq),
+#'           draft = TRUE, keep_tex = TRUE)
+#'
+#' # For troubleshooting piperplots
+#' targets::tar_load_globals()
+#' targets::tar_load(c(p1, figs_p1, figs_p3, pl_gwl_ppt, pl_gwl_trends, pl_piperplot, ow_index))
+#'
+#' figs_p2 <- fs_figs_p2(p1, pl_gwl_ppt, pl_gwl_trends, pl_piperplot, ow = ow_index)
+#'
+#' aq <- 115
+#' factsheet(aq = filter(p1, aquifer_id == aq),
+#'           figs_p1 = filter(figs_p1, aquifer_id == aq),
+#'           figs_p2 = filter(figs_p2, aquifer_id == aq),
+#'           figs_p3 = filter(figs_p3, aquifer_id == aq),
+#'           draft = TRUE, keep_tex = TRUE)
+
 factsheet <- function(aq, figs_p1, figs_p2, figs_p3,
                       pages = 3, draft = FALSE,
                       data_folder = NULL, out_folder = f["factsheets"],
