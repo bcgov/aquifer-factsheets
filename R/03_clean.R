@@ -363,6 +363,22 @@ fmt_ems <- function(ow_index, omit_ems, update = TRUE) {
     rename(StationID = ow)
 }
 
+#' Prepare extra page files
+#'
+#' Create index and format the text from docx to Latex.
+#'
+#' @param extra_files List of files. Not actually used, but will trigger
+#'   targets re-run if files change.
+#'
+#' @returns
+#' @export
+#'
+#' @examplesIf interactive()
+#' # For troubleshooting new extra pages
+#' targets::tar_load_globals()
+#'
+#' extra_index_file <- fmt_extra_page_index()
+
 fmt_extra_page_index <- function(extra_files) {
   #pandoc_install()
 
@@ -402,7 +418,8 @@ fmt_extra_page_index <- function(extra_files) {
       type = str_extract(path_ext_remove(path_out), "(?<=Aquifers? \\d{1,4} )(.)*$"),
       type = tools::toTitleCase(type),
       file_out = paste0("Aquifer ", aquifer_id, " ", type, ".txt"),
-      path_out = path(f["outputs_extra_txt"], file_out))
+      path_out = path(f["outputs_extra_txt"], file_out)) |>
+    left_join(select(e_types, "match", "fig"), by = c("type" = "match"))
 
   # Checks -----------------------------
   # TODO: Check for duplicates
@@ -412,17 +429,17 @@ fmt_extra_page_index <- function(extra_files) {
   count(e_docx, aquifer_id, type) |>
     verify(all(n == 1), error_fun = \(errors, data = NULL) message("Duplicate Blurbs!"))
 
-  # Ensure there is a blurb for each image and vice versa
-  anti_join(e_docx, e_img, by = c("aquifer_id", "type")) |>
-    verify(length(aquifer_id) == 0, error_fun = \(errors, data = NULL) message("Missing Images for Blurbs!"))
-  anti_join(e_img, e_docx, by = c("aquifer_id", "type")) |>
-    verify(length(aquifer_id) == 0, error_fun = \(errors , data = NULL) message("Missing Blurbs for Images!"))
-
   # Ensure each type is one of an existing type
   anti_join(e_img, e_types, by = c("type" = "match")) |>
-    verify(length(aquifer_id) == 0, error_fun = \(errors, data = NULL) message("Unrecognized types in Extra Images!"))
+    verify(length(aquifer_id) == 0, error_fun = \(errors, data = NULL) message("Unrecognized types in Extra Images! (fix or add to 00_setup.R)"))
   anti_join(e_docx, e_types, by = c("type" = "match")) |>
-    verify(length(aquifer_id) == 0, error_fun = \(errors, data = NULL) message("Unrecognized types in Extra Blurbs!"))
+    verify(length(aquifer_id) == 0, error_fun = \(errors, data = NULL) message("Unrecognized types in Extra Blurbs! (fix or add to 00_setup.R)"))
+
+  # Ensure there is a blurb for each image and vice versa (Where necessary)
+  anti_join(e_docx[e_docx$fig,], e_img, by = c("aquifer_id", "type")) |>
+    verify(length(aquifer_id) == 0, error_fun = \(errors, data = NULL) message("Missing Images for Blurbs!"))
+  anti_join(e_img, e_docx[e_docx$fig,], by = c("aquifer_id", "type")) |>
+    verify(length(aquifer_id) == 0, error_fun = \(errors , data = NULL) message("Missing Blurbs for Images!"))
 
   # Check for problems
   filter(e_docx, is.na(aquifer_id) | is.na(type))
@@ -446,17 +463,25 @@ fmt_extra_page_index <- function(extra_files) {
       # Convert all \href to \link (custom styled href)
       str_replace_all("\\\\href", "\\\\link") |>
 
-      # Remove underlines
+      # Remove underlines in links
+      str_replace_all("\\\\ul\\{(\\\\link\\{[^\\}]+\\}\\{[^\\}]+\\}[^\\}]+)\\}", "\\1") |>
+
+      # Remove underlines elsewhere
       str_replace_all("\\\\ul\\{([^\\}]+)\\}", "\\1")
+
+    if(any(str_detect(txt, "footnote"))) stop("Fix footnotes in ", x, call. = FALSE)
 
     # Fix spelling
     txt <- str_replace_all(txt, "Refernce", "Reference")
 
     # Add spacing between text and reference
+
+    # Add space between paragraphs
     txt <- str_split_1(txt, "\\n")
-    n <- str_which(txt, "Reference")[1]
-    c(txt[1:(n-1)], "\\vspace{0.5cm}", txt[n:length(txt)]) |>
-      readr::write_lines(x)
+    n <- which(txt == "")
+    txt[txt == ""] <- "\n\\vspace{0.5cm}\n"
+
+    readr::write_lines(txt, x)
   })
 
 
@@ -474,7 +499,7 @@ fmt_extra_page_index <- function(extra_files) {
       pp <- x[n]
       x <- x[-n]
       x[length(x) + 1] <- pp |>
-        paste0(collapse = "") |>
+        paste0(collapse = " ") |>
         str_remove_all("\\\\label\\{(.)+\\}") |>
         str_remove("\\{Reference: [^\\}\\\\]+\\}") |>
         str_remove_all("\\\\hypertarget\\{[^\\}]+\\}") |>
@@ -484,7 +509,7 @@ fmt_extra_page_index <- function(extra_files) {
         str_replace_all("\\:\\.", "\\:") |>
         str_replace_all("^\\{% (.+)\\}", "\\1") |>
         str_squish() |>
-        str_replace("^(Reference:?)(.+)$", "\\\\textbf\\{Reference:\\2\\}") |>
+        str_replace("^(Reference:?)(.+)$", "\\\\textbf\\{Reference:\\} \\2") |>
         str_replace_all("\\}((\\.)|( c\\.))\\}", "\\}\\}") |>
         str_remove_all(" (?=\\.)")
       x

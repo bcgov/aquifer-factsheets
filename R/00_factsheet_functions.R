@@ -49,7 +49,7 @@ factsheet <- function(aq, figs_p1, figs_p2, figs_p3,
   figs_p2 <- unnest(figs_p2, "p2") |>
     filter(if_any(c("p2_gwl_ppt", "p2_gwl_trends", "p2_piperplots"), \(x) !is.na(x)))
   figs_p3 <- unnest(figs_p3, "p3") |>
-    drop_na("p3_image")
+    drop_na("p3_txt")
 
   # File name
   out_file <- paste0("AQ_", sprintf("%05d", aq$aquifer_id), "_Aquifer_Factsheet_",
@@ -347,28 +347,41 @@ fs_figs_p2 <- function(aq_ids, ..., ow) {
 #'  of this function as a target if any of the file contents change.
 #'
 #' @noRd
+#' @examplesIf interactive()
+#' targets::tar_load_globals()
+#' targets::tar_load(c(p1, starts_with("extra")))
+#' fs_figs_p3(p1, extra_index_file, extra_files)
+
 fs_figs_p3 <- function(aq_ids, index, extra_files) {
 
   figs_p3 <- index |>
     arrange(order, image) |>
     mutate(loc = fs::path(f["outputs_extra"], image)) |>
-    mutate(fill = 0.5,
-           fill = fill - 0.01,
-           fill_text = 0.93 - fill,
-           dim = map(loc, \(x) magick::image_info(magick::image_read(x))[c("width", "height")])) |>
+    mutate(
+      fill = 0.5,
+      fill = fill - 0.01,
+      fill_text = 0.93 - fill,
+      dim = map(loc, \(x) {
+        if(!is.na(x)) {
+          magick::image_info(magick::image_read(x))[c("width", "height")]
+        } else NA
+      })) |>
     unnest(dim) |>
-    mutate(image_position = if_else(width > height,
-                                    paste0("height = ", fill, "\\paperheight"),
-                                    paste0("width = ", fill, "\\paperwidth")),
-           text_position = if_else(width > height,
-                                   # Full width text for full width image
-                                   paste0("width = ", 0.93, "\\paperwidth"),
-                                   # Half width text for half width image
-                                   paste0("width = ", fill_text, "\\paperwidth"))) |>
-    mutate(page = if_else(width > height, 1, 0.5),
-           last_page = lag(page, default = 0.5),
-           n = 1:n(),
-           n = if_else(last_page == 0.5 & page == 0.5, n[lag(n, default = 1)], n),
+    mutate(
+      type = if_else((width / height) >= 1, "landscape", "portrait"),
+      image_position = if_else(type == "landscape",       # width > height,
+                               "width = \\textwidth",       # paste0("height = ", fill, "\\paperheight"),
+                               "height = 0.5\\paperheight"), # paste0("width = ", fill, "\\paperwidth")),
+      text_position = #if_else(is.na(type) | type == "landscape",
+                              # Full width text for full width image
+                              paste0("width = \\textwidth")
+                              # Half width text for half width image
+                       #       paste0("width = ", fill_text, "\\paperwidth")
+      ) |>
+    mutate(#page = if_else(width > height, 1, 0.5),
+           #last_page = lag(page, default = 0.5),
+           n = seq_len(n()),
+           #n = if_else(last_page == 0.5 & !is.na(page) & page == 0.5, n[lag(n, default = 1)], n),
            .by = "aquifer_id") |>
     rename_with(\(x) paste0("p3_", x), .cols = -"aquifer_id")
 

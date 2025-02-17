@@ -69,7 +69,7 @@ for (o in figs_p2$ow) {
 ```
 
   
-```{r create_page3, eval = nrow(figs_p3) > 0 & params$pages >= 3, results = "asis", message = FALSE}
+```{r create_page3s, eval = nrow(figs_p3) > 0 & params$pages >= 3, results = "asis", message = FALSE}
 
 for(i in unique(figs_p3$p3_n)) {
   # Page Details
