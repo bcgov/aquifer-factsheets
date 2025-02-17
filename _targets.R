@@ -36,9 +36,9 @@ tar_source()
 # When to trigger older downloads to update
 # Targets can't detect changes in some data sources, so specify when to update manually
 
-update_time <- as.difftime(0, unit = "weeks") # Force update
+#update_time <- as.difftime(0, unit = "weeks") # Force update
 #update_time <- as.difftime(2, unit = "weeks") # Will update every 2 weeks
-#update_time <- as.difftime(52, unit = "weeks") # Freeze updates for release
+update_time <- as.difftime(52, unit = "weeks") # Freeze updates for release
 
 # First URLs from where to download (because tar_download needs urls declared at the start)
 update <- FALSE  # only update URLs if things seem to have changed
