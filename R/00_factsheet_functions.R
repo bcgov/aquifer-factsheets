@@ -298,7 +298,7 @@ fs_fmt_props <- function(x_min, x_max, x_n, units) {
 
 fs_aq_check_map_link <- function(aq) {
   if(httr::http_error(httr::GET(aq$map_report_link))) {
-    aq$desc <- stringr::str_replace(aq$desc, "\\\\link\\{.*\\}", "\\\\link\\{]]}")
+    aq$desc <- stringr::str_replace(aq$desc, " \\(\\\\link\\{.*\\}\\)", "")
   }
   aq
 }
