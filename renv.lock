@@ -2309,14 +2309,14 @@
     },
     "weathercan": {
       "Package": "weathercan",
-      "Version": "0.7.2",
+      "Version": "0.7.3",
       "Source": "GitHub",
       "RemoteType": "github",
-      "RemoteHost": "api.github.com",
       "RemoteUsername": "ropensci",
       "RemoteRepo": "weathercan",
       "RemoteRef": "main",
-      "RemoteSha": "1eaf3963e5cfec1890d1b4c68d09e0e196f804e9",
+      "RemoteSha": "8bc8946e55710e277dfb3f74ea15439831f08f7d",
+      "RemoteHost": "api.github.com",
       "Requirements": [
         "R",
         "dplyr",
@@ -2335,7 +2335,7 @@
         "tidyselect",
         "xml2"
       ],
-      "Hash": "6708c3a8e1e1d058c45069b4ac981e65"
+      "Hash": "689b59efb0ae4a9e732304f8a666f5e4"
     },
     "withr": {
       "Package": "withr",

@@ -53,7 +53,7 @@ targets::tar_prune()
 #                   output_dir = "3_factsheets/")
 
 
-# Checks and interactive wrap up -----------------------------
+# WRAP UP - Checks and piper plots -----------------------------
 targets::tar_source()
 f <- piper_plot_blurbs(year = 2024)
 
