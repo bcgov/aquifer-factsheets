@@ -116,8 +116,9 @@ fix_names <- function(dir_maps = f["inputs_maps"], filename, ext, digits = 4) {
 
   f <- list.files(file.path(dir_maps))
 
-  d <- paste0("_[0-9]{", digits, "}")
-  d_nice <- paste0(rep("0", digits), collapse = "")
+  d <- paste0("(?<=_)[0-9]{1,", digits, "}")  # Pattern to replace
+  d_good <- paste0("_[0-9]{", digits, "}")    # Pattern to find/build
+  d_pretty <- paste0(rep("0", digits), collapse = "") # Pattern to display
 
   mismatch <- f[!stringr::str_detect(f, paste0(filename, d, ".", ext))]
   mismatch <- mismatch[mismatch != "Thumbs.db"]
@@ -125,7 +126,7 @@ fix_names <- function(dir_maps = f["inputs_maps"], filename, ext, digits = 4) {
   if(length(mismatch) > 0) {
 
     w <- paste0("Maps should have file names of ", filename, "_",
-                d_nice, ".", ext, ", but...")
+                d_pretty, ".", ext, ", but...")
     mismatch <- dplyr::tibble(orig = mismatch,
                               new = mismatch)
 
@@ -148,7 +149,7 @@ fix_names <- function(dir_maps = f["inputs_maps"], filename, ext, digits = 4) {
     }
 
     # wrong number of digits
-    if(!all(stringr::str_detect(mismatch$new, d))) {
+    if(!all(stringr::str_detect(mismatch$new, d_good))) {
       w <- paste0(w, "\n", " - some have the wrong number of digits. Fixing...")
 
       mismatch <- dplyr::mutate(
@@ -159,7 +160,7 @@ fix_names <- function(dir_maps = f["inputs_maps"], filename, ext, digits = 4) {
         new = paste0(filename, "_", id, ".", ext))
     }
 
-    if(any(!stringr::str_detect(mismatch$new, paste0(filename, d, ".pdf")))) {
+    if(any(!stringr::str_detect(mismatch$new, paste0(filename, d_good, ".pdf")))) {
       stop("Cannot fix some Map names:\n - ",
            paste0(mismatch$orig[!stringr::str_detect(
              mismatch$new,
