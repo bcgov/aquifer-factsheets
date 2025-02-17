@@ -81,7 +81,8 @@ report_stats <- function(p1, figs_p2, figs_p3) {
 
   p1 |>
     left_join(select(unnest(figs_p2, "p2"), "aquifer_id", starts_with("p2_")), by = "aquifer_id") |>
-    left_join(select(unnest(figs_p3, "p3"), "aquifer_id", "p3_type", "p3_path_out"), by = "aquifer_id") |>
+    left_join(select(unnest(figs_p3, "p3"), "aquifer_id", "p3_type", "p3_path_out"),
+              by = "aquifer_id",relationship = "many-to-many") |>
     mutate(across(contains("p2"), \(x) if_else(stringr::str_detect(x, "missing"), NA, x))) |>
     mutate(across(c(-"aquifer_id", -"p3_type"), \(x) !is.na(x))) |>
     mutate(p2 = p2_gwl_ppt | p2_gwl_trends | p2_piperplots,
@@ -118,7 +119,7 @@ report_stats <- function(p1, figs_p2, figs_p3) {
 #' @export
 #'
 #' @examples
-piper_plot_blurbs <- function(year, log = NULL, ems = NULL) {
+piper_plot_blurbs <- function(year, log = NULL, ems = NULL, zip = FALSE) {
 
   if(is.null(ems)) targets::tar_load("ems")
   if(is.null(log)) {
@@ -201,20 +202,23 @@ piper_plot_blurbs <- function(year, log = NULL, ems = NULL) {
   # - Sort by aquifer id, ow
   #readr::write_csv(pp, file.path(f[["outputs"]], "add_to_piper_text.csv"))
 
-  new_zip <- file.path(f[["outputs"]],
-                       paste0("new_piperplots_", Sys.Date(), ".zip"))
+  if(zip) {
+    new_zip <- file.path(f[["outputs"]],
+                         paste0("new_piperplots_", Sys.Date(), ".zip"))
 
-  pp_zip <- tidyr::drop_na(pp, aquifer_id)
+    pp_zip <- tidyr::drop_na(pp, aquifer_id)
 
-  file.path(
-    f[["outputs_piperplots"]],
-    paste0("piperplots_",
-           stringr::str_pad(pp_zip$aquifer_id, pad = 0, width = 4),
-           "_OW",
-           stringr::str_pad(pp_zip$obs_well, pad = 0, width = 4),
-           ".png")) |>
-    zip(new_zip, file = _, flags = "-r9Xj")
+    file.path(
+      f[["outputs_piperplots"]],
+      paste0("piperplots_",
+             stringr::str_pad(pp_zip$aquifer_id, pad = 0, width = 4),
+             "_OW",
+             stringr::str_pad(pp_zip$obs_well, pad = 0, width = 4),
+             ".png")) |>
+      zip(new_zip, file = _, flags = "-r9Xj")
 
+    new_zip
+  } else new_zip <- NULL
   new_zip
 }
 
@@ -281,7 +285,7 @@ create_piper_xlsx <- function(pp) {
   # Also keep a backup copy
   fs::file_copy(
     f[["inputs_piperplots_text"]],
-    fs::path(f[["inputs_archive"]]), paste0("piper_text_", Sys.Date(), "_auto.xlsx"),
+    fs::path(f[["inputs_archive"]], paste0("piper_text_", Sys.Date(), "_auto.xlsx")),
     overwrite = TRUE)
 }
 

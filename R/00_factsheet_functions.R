@@ -246,7 +246,6 @@ fs_ow_details <- function(ow) {
   piper_text <- readxl::read_excel(f["inputs_piperplots_text"], sheet = 1) |>
     rename_all(tolower) |>
     select("ow" = "obs_well", "ow_piper_text" = "hydrogeochemistry", "ems_id") |>
-    filter(ow_piper_text != "Do not publish") |> # Omit bad plots
     mutate(
       ow_piper_text = paste0(
         ow_piper_text,
@@ -254,7 +253,7 @@ fs_ow_details <- function(ow) {
         "userAction=monitoringLocationsCriteria&bean.p_mon_locn_id=", ems_id,
         "}{For EMS water chemistry data, see EMS ID ", ems_id, "}."),
       ow_piper_text = str_replace_all(ow_piper_text, c("\\&" = "\\\\&", "\\#" = "\\\\#"))) |>
-    complete(ow = .env$ow$ow, fill = list(ow_piper_text = "No summary at this point")) |>
+    complete(ow = .env$ow$ow, fill = list(ow_piper_text = "")) |>
     select(-"ems_id")
 
   ow |>
@@ -319,20 +318,30 @@ fs_figs_p1 <- function(aq_ids, boxplots) {
 }
 
 fs_figs_p2 <- function(aq_ids, ..., ow) {
+
   tibble(files = unlist(list(...))) |>
     mutate(type = stringr::str_extract(files, "gwl_ppt|gwl_trends|piperplots"),
            aquifer_id = as.numeric(stringr::str_extract(files, "\\d{4}(?=_)")),
            ow = as.numeric(stringr::str_extract(files, "\\d{4}(?=\\.)"))) |>
     drop_na() |>
     pivot_wider(names_from = type, values_from = files) |>
+
+    # Omit bad piperplots
+    left_join(fs_ow_details(ow), by = c("aquifer_id", "ow")) |>
+    mutate(
+      piper_na = str_detect(tolower(ow_piper_text), "do not publish"),
+      piperplots = if_else(piper_na, NA_character_, piperplots),
+      ow_piper_text = if_else(piper_na, NA_character_, ow_piper_text)) |>
+
     # Fill in missing plots
     mutate(
       gwl_ppt = if_else(is.na(gwl_ppt), f["inputs_na_gwl_ppt"], gwl_ppt),
       gwl_trends = if_else(is.na(gwl_trends), f["inputs_na_gwl_trends"], gwl_trends),
       piperplots = if_else(is.na(piperplots), f["inputs_na_piperplots"], piperplots),
       ) |>
-    rename_with(\(x) paste0("p2_", x), -c("aquifer_id", "ow")) |>
-    left_join(fs_ow_details(ow), by = c("aquifer_id", "ow")) |>
+
+    # Identify as P2s
+    rename_with(\(x) paste0("p2_", x), all_of(c("gwl_ppt", "gwl_trends", "piperplots"))) |>
     right_join(select(aq_ids, "aquifer_id", "aq_group"), by = "aquifer_id") |>
     mutate(ow_piper_text = replace_na(ow_piper_text, "")) |>
     nest("p2" = -c("aquifer_id", "aq_group"))
