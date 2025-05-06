@@ -1,12 +1,83 @@
-factsheet <- function(aq, ow, figs_p1, figs_p2, figs_p3, pages = 3, draft = FALSE,
-                      data_folder = NULL, out_folder = f("factsheets"),
+#' Create pdf factsheet
+#'
+#' @param aq Dataframe. Aquifer information for a single aquifer
+#' @param figs_p1 Dataframe. Page 1 figure information for a single aquifer.
+#' @param figs_p2 Dataframe. Page 2 figure information for a single aquifer.
+#' @param figs_p3 Dataframe. Page 3 figure information for a single aquifer.
+#' @param pages Numeric. How many page *types* to produce 1 = main, 2 = main +
+#'   obs wells, 3 = main + obs wells + extra content
+#' @param draft Logical. Whether to write DRAFT watermark on factsheets.
+#' @param data_folder Character. Optional data location (uses wd if not supplied)
+#' @param out_folder Character. Option location for factsheet pdfs.
+#' @param templates Character. List of template files. Only used in targets
+#'   workflow to trigger re-run if the templates change but nothing else.
+#' @param template_path Character. Path to template files. Uses default if not
+#'   supplied.
+#' @param keep_tex Logical. Whether or not to keep the intermediate tex file for
+#'   troubleshooting
+#'
+#' @returns
+#' @export
+#'
+#' @examplesIf interactive()
+#' # For troubleshooting or single runs
+#' targets::tar_load_globals()
+#' targets::tar_load(c(p1, starts_with("figs")))
+#'
+#' aq <- 501
+#' factsheet(aq = filter(p1, aquifer_id == aq),
+#'           figs_p1 = filter(figs_p1, aquifer_id == aq),
+#'           figs_p2 = filter(figs_p2, aquifer_id == aq),
+#'           figs_p3 = filter(figs_p3, aquifer_id == aq),
+#'           draft = TRUE)
+#'
+#' # For troubleshooting new extra pages
+#' targets::tar_load_globals()
+#' targets::tar_load(c(extra_files, p1, figs_p1, figs_p2))
+#'
+#' extra_index_file <- fmt_extra_page_index()               # Prep extra pages
+#' fs_figs_p2(p1, pl_gwl_ppt, pl_gwl_trends, pl_piperplot, ow = ow_index)
+#' figs_p3 <- fs_figs_p3(p1, extra_index_file, extra_files) # Get page info
+#'
+#' aq <- 199
+#' factsheet(aq = filter(p1, aquifer_id == aq),
+#'           figs_p1 = filter(figs_p1, aquifer_id == aq),
+#'           figs_p2 = filter(figs_p2, aquifer_id == aq),
+#'           figs_p3 = filter(figs_p3, aquifer_id == aq),
+#'           draft = TRUE, keep_tex = TRUE)
+#'
+#' # For troubleshooting piperplots
+#' targets::tar_load_globals()
+#' targets::tar_load(c(p1, figs_p1, figs_p3, pl_gwl_ppt, pl_gwl_trends, pl_piperplot, ow_index))
+#'
+#' figs_p2 <- fs_figs_p2(p1, pl_gwl_ppt, pl_gwl_trends, pl_piperplot, ow = ow_index)
+#'
+#' aq <- 115
+#' factsheet(aq = filter(p1, aquifer_id == aq),
+#'           figs_p1 = filter(figs_p1, aquifer_id == aq),
+#'           figs_p2 = filter(figs_p2, aquifer_id == aq),
+#'           figs_p3 = filter(figs_p3, aquifer_id == aq),
+#'           draft = TRUE, keep_tex = TRUE)
+
+factsheet <- function(aq, figs_p1, figs_p2, figs_p3,
+                      pages = 3, draft = FALSE,
+                      data_folder = NULL, out_folder = f["factsheets"],
+                      templates = NULL, # Only to trigger target rerun if they change
                       template_path = NULL,
                       keep_tex = FALSE) {
 
+  templates
+
   # Checks
   if(is.null(data_folder)) data_folder <- getwd()
-  if(is.null(template_path)) template_path <- f("template", f = "factsheet_template.Rmd")
+  if(is.null(template_path)) template_path <- f["template_factsheet"]
   if(tolower(tools::file_ext(template_path)) != "rmd") stop("template_path must point to an .Rmd file")
+
+  # Omit empty pages
+  figs_p2 <- unnest(figs_p2, "p2") |>
+    filter(if_any(c("p2_gwl_ppt", "p2_gwl_trends", "p2_piperplots"), \(x) !is.na(x)))
+  figs_p3 <- unnest(figs_p3, "p3") |>
+    drop_na("p3_txt")
 
   # File name
   out_file <- paste0("AQ_", sprintf("%05d", aq$aquifer_id), "_Aquifer_Factsheet_",
@@ -15,38 +86,47 @@ factsheet <- function(aq, ow, figs_p1, figs_p2, figs_p3, pages = 3, draft = FALS
 
   # Page 1
   table <- fs_aq_table(aq)        # Prep Table
-  aq <- fs_aq_check_map_link(aq)  # Check mapping link
+  aq <- fs_aq_check_map_link(aq)  # Check mapping link - KEEP here
   # TODO: Write to log if broken link?
 
-  # Page 2
-  figs_p2 <- dplyr::semi_join(figs_p2, tidyr::drop_na(ow, piper_text),
-                              by = c("aquifer_id", "ow")) # Don't publish piper plots without a blurb
-
   # Create factsheet
-  rmarkdown::render(template_path,
-                    params = list(aq = aq,
-                                  ow = ow,
-                                  figs_p1 = figs_p1,
-                                  figs_p2 = figs_p2,
-                                  figs_p3 = figs_p3,
-                                  table = table,
-                                  pages = pages,
-                                  draft = draft),
-                    output_options = list(keep_tex = keep_tex),
-                    output_file = out_file,
-                    output_dir = out_folder, clean = TRUE, quiet = TRUE)
-}
+  fs_render <- function() {
+    rmarkdown::render(template_path,
+                      params = list(aq = aq,
+                                    figs_p1 = figs_p1,
+                                    figs_p2 = figs_p2,
+                                    figs_p3 = figs_p3,
+                                    table = table,
+                                    pages = pages,
+                                    draft = draft),
+                      output_options = list(keep_tex = keep_tex),
+                      output_file = out_file,
+                      output_dir = out_folder, clean = TRUE, quiet = TRUE)
+  }
 
+  t <- try(fs_render(), silent = TRUE)
+  if(inherits(t, "try-error")) {
+    message("Re-trying render...")
+    t <- try(fs_render(), silent = TRUE)
+  }
+  if(inherits(t, "try-error")) {
+    message("Re-trying render second time...")
+    fs_render()
+  }
+
+  path(out_folder, out_file)
+}
 
 # Page 1 Aquifer description table
 fs_aq_table <- function(aq) {
 
   # Transform for factsheet
   t <- aq |>
+    dplyr::select(-dplyr::any_of(c("aq_group", "tar_group"))) |>
     dplyr::select(-"aquifer_id", -"title", -"subtitle", -"desc", -"map_report_link") |>
-    dplyr::mutate(dplyr::across(dplyr::contains("min-max"), \(x) tidyr::replace_na(x, "no data available"))) |>
-    dplyr::mutate(dplyr::across(dplyr::everything(), \(x) as.character(tidyr::replace_na(x, "Unknown")))) |>
-    tidyr::pivot_longer(cols = dplyr::everything(), names_to = "Name", values_to = "Data")
+    dplyr::mutate(dplyr::across(dplyr::contains("min-max"), \(x) replace_na(x, "no data available"))) |>
+    dplyr::mutate(dplyr::across(dplyr::everything(), \(x) as.character(replace_na(x, "Unknown")))) |>
+    pivot_longer(cols = dplyr::everything(), names_to = "Name", values_to = "Data")
 
   # Here we create the table in latex code using the kable function.
   # This is added to page 1 as the 'table' in a tikzpicture
@@ -69,7 +149,7 @@ fs_aq_table <- function(aq) {
 }
 
 # Get details for Page 1
-# NOTE: We don't check for the existance of the map report here, because would
+# NOTE: We don't check for the existence of the map report here, because would
 #   need to be re-checked if any details changed, instead we check as needed
 #   in factsheet()
 fs_aq_details <- function(aquifers, obs_wells) {
@@ -114,6 +194,7 @@ fs_aq_details <- function(aquifers, obs_wells) {
         subtitle == "" | subtitle == sprintf("%04d", aquifer_id) |
           subtitle == aquifer_id | is.na(subtitle),
         "", subtitle),
+      subtitle = str_replace_all(subtitle, "\\#", "\\\\#"),
 
       # AQ Link - Link to factsheet pdf
       # TODO: Check, should this be used somewhere?
@@ -133,7 +214,7 @@ fs_aq_details <- function(aquifers, obs_wells) {
       ~stringr::str_replace_all(., c("\\&" = "\\\\&", "\\#" = "\\\\#")))) |>
 
     dplyr::mutate(
-      ow = tidyr::replace_na(ow, "None"),
+      ow = replace_na(ow, "None"),
       size_km2 = dplyr::if_else(size_km2 != "Unknown",
                                 paste(size_km2, "km\\textsuperscript{2}"),
                                 as.character(size_km2)),
@@ -183,34 +264,35 @@ fs_aq_details <- function(aquifers, obs_wells) {
         "Aquifer Classification")
 
   dplyr::select(aq, "aquifer_id", "title", "subtitle", "desc", "map_report_link") |>
-    dplyr::left_join(aq_tbl, by = "aquifer_id")
+    dplyr::left_join(aq_tbl, by = "aquifer_id") |>
+    aq_group()
 }
 
 fs_ow_details <- function(ow) {
 
   # Get Piper text for each obs well and add link
-  piper_text <- readxl::read_excel(f("in_data", f = "piper_text.xlsx"), sheet = 1) |>
+  piper_text <- readxl::read_excel(f["inputs_piperplots_text"], sheet = 1) |>
     rename_all(tolower) |>
-    select("ow" = "obs_well", "piper_text" = "hydrogeochemistry", "ems_id") |>
-    filter(piper_text != "Do not publish") |> # Omit bad plots
+    select("ow" = "obs_well", "ow_piper_text" = "hydrogeochemistry", "ems_id") |>
     mutate(
-      piper_text = paste0(
-        piper_text,
+      ow_piper_text = paste0(
+        ow_piper_text,
         " \\link{https://a100.gov.bc.ca/pub/ems/mainmenu.do?",
         "userAction=monitoringLocationsCriteria&bean.p_mon_locn_id=", ems_id,
         "}{For EMS water chemistry data, see EMS ID ", ems_id, "}."),
-      piper_text = str_replace_all(piper_text, c("\\&" = "\\\\&", "\\#" = "\\\\#"))) |>
-    complete(ow = .env$ow$ow, fill = list(piper_text = "No summary at this point")) |>
+      ow_piper_text = str_replace_all(ow_piper_text, c("\\&" = "\\\\&", "\\#" = "\\\\#"))) |>
+    complete(ow = .env$ow$ow, fill = list(ow_piper_text = "")) |>
     select(-"ems_id")
 
   ow |>
     filter(ow_status == "Active") |>
+    select("aquifer_id", "ow", "ow_well_tag_number" = "well_tag_number") |>
     left_join(piper_text, by = "ow") |>
     mutate(
-      map_link = paste0("https://governmentofbc.maps.arcgis.com/apps/webappviewer/",
+      ow_map_link = paste0("https://governmentofbc.maps.arcgis.com/apps/webappviewer/",
                         "index.html?id=b53cb0bf3f6848e79d66ffd09b74f00d&find=OBS\\%20WELL\\%20",
                         sprintf("%03d", ow)),
-      well_record = paste0("https://apps.nrs.gov.bc.ca/gwells/well/", well_tag_number))
+      ow_well_record = paste0("https://apps.nrs.gov.bc.ca/gwells/well/", ow_well_tag_number))
 }
 
 
@@ -244,105 +326,102 @@ fs_fmt_props <- function(x_min, x_max, x_n, units) {
 
 fs_aq_check_map_link <- function(aq) {
   if(httr::http_error(httr::GET(aq$map_report_link))) {
-    aq$desc <- stringr::str_replace(aq$desc, "\\\\link\\{.*\\}", "\\\\link\\{]]}")
+    aq$desc <- stringr::str_replace(aq$desc, " \\(\\\\link\\{.*\\}\\)", "")
   }
   aq
 }
 
-fs_figs_p1 <- function(aq_ids, ...) {
-  tibble(files = unlist(list(...))) |>
+fs_figs_p1 <- function(aq_ids, boxplots) {
+  tibble(files = unlist(boxplots)) |>
     mutate(type = stringr::str_extract(files, "water_depth|well_depth|well_yield"),
            aquifer_id = as.numeric(stringr::str_extract(files, "\\d{4}"))) |>
-    tidyr::drop_na() |>
-    tidyr::pivot_wider(names_from = type, values_from = files) |>
+    drop_na() |>
+    pivot_wider(names_from = type, values_from = files) |>
+    right_join(select(aq_ids, "aquifer_id", "aq_group"), by = "aquifer_id") |>
     mutate(across(
-      -"aquifer_id",
-      \(x) if_else(is.na(x), f("boxplots", f = paste0(cur_column(), "_NA.jpg")), x))) |>
-    complete(aquifer_id = aq_ids) |>
-    filter(aquifer_id %in% aq_ids) |>
-    mutate(maps = f("maps", f = paste0("Aquifer_Map_", sprintf("%04d", aquifer_id), ".pdf")))
+      -c("aquifer_id", "aq_group"),
+      \(x) if_else(is.na(x), fs::path(f["outputs_boxplots"], paste0(cur_column(), "_NA.jpg")), x))) |>
+    rename_with(\(x) paste0("p1_", x), -c("aquifer_id", "aq_group")) |>
+    mutate(p1_maps = fs::path(f["inputs_maps"], paste0("Aquifer_Map_", sprintf("%04d", aquifer_id), ".pdf")))
 }
 
-fs_figs_p2 <- function(aq_ids, ...) {
+fs_figs_p2 <- function(aq_ids, ..., ow) {
+
   tibble(files = unlist(list(...))) |>
     mutate(type = stringr::str_extract(files, "gwl_ppt|gwl_trends|piperplots"),
            aquifer_id = as.numeric(stringr::str_extract(files, "\\d{4}(?=_)")),
            ow = as.numeric(stringr::str_extract(files, "\\d{4}(?=\\.)"))) |>
-    tidyr::drop_na() |>
-    tidyr::pivot_wider(names_from = type, values_from = files) |>
-    mutate(across(
-      -c("aquifer_id", "ow"),
-      \(x) if_else(is.na(x), f("in_na", f = paste0("figure_missing_", cur_column(), ".png")), x))) |>
-    complete(aquifer_id = aq_ids) |>
-    filter(aquifer_id %in% aq_ids)
+    drop_na() |>
+    pivot_wider(names_from = type, values_from = files) |>
+
+    # Omit bad piperplots
+    left_join(fs_ow_details(ow), by = c("aquifer_id", "ow")) |>
+    mutate(
+      piper_na = str_detect(tolower(ow_piper_text), "do not publish"),
+      piperplots = if_else(piper_na, NA_character_, piperplots),
+      ow_piper_text = if_else(piper_na, NA_character_, ow_piper_text)) |>
+
+    # Fill in missing plots
+    mutate(
+      gwl_ppt = if_else(is.na(gwl_ppt), f["inputs_na_gwl_ppt"], gwl_ppt),
+      gwl_trends = if_else(is.na(gwl_trends), f["inputs_na_gwl_trends"], gwl_trends),
+      piperplots = if_else(is.na(piperplots), f["inputs_na_piperplots"], piperplots),
+      ) |>
+
+    # Identify as P2s
+    rename_with(\(x) paste0("p2_", x), all_of(c("gwl_ppt", "gwl_trends", "piperplots"))) |>
+    right_join(select(aq_ids, "aquifer_id", "aq_group"), by = "aquifer_id") |>
+    mutate(ow_piper_text = replace_na(ow_piper_text, "")) |>
+    nest("p2" = -c("aquifer_id", "aq_group"))
 }
 
-fs_figs_p3 <- function(aq_ids, images, index) {
 
-  txt <- tibble(path = list.files(f("extra"), ".txt", full.names = TRUE)) |>
-    mutate(name = str_extract(path, "[^/]+$"),
-           name = str_remove(name, "\\.[[:alpha:]]+$"),
-           text = map_chr(path, read_file),
-           text = str_trim(text)) |>
-    select("name", "text")
+#' Process and format figures for page 3 (extra)
+#'
+#' @param aq_ids Aquifer Ids to process
+#' @param index Index file (output of fmt_extra_page_index())
+#' @param extra_files List of blurb text files, only included to trigger a re-run
+#'  of this function as a target if any of the file contents change.
+#'
+#' @noRd
+#' @examplesIf interactive()
+#' targets::tar_load_globals()
+#' targets::tar_load(c(p1, starts_with("extra")))
+#' fs_figs_p3(p1, extra_index_file, extra_files)
 
-  # TODO: Calculate the dimensions for the iamge
-  #  add option in files to makes smaller if need more space for the text
-  #  clip extra white space
+fs_figs_p3 <- function(aq_ids, index, extra_files) {
 
-  # Extra page three figures by Aquifer
-  read_csv(images, show_col_types = FALSE) |>
-    left_join(read_excel(index), by = "type") |>
+  figs_p3 <- index |>
     arrange(order, image) |>
-    distinct() |> #in case of duplicates
-    mutate(name = str_remove(image, "\\.[[:alpha:]]+$")) |>
-    left_join(txt, by = "name") |>
-    mutate(loc = f("in_extra", f = image)) |>
-    filter(aquifer_id %in% aq_ids,
-           fs::file_exists(loc)) |> # TODO: alert if in index but no file?
-    mutate(fill = replace_na(fill, 0.5),
-           fill = fill - 0.01,
-           fill_text = 0.93 - fill,
-           dim = map(loc, \(x) magick::image_info(magick::image_read(x))[c("width", "height")])) |>
+    mutate(loc = fs::path(f["outputs_extra"], image)) |>
+    mutate(
+      fill = 0.5,
+      fill = fill - 0.01,
+      fill_text = 0.93 - fill,
+      dim = map(loc, \(x) {
+        if(!is.na(x)) {
+          magick::image_info(magick::image_read(x))[c("width", "height")]
+        } else NA
+      })) |>
     unnest(dim) |>
-    mutate(image_position = if_else(width > height,
-                                    paste0("height = ", fill, "\\paperheight"),
-                                    paste0("width = ", fill, "\\paperwidth")),
-           text_position = if_else(width > height,
-                                   paste0("height = ", fill_text, "\\paperheight"),
-                                   paste0("width = ", fill_text, "\\paperwidth"))) |>
-    complete(aquifer_id = aq_ids)
+    mutate(
+      type = if_else((width / height) >= 1, "landscape", "portrait"),
+      image_position = if_else(type == "landscape",       # width > height,
+                               "width = \\textwidth",       # paste0("height = ", fill, "\\paperheight"),
+                               "height = 0.5\\paperheight"), # paste0("width = ", fill, "\\paperwidth")),
+      text_position = #if_else(is.na(type) | type == "landscape",
+                              # Full width text for full width image
+                              paste0("width = \\textwidth")
+                              # Half width text for half width image
+                       #       paste0("width = ", fill_text, "\\paperwidth")
+      ) |>
+    mutate(#page = if_else(width > height, 1, 0.5),
+           #last_page = lag(page, default = 0.5),
+           n = seq_len(n()),
+           #n = if_else(last_page == 0.5 & !is.na(page) & page == 0.5, n[lag(n, default = 1)], n),
+           .by = "aquifer_id") |>
+    rename_with(\(x) paste0("p3_", x), .cols = -"aquifer_id")
+
+  left_join(select(aq_ids, "aquifer_id", "aq_group"), figs_p3, by = "aquifer_id") |>
+    nest("p3" = -c("aquifer_id", "aq_group"))
 }
-
-
-fig_extra <- function() {
-  # Figures by aquifer by OW
-  p2 <- ow_index |>
-    select("aquifer_id", "ow") |>
-    mutate(aq_num_ch = sprintf("%04d", aquifer_id),
-           ow_ch = sprintf("%04d", ow)) |>
-    expand_grid(type = c("gwl_ppt", "gwl_trends", "piperplot")) |>
-    mutate(fig = paste0(type, "_", aq_num_ch, "_OW", ow_ch, ".png"),
-           fig = map2_chr(type, fig,  \(x, y) f(x, f = y)),
-           exists = file.exists(fig),
-           # Don't publish piper plots without a blurb
-           exists = if_else(type == "piper" & !as.numeric(.data$ow) %in% .env$piper_text$obs_well,
-                            FALSE, exists),
-           fig = replace(fig, !exists, f("in_na", f = paste0("figure_missing_", type[!exists], ".png")))) |>
-    mutate(missing = sum(!exists), .by = "ow") |>
-    pivot_wider(names_from = type, values_from = fig) |>
-    select(-"aq_num_ch", -"ow_ch")
-
-
-  # Extra page three figures by Aquifer
-  p3 <- read_csv(f("in_extra", f = "extra_page_images.csv"), show_col_types = FALSE) |>
-    left_join(read_excel(f("in_extra", f = "extra_page_index.xlsx")), by = "type") |>
-    arrange(order, image) |>
-    distinct() |> #in case of duplicates
-    mutate(loc = f("in_extra", f = image))
-
-  left_join(p1, p2, by = "aquifer_id") |>
-    left_join(p3, by = "aquifer_id")
-}
-
-

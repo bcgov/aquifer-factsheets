@@ -1,47 +1,21 @@
-#' # Copyright 2020 Province of British Columbia
-#' #
-#' # Licensed under the Apache License, Version 2.0 (the "License"); you may not
-#' # use this file except in compliance with the License. You may obtain a copy of
-#' # the License at
-#' #
-#' # http://www.apache.org/licenses/LICENSE-2.0
-#' #
-#' # Unless required by applicable law or agreed to in writing, software
-#' # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#' # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#' # License for the specific language governing permissions and limitations under
-#' # the License.
-#'
-#' #
-#' # Create Plots and Figures
-#' #
-#'
-#' # Setup -------------------------------------------------------------------
-#'
+# Copyright 2020 Province of British Columbia
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
-#'
-#'
-#' # Load functions, packages and data
-#' source("00_setup.R")
-#' load("tmp/aquifer_factsheet_clean_data.RData")
-#'
 
-#'
-#' # Retired aquifers ----------------
-#'
-#' # Remove retired aquifers with message
-#' if(any(aquifers %in% aquifer_db$aquifer_id[aquifer_db$retired])) {
-#'   a <- aquifers[aquifers %in% aquifer_db$aquifer_id[aquifer_db$retired]]
-#'   message("Retired aquifers removed from run: ", paste0(a, collapse = ", "))
-#'   aquifers <- aquifers[!aquifers %in% a]
-#' }
-#'
-#'
-#'
-#' # Boxplots: Yield Boxplots ----------------------------------------------------------
 clean_files <- function(aquifers) {
   # Remove old files (make sure no old files to interfere)
-  if(delete_old) file.remove(list.files(f("boxplots"), full.name = TRUE))
+  if(delete_old) file.remove(list.files(f["outputs_boxplots"], full.name = TRUE))
 }
 
 
@@ -123,7 +97,7 @@ plot_bx_well_yield <- function(w, bx_empty) {
                                   well_yield$layers[-length(well_yield$layers)])
     }
 
-    f <- f("boxplots", f = paste0("well_yield_", sprintf("%04d", a), ".jpg"))
+    f <- fs::path(f["outputs_boxplots"], paste0("well_yield_", sprintf("%04d", a), ".jpg"))
     ggsave(f,
            plot = well_yield,
            width = bx_width, height = bx_height, dpi = dpi)
@@ -156,7 +130,7 @@ plot_bx_well_depth <- function(w, bx_empty) {
         labs(x = paste0("Median well depth:\n", prod, " m"))
     }
 
-    f <- f("boxplots", f = paste0("well_depth_", sprintf("%04d", a), ".jpg"))
+    f <- fs::path(f["outputs_boxplots"], paste0("well_depth_", sprintf("%04d", a), ".jpg"))
     ggsave(f,
            plot = well_depth,
            width = bx_width, height = bx_height, dpi = dpi)
@@ -190,7 +164,7 @@ plot_bx_water_depth <- function(w, bx_empty) {
         labs(x = paste0("Median water depth:\n", prod, " m"))
     }
 
-    f <- f("boxplots", f = paste0("water_depth_", sprintf("%04d", a), ".jpg"))
+    f <- fs::path(f["outputs_boxplots"], paste0("water_depth_", sprintf("%04d", a), ".jpg"))
 
     ggsave(filename = f,
            plot = water_depth,
@@ -205,18 +179,18 @@ plot_bx_water_depth <- function(w, bx_empty) {
 #   in plot_bx_XXX() when not enough data
 plot_bx_empty <- function() {
   ggsave(
-    f("boxplots", f = "well_yield_NA.jpg"), plot = plot_bx_base(0, "well_yield") + plot_no_data(type = "none"),
+    fs::path(f["outputs_boxplots"], "well_yield_NA.jpg"), plot = plot_bx_base(0, "well_yield") + plot_no_data(type = "none"),
     width = bx_width, height = bx_height, dpi = dpi)
 
   ggsave(
-    f("boxplots", f = "well_depth_NA.jpg"), plot = plot_bx_base(0, "well_depth") + plot_no_data(type = "none"),
+    fs::path(f["outputs_boxplots"], "well_depth_NA.jpg"), plot = plot_bx_base(0, "well_depth") + plot_no_data(type = "none"),
     width = bx_width, height = bx_height, dpi = dpi)
 
   ggsave(
-    f("boxplots", f = "water_depth_NA.jpg"), plot = plot_bx_base(0, "water_depth") + plot_no_data(type = "none"),
+    fs::path(f["outputs_boxplots"], "water_depth_NA.jpg"), plot = plot_bx_base(0, "water_depth") + plot_no_data(type = "none"),
     width = bx_width, height = bx_height, dpi = dpi)
 
-  f("boxplots", f = c("well_yield_NA.jpg", "well_depth_NA.jpg", "water_depth_NA.jpg")) |>
+  fs::path(f["outputs_boxplots"], c("well_yield_NA.jpg", "well_depth_NA.jpg", "water_depth_NA.jpg")) |>
     stats::setNames(c("well_yield", "well_depth", "water_depth"))
 }
 
@@ -226,8 +200,7 @@ plot_bx_empty <- function() {
 
 # Combo Water level / Precip ----------------------------------------------
 
-plot_wl_ppt <- function(wl, ppt) {
-
+plot_gwl_ppt <- function(wl, ppt) {
   a <- wl$aquifer_id[1]
   o <- wl$ow[1]
 
@@ -301,11 +274,15 @@ plot_wl_ppt <- function(wl, ppt) {
       num_yrs < 5 ~ "No Monthly Water Level Summary (only ",
       num_yrs < 10 ~ "Preliminary Monthly Water Level Summary (",
       TRUE ~ "Full Monthly Water Level Summary (") %>%
-      paste0(num_yrs, " years of data; ", wl$min_yr[1], "-", wl$max_yr[1], ")") %>%
-      paste0("\u00B9 ", ., "\n",
-             "\u00B2 Climate Normals Based on ",
-             climate_title,
-             " Environment Canada Weather Station (1981-2010)")
+      paste0(num_yrs, " years of data; ", wl$min_yr[1], "-", wl$max_yr[1], ")")
+
+    if(num_yrs == 0) wl_title <- paste0("No Monthly Water Level Summary (< 1 year of data; ",
+                                        wl$min_yr[1])
+
+    wl_title <- paste0("\u00B9 ", wl_title, "\n",
+                       "\u00B2 Climate Normals Based on ",
+                       climate_title,
+                       " Environment Canada Weather Station (1981-2010)")
 
     wl <- filter(wl, num_yrs >= 5)
 
@@ -331,12 +308,16 @@ plot_wl_ppt <- function(wl, ppt) {
         mutate(gridlines = breaks * wl_shift$mult[1] + wl_shift$shift[1]) %>%
         filter(gridlines > (max(breaks_ppt) * 1.2))
 
-      dec_points <- str_length(str_extract(breaks_wl$breaks, "[^.]*$"))
+      # Get the number of decimals in the scale
+      dec_points <- str_length(str_extract(breaks_wl$breaks, "(?<=\\.)\\d*$"))
+      dec_points <- dec_points[!is.na(dec_points)]
+      if(length(dec_points) == 0) dec_points <- 0
 
       g <- g +
         # Add secondary axis
         scale_y_continuous(
           breaks = breaks_ppt, expand = c(0.02, 0),
+          labels = scales::label_number(accuracy = 0.01),
           sec.axis = sec_axis(~ ((. - wl_shift$shift[1]) / (wl_shift$mult[1])),
                               name = "Depth to Groundwater (m below ground surface)",
                               breaks = breaks_wl$breaks,
@@ -364,83 +345,75 @@ plot_wl_ppt <- function(wl, ppt) {
           y = min_monthly_wl, colour = "Extreme Maximum")) +
         geom_point(data = wl, aes(
           x = as.numeric(month_abb),
-          y = max_monthly_wl, colour = "Extreme Minimum"))
+          y = max_monthly_wl, colour = "Extreme Minimum")) +
+        # Scales and Labels
+        # These add specific colours to the lables assigned to the aes above
+        scale_colour_manual(values = c("Extreme Maximum" = "slategray3",
+                                       "Median" = "black",
+                                       "Extreme Minimum" = "bisque3"))
     }
 
     g <- g +
       # Scales and Labels
       # These add specific colours to the lables assigned to the aes above
-      scale_colour_manual(values = c("Extreme Maximum" = "slategray3",
-                                     "Median" = "black",
-                                     "Extreme Minimum" = "bisque3")) +
       scale_fill_manual(values = c("10-90th Percentile" = "lightskyblue2",
                                    "25-75th Percentile" = "steelblue1",
                                    "Total rainfall (mm)" = "lightcyan3",
                                    "Total snowfall\n(rainfall equivalent)" = "white")) +
-      # Remove point from median line
-      guides(colour = guide_legend(order = 1,
-                                   override.aes = list(shape = c(19, NA, 19))),
-             fill = guide_legend(order = 2)) +
       labs(x = "Month",
            y = paste0("Monthly Precipitation (mm) at\n", climate_title),
            title = wl_title)
 
-    f <- paste0(f("gwl_ppt"), "/gwl_ppt_",
-                sprintf("%04d", a),"_OW",
-                sprintf("%04d", o),".png")
+    path_out <- paste0(f["outputs_gwl_ppt"], "/gwl_ppt_",
+                       sprintf("%04d", a),"_OW",
+                       sprintf("%04d", o),".png")
 
-    ggsave(filename = f,
+    ggsave(filename = path_out,
            plot = g,
            height = combo_height, width = combo_width, dpi = dpi)
 
   } else {
-    f <- f("in_na", f = "figure_missing_gwl_ppt.png")
+    path_out <- f["inputs_na_gwl_ppt"]
     # Write an informative message to the console if there is no data for the ppt
     # message("AQUIFER ID: ", a, " OBS WELL: ", o, ", Water level data, ",
     #         "but no precipitation data\n(perhaps obs_wells_index is missing ",
     #         "CLIMATE ID for this aquifer)")
   }
-  f
+  path_out
 }
 
 
 # Groundwater level trend plot --------------------------------------------
 # - Create the plot, save as png, return filename
-plot_gwl <- function(gwl, gwl_trends) {
+plot_gwl_trends <- function(gwl, gwl_trends) {
 
   a <- gwl$aquifer_id[1]
   o <- gwl$ow[1]
 
+  # Required by bcgroundwater
   gwl <- rename(gwl, "Well_Num" = "ow")
   gwl_trends <- rename(gwl_trends, "Well_Num" = "ow")
 
   # Skip plot if < 5 years of data
-  if(gwl_trends$nYears >= 5) {
+  if(!is.na(gwl_trends$nYears) && gwl_trends$nYears >= 5) {
 
-    g <- gwl_area_plot(data = gwl,
+    g <- gwl_area_plot_customized(df = gwl,
                        trend = gwl_trends$trend_line_slope,
                        intercept = gwl_trends$trend_line_int,
                        trend_category = gwl_trends$state,
                        sig = gwl_trends$sig,
                        showInterpolated = TRUE, save = FALSE,
-                       mkperiod = "annual", show_stable_line = FALSE) +
-      labs(title = NULL) +
-      theme(legend.position = "right", legend.box = "vertical",
-            legend.margin = margin(
-              0, # Add extra spacing if no interpolated values in legend
-              if_else(any(gwl$nReadings == 0), 5.5, 45),
-              0, 5.5),
-            legend.spacing = unit(0, units = "mm"))
+                       mkperiod = "annual", show_stable_line = FALSE)
 
-    f <- paste0(f("gwl_trends"), "/gwl_trends_",
-                sprintf("%04d", as.numeric(a)),"_OW",
-                sprintf("%04d", as.numeric(o)),".png")
+    path_out <- paste0(f["outputs_gwl_trends"], "/gwl_trends_",
+                       sprintf("%04d", as.numeric(a)),"_OW",
+                       sprintf("%04d", as.numeric(o)),".png")
 
     ggsave(plot = g,
-           filename = f,
+           filename = path_out,
            height = trend_height, width = trend_width, dpi = dpi)
-  } else f <- f("in_na", f = "figure_missing_gwl_trends.png")
-  f
+  } else path_out <- f["inputs_na_gwl_trends"]
+  path_out
 }
 
 
@@ -452,7 +425,7 @@ plot_piper <- function(ems, debug = FALSE) {
 
   a <- ems$aquifer_id[1]
   o <- ems$StationID[1]
-  f <- f("in_na", f = "figure_missing_piperplots.png")
+  path_out <- f["inputs_na_piperplots"]
 
   if(debug) message("   AQ: ", a, "; OW: ", o)
 
@@ -462,12 +435,16 @@ plot_piper <- function(ems, debug = FALSE) {
 
   # Note: By default piper_plot() uses only valid (abs(charge_balance) <=10) data
   if(nrow(ems) >= 1) {
-    # Make plot - Only if it would plot...
-    t <- try(piper_plot(ems, legend = FALSE), silent = TRUE)
-    if(inherits(t, "try-error")) browser()
-    if(!is.null(piper_plot(ems, legend = FALSE, plot_data = TRUE))) {
+
+    if(debug) {
+      # Make plot - Only if it would plot...
+      t <- try(piper_plot(ems, legend = FALSE), silent = TRUE)
+      if(inherits(t, "try-error")) browser()
+    }
+
+    if(!is.null(piper_plot(ems, legend = FALSE, plot_data = TRUE, omit_outliers = TRUE))) {
       pp <- image_graph(width = 2000, height = 2100, res = dpi)
-      piper_plot(ems, legend = FALSE)
+      piper_plot(ems, legend = FALSE, omit_outliers = TRUE, with_Alk = TRUE)
       dev.off()
 
       # print(p)  # For troubleshooting
@@ -478,13 +455,13 @@ plot_piper <- function(ems, debug = FALSE) {
 
       # print(p2)  # For troubleshooting
 
-      f <- paste0(f("piperplots"), "/piperplots_",
-                  sprintf("%04d", as.numeric(a)), "_OW",
-                  sprintf("%04d", as.numeric(o)), ".png")
+      path_out <- paste0(f["outputs_piperplots"], "/piperplots_",
+                         sprintf("%04d", as.numeric(a)), "_OW",
+                         sprintf("%04d", as.numeric(o)), ".png")
 
       # Save plot
-      image_write(pp2, path = f)
+      image_write(pp2, path = path_out)
     }
   }
-  f
+  path_out
 }

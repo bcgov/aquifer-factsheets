@@ -34,14 +34,14 @@ letter paper is 215.9 by 279.4 mm
   
   `r  # Top blue bar with title`
   \fill[blue] ([xshift = -0.05cm]tl) rectangle ([yshift = -0.6cm, xshift = 0.05cm]tr);
-  \node[below right = 0.6cm and 0.6cm of current page.north west, white, font = \large\bf] (map_link) {\link[lightgrey]{`r o$map_link`}{(Interactive map)}};
-  \node[below = 0.6cm of current page.north, white, font = \large\bf] (num) {Observation Well \#`r o$ow` (\link[lightgrey]{`r o$well_record`}{Well record})};
-  \node[below left = 0.65cm and 0.55cm of current page.north east, white, font = \bf] (num) {Aquifer \#`r o$aquifer_id`};
+  \node[below right = 0.6cm and 0.6cm of current page.north west, white, font = \large\bf] (map_link) {\link[lightgrey]{`r f2$ow_map_link`}{(Interactive map)}};
+  \node[below = 0.6cm of current page.north, white, font = \large\bf] (num) {Observation Well \#`r f2$ow` (\link[lightgrey]{`r f2$ow_well_record`}{Well record})};
+  \node[below left = 0.65cm and 0.55cm of current page.north east, white, font = \bf] (num) {Aquifer \#`r f2$aquifer_id`};
 
   `r # Figures (width = 0.94\paperwidth`
-  \node[below = 0.85cm of line0, anchor = north] (ground) {\includegraphics[height = 0.29\paperheight]{`r here(f2$gwl_ppt)`}};
-  \node[below = 0.85cm of line1, anchor = north] (trend) {\includegraphics[height = 0.29\paperheight]{`r here(f2$gwl_trends)`}};
-  \node[below right = 0.55cm and 1cm of line2l, anchor = north west] (piper) {\includegraphics[height = 0.29\paperheight]{`r here(f2$piperplots)`}};
+  \node[below = 0.85cm of line0, anchor = north] (ground) {\includegraphics[height = 0.29\paperheight]{`r here(f2$p2_gwl_ppt)`}};
+  \node[below = 0.85cm of line1, anchor = north] (trend) {\includegraphics[height = 0.29\paperheight]{`r here(f2$p2_gwl_trends)`}};
+  \node[below right = 0.55cm and 1cm of line2l, anchor = north west] (piper) {\includegraphics[height = 0.29\paperheight]{`r here(f2$p2_piperplots)`}};
   
   `r # Headings`
   \node[below right = 0.75cm and 0.2cm of line0l, anchor = south west, font = \Large\bf]{Monthly Groundwater Level\textsuperscript{1} with Precipitation from Climate Normals\textsuperscript{2}};
@@ -49,7 +49,7 @@ letter paper is 215.9 by 279.4 mm
   \node[below right = 0.75cm and 0.2cm of line2l, anchor = south west, font = \Large\bf]{Piper Plot};
   
   `r # Piper Text`
-  \node[below left = 0.5cm and 0.5cm of line2r, anchor = north east, align = left, text width = 10cm, font = \small\bf] (pipertext){`r o$piper_text`};
+  \node[below left = 0.5cm and 0.5cm of line2r, anchor = north east, align = left, text width = 10cm, font = \small\bf] (pipertext){`r f2$ow_piper_text`};
   
   `r # Piper Text 2`
   %\node[above left = 0.2cm and 0.5cm of br, align = left, text width = 10cm, font = \footnotesize] (pipertext2){A piper diagram is a graphical representation of the chemistry of a water sample. The cations (calcium, magnesium and sodium plus potassium) and anions (sulfate, chloride and carbonate plus hydrogen carbonate) are shown on separate ternary plots and then projected onto the diamond. Water samples shown on the Piperplot can be grouped into hydrochemical facies which provides  insight into the flow path and chemical alteration of a sample.};
@@ -67,6 +67,6 @@ letter paper is 215.9 by 279.4 mm
 
 <!-- Add tagline to bottom right IF this is a draft -->
 ```{r, results = "asis"}
-  if(params$draft) draft_tag()
+  if(params$draft) fs_draft_tag()
 ```
 

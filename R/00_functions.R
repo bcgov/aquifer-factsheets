@@ -45,9 +45,11 @@ aq_unzip <- function(zip, path, files) {
 }
 
 aq_bcdata_url <- function(record, name) {
-  bcdata::bcdc_tidy_resources(record) |>
-    dplyr::filter(.data$name == .env$name) |>
+  rec <- bcdata::bcdc_tidy_resources(record) |>
+    dplyr::filter(stringr::str_detect(.data$name, .env$name)) |>
     dplyr::pull(.data$url)
+  if(length(rec) > 1) stop("Matched more than one record", call. = FALSE)
+  rec
 }
 
 aq_hc <- function() {
@@ -69,11 +71,15 @@ aq_hc <- function() {
           "UNK", "Unknown")
 }
 
+aq_group <- function(df) {
+  mutate(df, aq_group = floor(aquifer_id/10) + 1)
+}
+
 f <- function(name, type = NULL, f = NULL) {
   d <- dirs[stringr::str_subset(names(dirs), name)]
   if(!is.null(type)) d <- stringr::str_subset(d, type)
   if(!is.null(f)) d <- fs::path(d, f)
-  d
+  unique(d)
 }
 
 
@@ -106,55 +112,66 @@ get_breaks <- function(min, max, length.out) {
   seq(min, max, by = by)
 }
 
-fix_names <- function(dir_maps = f("maps"), filename, ext, digits = 4) {
+fix_names <- function(dir_maps = f["inputs_maps"], filename, ext, digits = 4) {
 
   f <- list.files(file.path(dir_maps))
 
-  d <- paste0("_[0-9]{", digits, "}")
-  d_nice <- paste0(rep("0", digits), collapse = "")
+  d <- paste0("(?<=_)[0-9]{1,", digits, "}")  # Pattern to replace
+  d_good <- paste0("_[0-9]{", digits, "}")    # Pattern to find/build
+  d_pretty <- paste0(rep("0", digits), collapse = "") # Pattern to display
 
-  mismatch <- f[!str_detect(f, paste0(filename, d, ".", ext))]
+  mismatch <- f[!stringr::str_detect(f, paste0(filename, d, ".", ext))]
   mismatch <- mismatch[mismatch != "Thumbs.db"]
 
   if(length(mismatch) > 0) {
 
-    w <- paste0(type, " should have file names of ", filename, "_",
-                d_nice, ".", ext, ", but...")
-    mismatch <- tibble(orig = mismatch,
-                       new = mismatch)
+    w <- paste0("Maps should have file names of ", filename, "_",
+                d_pretty, ".", ext, ", but...")
+    mismatch <- dplyr::tibble(orig = mismatch,
+                              new = mismatch)
 
     # wrong extension?
-    if(any(!str_detect(mismatch$new, paste0(ext, "$")))) {
+    if(any(!stringr::str_detect(mismatch$new, paste0(ext, "$")))) {
       w <- paste0(w, "\n", " - some do not have the correct extension")
     }
 
     # lower/uppercase issues
-    if(any(!str_detect(mismatch$new, filename) &
-           str_detect(mismatch$new, regex(filename, ignore_case = TRUE)))) {
+    if(any(!stringr::str_detect(mismatch$new, filename) &
+           stringr::str_detect(mismatch$new, stringr::regex(filename, ignore_case = TRUE)))) {
       w <- paste0(w, "\n", " - some have incorrect upper/lower case letters. Fixing...")
-      mismatch <- mutate(mismatch,
-                         new = str_replace(new, regex(filename, ignore_case = TRUE), filename))
+      mismatch <- dplyr::mutate(mismatch,
+                         new = stringr::str_replace(new, stringr::regex(filename, ignore_case = TRUE), filename))
     }
 
     # wrong name?
-    if(any(!str_detect(mismatch$new, filename))) {
+    if(any(!stringr::str_detect(mismatch$new, filename))) {
       w <- paste0(w, "\n", " - some have an incorrect filename (even after fixing lower/upper case letters).")
     }
 
     # wrong number of digits
-    if(!any(str_detect(mismatch$new, d))) {
+    if(!all(stringr::str_detect(mismatch$new, d_good))) {
       w <- paste0(w, "\n", " - some have the wrong number of digits. Fixing...")
 
-      mismatch <- mutate(mismatch,
-                         id = str_extract_all(new, paste0("[0-9]{1,", digits, "}")),
-                         id = map(id, ~sprintf("%04d", as.numeric(.))),
-                         id = map_chr(id, ~paste0(., collapse = "_OW")),
-                         new = paste0(filename, "_", id, ".", ext))
+      mismatch <- dplyr::mutate(
+        mismatch,
+        id = stringr::str_extract_all(new, d),
+        id = purrr::map(id, ~unique(sprintf("%04d", as.numeric(.)))),
+        #id = purrr::map_chr(id, ~paste0(., collapse = "_OW")),
+        new = paste0(filename, "_", id, ".", ext))
     }
+
+    if(any(!stringr::str_detect(mismatch$new, paste0(filename, d_good, ".pdf")))) {
+      stop("Cannot fix some Map names:\n - ",
+           paste0(mismatch$orig[!stringr::str_detect(
+             mismatch$new,
+             paste0(filename, d, ".pdf"))], collapse = "\n - "),
+           call. = FALSE)
+    }
+
     message(w)
-    if(nrow(mismatch <- filter(mismatch, orig != new)) > 0) {
-      file.rename(from = file.path(dir, type, mismatch$orig),
-                  to = file.path(dir, type, mismatch$new))
+    if(nrow(mismatch <- dplyr::filter(mismatch, orig != new)) > 0) {
+      file.rename(from = file.path(dir_maps, mismatch$orig),
+                  to = file.path(dir_maps, mismatch$new))
       message(paste0(paste0("Renaming ", mismatch$orig, " to ", mismatch$new), collapse = "\n"))
     }
   }
@@ -166,14 +183,14 @@ round_any <- function(x, accuracy, f = round){
   f(x / accuracy) * accuracy
 }
 
-check_piper_plots_gwells <- function(dir_piper = f("piper")) {
+check_piper_plots_gwells <- function(dir_piper = f["outputs_piperplots"]) {
   p <- tibble(file = list.files(dir_piper)) %>%
     mutate(ow = str_extract(file, "OW[0-9]{4}"),
            ow = as.numeric(str_extract(ow, "[0-9]{4}")),
            aquifer_id = str_extract(file, "_[0-9]{4}_"),
            aquifer_id = as.numeric(str_extract(aquifer_id, "[0-9]{4}")))
 
-  g <- read_csv(f("out_data", f = "well.csv"), guess_max = Inf, col_types = cols(),
+  g <- read_csv(fs::path(f["outputs_data_dl", "well.csv"]), guess_max = Inf, col_types = cols(),
                 n_max = 1000000000) %>%
     select(aquifer_id, ow = observation_well_number) %>%
     filter(!is.na(ow)) %>%
@@ -184,17 +201,17 @@ check_piper_plots_gwells <- function(dir_piper = f("piper")) {
 
   if(nrow(compare) > 0) {
     message("Mismatch between Piperplot Aquifers and GWELLS Aquifers, see:\n '",
-            f("output"), "/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv'")
-    write_csv(compare, paste0(f("output"), "/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv"))
+            f["output"], "/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv'")
+    write_csv(compare, paste0(f["output"], "/LOG_PIPER_MISMATCH_", Sys.Date(), ".csv"))
   } else {
     message("No mismatches between Piperplots and GWELLS")
   }
   TRUE
 }
 
-check_piper_plots_text <- function(dir_piper = f("piper"),
-                                   file_piper = f("in_data", f = "piper_text.xlsx"),
-                                   dir_maps = f("maps")) {
+check_piper_plots_text <- function(dir_piper = f["outputs_piperplots"],
+                                   file_piper = f["inputs_piperplots_text"],
+                                   dir_maps = f["inputs_maps"]) {
 
   # Check piperplots against pipertext
   p <- tibble(file = list.files(dir_piper, pattern = "piperplot")) %>%
@@ -229,7 +246,7 @@ check_piper_plots_text <- function(dir_piper = f("piper"),
 
   # Get water type where there is no text
   # TODO: Where does ems.csv come from?
-  ems <- read_csv(f("out_data", f = "ems.csv"), show_col_types = FALSE, guess_max = Inf) %>%
+  ems <- read_csv(fs::path(f["outputs_data_dl"], "ems.csv"), show_col_types = FALSE, guess_max = Inf) %>%
     group_by(obs_well = StationID) %>%
     select(ems_id = SampleID, obs_well, water_type) %>%
     mutate(ems_id = str_remove(ems_id, "-[0-9]+$")) %>%
@@ -255,13 +272,13 @@ check_piper_plots_text <- function(dir_piper = f("piper"),
     select(aquifer_id, obs_well, ems_id, water_type)
 
   # Backup log files
-  logs <- list.files(f("outputs"), pattern = "LOG_PIPER_", full.names = TRUE)
-  file.copy(logs, f("out_archive"), overwrite = TRUE)
+  logs <- list.files(f["output"], pattern = "LOG_PIPER_", full.names = TRUE)
+  file.copy(logs, f["outputs_archive"], overwrite = TRUE)
   file.remove(logs)
 
   # Save new log files
   if(nrow(no_fig) > 0) {
-    f <- paste0(f("outputs"), "/LOG_PIPER_MISSING_FIG_", Sys.Date(), ".csv")
+    f <- paste0(f["output"], "/LOG_PIPER_MISSING_FIG_", Sys.Date(), ".csv")
     write_csv(no_fig, f)
     message("\nSome piperplots listed in ", text_file, " do not have ",
             "corresponding figures in ", dir_piper, "...\n",
@@ -269,7 +286,7 @@ check_piper_plots_text <- function(dir_piper = f("piper"),
   }
 
   if(nrow(no_text) > 0) {
-    f <- paste0(f("outputs"), "/LOG_PIPER_MISSING_TEXT_", Sys.Date(), ".csv")
+    f <- paste0(f["output"], "/LOG_PIPER_MISSING_TEXT_", Sys.Date(), ".csv")
     write_csv(no_text, f)
     message("\nSome piperplots with figures in ", dir_piper, " do not have ",
             "corresponding text in ", text_file, "...\n",
@@ -277,7 +294,7 @@ check_piper_plots_text <- function(dir_piper = f("piper"),
   }
 
   if(nrow(wrong_id) > 0) {
-    f <- paste0(f("outputs"), "/LOG_PIPER_TEXT_AQUIFER_ID_", Sys.Date(), ".csv")
+    f <- paste0(f["output"], "/LOG_PIPER_TEXT_AQUIFER_ID_", Sys.Date(), ".csv")
     write_csv(wrong_id, f)
     message("\nSome piperplots with listed in ", text_file, " do not ",
             "correspond to the same Aquifer ID as in GWELLS...\n",
@@ -286,8 +303,8 @@ check_piper_plots_text <- function(dir_piper = f("piper"),
 
 }
 
-check_piper_plots <- function(dir_piper = f("piper"),
-                              file_piper = f("in_data", "piper_text.xlsx"),
+check_piper_plots <- function(dir_piper = f["outputs_piperplots"],
+                              file_piper = f["inputs_piperplots_text"],
                               which = c("text")) {
 
   if("gwells" %in% which) check_piper_plots_gwells(dir_piper)

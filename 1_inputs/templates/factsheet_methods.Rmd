@@ -212,6 +212,6 @@ Waterloo Hydrogeologic (2014). AquaChem Water Quality Analysis & Geochemical Mod
 
 <!-- Add draft watermark -->
 ```{r, results = "asis"}
-  if(params$draft) draft_tag()
+  if(params$draft) fs_draft_tag()
 ```
 

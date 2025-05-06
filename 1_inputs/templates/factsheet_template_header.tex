@@ -27,6 +27,12 @@
   present/.style = {minimum width = 0.64\textwidth},%
   every picture/.style = {remember picture, overlay, inner sep = 0pt, line width=0pt,/utils/exec={\sffamily}}}
 
+\makeatletter
+\def\maxwidth{\textwidth}
+\def\maxheight{\textheight}
+\makeatother
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+
 %% Define colours
 \definecolor{blue}{HTML}{003D7E}
 \definecolor{gold}{HTML}{FCCA06}
